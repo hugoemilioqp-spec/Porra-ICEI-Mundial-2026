@@ -33,7 +33,7 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
             background: var(--bg-deep);
             color: var(--text);
             min-height: 100vh;
@@ -98,7 +98,6 @@
         .bracket-round-title { text-align:center; font-weight:700; font-size:0.78rem; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin:12px 0 6px; }
         .trophy-center { text-align:center; font-size:3rem; margin:10px 0; filter:drop-shadow(0 0 20px rgba(240,185,11,0.5)); animation:floatTrophy 3s ease-in-out infinite; }
         @keyframes floatTrophy { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
-        .connector-line { border-left:2px solid var(--tree-line); height:16px; margin:0 auto; }
         .pick-section select { background:rgba(255,255,255,0.05); border:1px solid rgba(240,185,11,0.2); border-radius:8px; padding:8px 12px; color:#fff; font-size:0.85rem; font-weight:600; cursor:pointer; min-width:200px; }
         .pick-section select:hover { border-color:var(--gold); }
         .pick-section label { font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; }
@@ -133,310 +132,229 @@
 </aside>
 
 <div class="main">
-    <!-- DASHBOARD -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
         <div class="flex-row" id="stats-row"></div>
-        <div class="panel"><h2><i class="fa-solid fa-ranking-star"></i> Top 5 Clasificación</h2><div id="top5-table"></div></div>
-        <div class="panel"><h2><i class="fa-solid fa-clock"></i> Próximos Partidos</h2><div id="upcoming-matches"></div></div>
+        <div class="panel"><h2>Top 5 Clasificación</h2><div id="top5-table"></div></div>
+        <div class="panel"><h2>Próximos Partidos</h2><div id="upcoming-matches"></div></div>
     </div>
-
-    <!-- PARTIDOS -->
     <div id="tab-matches" class="tab-content">
-        <h1>📅 Calendario Completo FIFA 2026</h1>
-        <p class="subtitle">104 partidos · Fase de Grupos + Eliminatorias</p>
+        <h1>📅 Calendario Completo</h1>
+        <p class="subtitle">104 partidos</p>
         <div class="panel" id="matches-full-list"></div>
     </div>
-
-    <!-- GRUPOS -->
     <div id="tab-groups" class="tab-content">
-        <h1>📊 Grupos del Mundial</h1><p class="subtitle">12 grupos · 4 equipos cada uno</p>
+        <h1>📊 Grupos</h1>
         <div class="grid-3" id="groups-container"></div>
     </div>
-
-    <!-- ELIMINATORIAS -->
     <div id="tab-bracket" class="tab-content">
-        <h1>🏟️ Cuadro de Eliminatorias Completo</h1>
-        <p class="subtitle">32 selecciones · Desde Dieciseisavos hasta la Final</p>
+        <h1>🏟️ Eliminatorias</h1>
         <div class="panel" id="bracket-container"></div>
     </div>
-
-    <!-- MI PORRA -->
     <div id="tab-mypool" class="tab-content">
-        <h1>📝 Mi Porra</h1><p class="subtitle">104 partidos para pronosticar</p>
+        <h1>📝 Mi Porra</h1>
         <div class="panel">
-            <div class="flex-row" style="align-items:center;margin-bottom:10px;">
-                <input type="text" id="player-name" placeholder="Tu nombre (único)" style="max-width:200px;">
-                <button class="btn btn-gold" id="save-name-btn"><i class="fa-solid fa-user"></i> Guardar</button>
-            </div>
+            <input type="text" id="player-name" placeholder="Nombre único" style="max-width:200px;">
+            <button class="btn btn-gold" id="save-name-btn">Guardar</button>
             <div id="prediction-form"></div>
-            <button class="btn btn-accent mt-2" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
+            <button class="btn btn-accent mt-2" id="save-picks-btn">Guardar Todo</button>
+            <button class="btn btn-outline btn-sm mt-2" id="lock-ko-btn">🔒 Bloquear KO manual</button>
         </div>
     </div>
-
-    <!-- CLASIFICACIÓN -->
     <div id="tab-standings" class="tab-content">
-        <h1>🏅 Clasificación General</h1><div class="panel" id="standings-table"></div>
+        <h1>🏅 Clasificación</h1>
+        <div class="panel" id="standings-table"></div>
     </div>
-
-    <!-- PREMIOS -->
     <div id="tab-picks" class="tab-content">
-        <h1>⭐ Premios del Mundial</h1>
-        <div class="panel"><div class="flex-row">
-            <div class="flex-col pick-section"><label><i class="fa-solid fa-futbol text-gold"></i> Bota de Oro</label><select id="golden-boot-pick"><option value="">-- Selecciona --</option><option>Kylian Mbappé</option><option>Harry Kane</option><option>Erling Haaland</option><option>Lionel Messi</option><option>Lamine Yamal</option><option>Vinicius Junior</option><option>Lautaro Martínez</option></select></div>
-            <div class="flex-col pick-section"><label><i class="fa-solid fa-trophy text-gold"></i> Balón de Oro</label><select id="golden-ball-pick"><option value="">-- Selecciona --</option><option>Kylian Mbappé</option><option>Lionel Messi</option><option>Jude Bellingham</option><option>Vinicius Junior</option><option>Lamine Yamal</option><option>Pedri</option><option>Florian Wirtz</option></select></div>
-        </div></div>
-        <div class="panel"><h2>Pronósticos de Premios</h2><div id="picks-summary"></div></div>
+        <h1>⭐ Premios</h1>
+        <div class="panel">
+            <div class="flex-row">
+                <div class="flex-col pick-section"><label>Bota de Oro</label><select id="golden-boot-pick"><option value="">--</option><option>Kylian Mbappé</option><option>Harry Kane</option><option>Erling Haaland</option><option>Lionel Messi</option><option>Lamine Yamal</option><option>Vinicius Junior</option><option>Lautaro Martínez</option></select></div>
+                <div class="flex-col pick-section"><label>Balón de Oro</label><select id="golden-ball-pick"><option value="">--</option><option>Kylian Mbappé</option><option>Lionel Messi</option><option>Jude Bellingham</option><option>Vinicius Junior</option><option>Lamine Yamal</option><option>Pedri</option><option>Florian Wirtz</option></select></div>
+            </div>
+            <div class="flex-row mt-2">
+                <div class="flex-col pick-section"><label>🏆 Campeón</label><select id="champion-pick"><option value="">--</option></select></div>
+            </div>
+            <div class="panel mt-2"><h2>Resumen de Premios</h2><div id="picks-summary"></div></div>
+        </div>
     </div>
-
-    <!-- REGLAS -->
     <div id="tab-rules" class="tab-content">
         <h1>📖 Reglas</h1>
         <div class="rules-box">
-            <h3>⚽ Puntuación</h3>
+            <h3>Puntuación</h3>
             <ul>
                 <li><i class="fa-solid fa-check-circle"></i> Signo: <span id="rule-sign">10</span> pts</li>
                 <li><i class="fa-solid fa-chart-simple"></i> Dif.Goles: <span id="rule-diff">15</span> pts</li>
                 <li><i class="fa-solid fa-bullseye"></i> Exacto: <span id="rule-exact">25</span> pts</li>
                 <li><i class="fa-solid fa-futbol"></i> Bota de Oro: <span id="rule-goldenboot">30</span> pts</li>
                 <li><i class="fa-solid fa-trophy"></i> Balón de Oro: <span id="rule-goldenball">30</span> pts</li>
+                <li><i class="fa-solid fa-users"></i> Clasificado a dieciseisavos: <span id="rule-qualify">5</span> pts</li>
+                <li><i class="fa-solid fa-crown"></i> Campeón: <span id="rule-champion">50</span> pts</li>
             </ul>
         </div>
     </div>
-
-    <!-- ADMIN -->
-    <div id="tab-admin" class="tab-content"><h1>🔐 Admin</h1><div class="panel">
-        <input type="password" id="admin-pass" placeholder="Contraseña" style="max-width:200px;"><button class="btn btn-accent" id="login-btn">Acceder</button>
-        <div id="admin-panel" style="display:none;margin-top:12px;">
-            <h3>Resultados (104 partidos)</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
-            <button class="btn btn-gold mt-2" id="save-results-btn">Guardar</button>
-            <hr style="border-color:rgba(255,255,255,0.1);margin:12px 0;">
-            <div class="flex-row"><div><label>Signo:</label><input type="number" id="pts-sign" value="10" style="width:50px;"></div><div><label>Dif:</label><input type="number" id="pts-diff" value="15" style="width:50px;"></div><div><label>Exacto:</label><input type="number" id="pts-exact" value="25" style="width:50px;"></div><div><label>Bota Oro:</label><input type="number" id="pts-goldenboot" value="30" style="width:50px;"></div><div><label>Balón Oro:</label><input type="number" id="pts-goldenball" value="30" style="width:50px;"></div></div>
-            <button class="btn btn-outline btn-sm mt-2" id="save-config-btn">Guardar Config</button>
-            <div class="flex-row mt-2" style="align-items:flex-end;">
-                <div><label>Bota de Oro real:</label>
-                    <select id="real-golden-boot">
-                        <option value="">-- Pendiente --</option>
-                        <option>Kylian Mbappé</option><option>Harry Kane</option><option>Erling Haaland</option>
-                        <option>Lionel Messi</option><option>Lamine Yamal</option><option>Vinicius Junior</option>
-                        <option>Lautaro Martínez</option>
-                    </select>
+    <div id="tab-admin" class="tab-content">
+        <h1>🔐 Admin</h1>
+        <div class="panel">
+            <input type="password" id="admin-pass" placeholder="Contraseña"><button class="btn btn-accent" id="login-btn">Acceder</button>
+            <div id="admin-panel" style="display:none;">
+                <h3>Resultados</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
+                <button class="btn btn-gold mt-2" id="save-results-btn">Guardar Resultados</button>
+                <hr>
+                <div class="flex-row">
+                    <div><label>Signo</label><input type="number" id="pts-sign" value="10" style="width:50px;"></div>
+                    <div><label>Dif</label><input type="number" id="pts-diff" value="15" style="width:50px;"></div>
+                    <div><label>Exacto</label><input type="number" id="pts-exact" value="25" style="width:50px;"></div>
+                    <div><label>Bota</label><input type="number" id="pts-goldenboot" value="30" style="width:50px;"></div>
+                    <div><label>Balón</label><input type="number" id="pts-goldenball" value="30" style="width:50px;"></div>
+                    <div><label>Clasif.</label><input type="number" id="pts-qualify" value="5" style="width:50px;"></div>
+                    <div><label>Campeón</label><input type="number" id="pts-champion" value="50" style="width:50px;"></div>
                 </div>
-                <div><label>Balón de Oro real:</label>
-                    <select id="real-golden-ball">
-                        <option value="">-- Pendiente --</option>
-                        <option>Kylian Mbappé</option><option>Lionel Messi</option><option>Jude Bellingham</option>
-                        <option>Vinicius Junior</option><option>Lamine Yamal</option><option>Pedri</option>
-                        <option>Florian Wirtz</option>
-                    </select>
+                <button class="btn btn-outline btn-sm mt-2" id="save-config-btn">Guardar Config</button>
+                <div class="flex-row mt-2">
+                    <div><label>Bota real</label><select id="real-golden-boot"><option value="">--</option><option>Kylian Mbappé</option><option>Harry Kane</option><option>Erling Haaland</option><option>Lionel Messi</option><option>Lamine Yamal</option><option>Vinicius Junior</option><option>Lautaro Martínez</option></select></div>
+                    <div><label>Balón real</label><select id="real-golden-ball"><option value="">--</option><option>Kylian Mbappé</option><option>Lionel Messi</option><option>Jude Bellingham</option><option>Vinicius Junior</option><option>Lamine Yamal</option><option>Pedri</option><option>Florian Wirtz</option></select></div>
+                    <div><label>Campeón real</label><select id="real-champion"><option value="">--</option></select></div>
+                    <button class="btn btn-outline btn-sm" id="save-winners-btn">Guardar Ganadores</button>
                 </div>
-                <button class="btn btn-outline btn-sm" id="save-winners-btn">Guardar ganadores</button>
+                <div class="flex-row mt-2">
+                    <button class="btn btn-outline btn-sm" id="export-btn">📤 Exportar</button>
+                    <button class="btn btn-outline btn-sm" id="init-db-btn">☁️ Inicializar BD</button>
+                </div>
+                <div class="mt-3"><button class="btn btn-danger btn-sm" id="reset-btn">Reiniciar BD</button></div>
             </div>
-            <div class="flex-row mt-2"><button class="btn btn-outline btn-sm" id="export-btn">📤 Exportar JSON</button><button class="btn btn-outline btn-sm" id="init-db-btn">☁️ Inicializar BD</button></div>
-            <div class="mt-3" style="border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;"><h3 style="color:var(--rose);">🗑️ Reiniciar</h3><button class="btn btn-danger btn-sm" id="reset-btn">Reiniciar Base de Datos</button></div>
         </div>
-    </div></div>
+    </div>
 </div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
 <script>
-    // ==================== CONFIGURACIÓN DE FIREBASE (REAL) ====================
+    // ==================== CONFIGURACIÓN FIREBASE ====================
     const firebaseConfig = {
-      apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
-      authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
-      projectId: "porra-mundial-2026-7fb4c",
-      storageBucket: "porra-mundial-2026-7fb4c.firebasestorage.app",
-      messagingSenderId: "836976823576",
-      appId: "1:836976823576:web:1723e5af127cd56b9fa26d"
+        apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
+        authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
+        projectId: "porra-mundial-2026-7fb4c",
+        storageBucket: "porra-mundial-2026-7fb4c.firebasestorage.app",
+        messagingSenderId: "836976823576",
+        appId: "1:836976823576:web:1723e5af127cd56b9fa26d"
     };
-    // ================================================================
-
-    let db = null;
-    let firebaseReady = false;
+    let db, firebaseReady = false;
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            firebaseReady = true;
-        } else {
-            firebaseReady = false;
-            console.warn('Modo local: usando almacenamiento local del navegador');
-        }
-    } catch (e) {
-        console.error('Firebase no configurado:', e);
-        firebaseReady = false;
-    }
+        firebaseReady = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+    } catch(e) { console.error(e); }
 
-    const DEFAULT_GROUPS = {
-        'A':['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
-        'B':['🇨🇦 Canadá','🇧🇦 Bosnia y Hrz.','🇶🇦 Catar','🇨🇭 Suiza'],
-        'C':['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
-        'D':['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
-        'E':['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
-        'F':['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
-        'G':['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
-        'H':['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
-        'I':['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
-        'J':['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
-        'K':['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
-        'L':['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
+    // ==================== DATOS FIJOS ====================
+    const GROUPS = {
+        A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
+        B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
+        C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
+        D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
+        E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
+        F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
+        G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
+        H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
+        I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
+        J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
+        K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
+        L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
-    const DEFAULT_VENUES = [
-        {city:'Ciudad de México',stadium:'Estadio Azteca',country:'🇲🇽'},
-        {city:'Guadalajara',stadium:'Estadio Akron',country:'🇲🇽'},
-        {city:'Monterrey',stadium:'Estadio BBVA',country:'🇲🇽'},
-        {city:'Toronto',stadium:'BMO Field',country:'🇨🇦'},
-        {city:'Vancouver',stadium:'BC Place',country:'🇨🇦'},
-        {city:'Los Ángeles',stadium:'SoFi Stadium',country:'🇺🇸'},
-        {city:'San Francisco',stadium:"Levi's Stadium",country:'🇺🇸'},
-        {city:'Seattle',stadium:'Lumen Field',country:'🇺🇸'},
-        {city:'Dallas',stadium:'AT&T Stadium',country:'🇺🇸'},
-        {city:'Houston',stadium:'NRG Stadium',country:'🇺🇸'},
-        {city:'Kansas City',stadium:'Arrowhead Stadium',country:'🇺🇸'},
-        {city:'Atlanta',stadium:'Mercedes-Benz Stadium',country:'🇺🇸'},
-        {city:'Miami',stadium:'Hard Rock Stadium',country:'🇺🇸'},
-        {city:'Boston',stadium:'Gillette Stadium',country:'🇺🇸'},
-        {city:'Filadelfia',stadium:'Lincoln Financial Field',country:'🇺🇸'},
-        {city:'Nueva York/NJ',stadium:'MetLife Stadium',country:'🇺🇸'}
-    ];
-    function generateDefaultMatches() {
+    const ALL_TEAMS = Object.values(GROUPS).flat();
+
+    function buildMatchDates() {
         const matches = [];
         let id = 1;
-        const groups = Object.keys(DEFAULT_GROUPS);
-        groups.forEach((g,i)=>{
-            const t = DEFAULT_GROUPS[g];
-            matches.push({id:id++,group:g,home:t[0],away:t[1],date:`2026-06-${11+i}T18:00`,venue:`${DEFAULT_VENUES[i%16].stadium}, ${DEFAULT_VENUES[i%16].city} ${DEFAULT_VENUES[i%16].country}`,round:1,homeScore:null,awayScore:null});
-            matches.push({id:id++,group:g,home:t[2],away:t[3],date:`2026-06-${11+i}T21:00`,venue:`${DEFAULT_VENUES[(i+8)%16].stadium}, ${DEFAULT_VENUES[(i+8)%16].city} ${DEFAULT_VENUES[(i+8)%16].country}`,round:1,homeScore:null,awayScore:null});
+        const groups = Object.keys(GROUPS);
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g];
+            const baseDay = 11 + Math.floor(gi/4);
+            matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T18:00`, venue:'Por definir', round:1, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:'Por definir', round:1, homeScore:null, awayScore:null});
         });
-        groups.forEach((g,i)=>{
-            const t = DEFAULT_GROUPS[g];
-            matches.push({id:id++,group:g,home:t[0],away:t[2],date:`2026-06-${18+i}T18:00`,venue:`${DEFAULT_VENUES[(i+4)%16].stadium}, ${DEFAULT_VENUES[(i+4)%16].city} ${DEFAULT_VENUES[(i+4)%16].country}`,round:2,homeScore:null,awayScore:null});
-            matches.push({id:id++,group:g,home:t[1],away:t[3],date:`2026-06-${18+i}T21:00`,venue:`${DEFAULT_VENUES[(i+12)%16].stadium}, ${DEFAULT_VENUES[(i+12)%16].city} ${DEFAULT_VENUES[(i+12)%16].country}`,round:2,homeScore:null,awayScore:null});
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g];
+            const baseDay = 18 + Math.floor(gi/4);
+            matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:'Por definir', round:2, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:'Por definir', round:2, homeScore:null, awayScore:null});
         });
-        groups.forEach((g,i)=>{
-            const t = DEFAULT_GROUPS[g];
-            matches.push({id:id++,group:g,home:t[0],away:t[3],date:`2026-06-${24+i}T18:00`,venue:`${DEFAULT_VENUES[i%16].stadium}, ${DEFAULT_VENUES[i%16].city} ${DEFAULT_VENUES[i%16].country}`,round:3,homeScore:null,awayScore:null});
-            matches.push({id:id++,group:g,home:t[1],away:t[2],date:`2026-06-${24+i}T21:00`,venue:`${DEFAULT_VENUES[(i+8)%16].stadium}, ${DEFAULT_VENUES[(i+8)%16].city} ${DEFAULT_VENUES[(i+8)%16].country}`,round:3,homeScore:null,awayScore:null});
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g];
+            const baseDay = 24 + Math.floor(gi/4);
+            matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:'Por definir', round:3, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:'Por definir', round:3, homeScore:null, awayScore:null});
         });
-        const koRounds = [
-            {name:'Dieciseisavos', count:16, dates:['2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30','2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03'], ven:[5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15]},
-            {name:'Octavos', count:8, dates:['2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06','2026-07-07','2026-07-07'], ven:[14,9,15,0,8,7,11,4]},
-            {name:'Cuartos', count:4, dates:['2026-07-09','2026-07-09','2026-07-10','2026-07-10'], ven:[13,5,12,10]},
-            {name:'Semifinales', count:2, dates:['2026-07-14','2026-07-15'], ven:[8,11]},
-            {name:'3er Puesto', count:1, dates:['2026-07-18'], ven:[12]},
-            {name:'Final', count:1, dates:['2026-07-19'], ven:[15]}
+        // KO
+        const koDates = [
+            '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
+            '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
+            '2026-07-03','2026-07-03','2026-07-03','2026-07-03'
         ];
-        koRounds.forEach(r => {
-            for(let i=0;i<r.count;i++){
-                const v = DEFAULT_VENUES[r.ven[i]];
-                matches.push({id:id++,group:'KO',home:'Por definir',away:'Por definir',date:`${r.dates[i]}T20:00`,venue:`${v.stadium}, ${v.city} ${v.country}`,round:r.name,homeScore:null,awayScore:null});
-            }
-        });
+        for(let i=0;i<16;i++) matches.push({id:id++, group:'KO', round:'Dieciseisavos', home:'Por definir', away:'Por definir', date:koDates[i]+'T20:00', venue:'Por definir', homeScore:null, awayScore:null});
+        for(let i=0;i<8;i++) matches.push({id:id++, group:'KO', round:'Octavos', home:'Por definir', away:'Por definir', date:`2026-07-0${4+Math.floor(i/2)}T20:00`, venue:'Por definir', homeScore:null, awayScore:null});
+        for(let i=0;i<4;i++) matches.push({id:id++, group:'KO', round:'Cuartos', home:'Por definir', away:'Por definir', date:`2026-07-0${9+(i<2?0:1)}T20:00`, venue:'Por definir', homeScore:null, awayScore:null});
+        matches.push({id:id++, group:'KO', round:'Semifinales', home:'Por definir', away:'Por definir', date:'2026-07-14T20:00', venue:'Por definir', homeScore:null, awayScore:null});
+        matches.push({id:id++, group:'KO', round:'Semifinales', home:'Por definir', away:'Por definir', date:'2026-07-15T20:00', venue:'Por definir', homeScore:null, awayScore:null});
+        matches.push({id:id++, group:'KO', round:'3er Puesto', home:'Por definir', away:'Por definir', date:'2026-07-18T20:00', venue:'Por definir', homeScore:null, awayScore:null});
+        matches.push({id:id++, group:'KO', round:'Final', home:'Por definir', away:'Por definir', date:'2026-07-19T20:00', venue:'MetLife Stadium', homeScore:null, awayScore:null});
         return matches;
     }
-    const DEFAULT_POINTS = { sign:10, diff:15, exact:25, goldenBoot:30, goldenBall:30 };
+    const DEFAULT_MATCHES = buildMatchDates();
+    const DEFAULT_POINTS = { sign:10, diff:15, exact:25, goldenBoot:30, goldenBall:30, qualify:5, champion:50 };
 
-    let matches = [];
+    // ==================== ESTADO ====================
+    let matches = [...DEFAULT_MATCHES];
     let predictions = {};
-    let pointsConfig = DEFAULT_POINTS;
+    let pointsConfig = {...DEFAULT_POINTS};
+    let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
     let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
     let adminLogged = false;
-    let actualWinners = { goldenBoot: '', goldenBall: '' };
 
-    let unsubscribeMatches = null;
-    let unsubscribePredictions = null;
-    let unsubscribeWinners = null;
-
-    function initializeFirebaseData() {
-        if (!firebaseReady || !db) return Promise.reject('Firebase no disponible');
-        const defaultMatches = generateDefaultMatches();
+    // ==================== SINCRONIZACIÓN FIREBASE ====================
+    function initDB() {
+        if (!firebaseReady) return Promise.reject();
         const batch = db.batch();
-        defaultMatches.forEach(m => {
-            batch.set(db.collection('matches').doc(m.id.toString()), {
-                group: m.group, home: m.home, away: m.away, date: m.date,
-                venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
-            });
-        });
-        batch.set(db.collection('config').doc('points'), DEFAULT_POINTS);
-        batch.set(db.collection('config').doc('winners'), { goldenBoot: '', goldenBall: '' });
+        matches.forEach(m => batch.set(db.collection('matches').doc(m.id.toString()), {
+            group: m.group, home: m.home, away: m.away, date: m.date,
+            venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
+        }));
+        batch.set(db.collection('config').doc('points'), pointsConfig);
+        batch.set(db.collection('config').doc('winners'), actualWinners);
         return batch.commit();
     }
-
-    function syncMatchesFromFirestore() {
-        if (!firebaseReady || !db) {
-            const local = localStorage.getItem('matches_wc26_v3');
-            if (local) matches = JSON.parse(local);
-            else matches = generateDefaultMatches();
-            renderAllTabs();
-            return;
-        }
-        unsubscribeMatches = db.collection('matches').onSnapshot(snapshot => {
+    function syncData() {
+        if (!firebaseReady) return loadLocal();
+        db.collection('matches').onSnapshot(snap => {
             matches = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                matches.push({
-                    id: parseInt(doc.id), group: data.group, home: data.home, away: data.away,
-                    date: data.date, venue: data.venue, round: data.round,
-                    homeScore: data.homeScore, awayScore: data.awayScore
-                });
-            });
-            matches.sort((a,b) => a.id - b.id);
-            localStorage.setItem('matches_wc26_v3', JSON.stringify(matches));
+            snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
+            matches.sort((a,b)=>a.id-b.id);
             renderAllTabs();
         });
-        db.collection('config').doc('points').onSnapshot(doc => {
-            if (doc.exists) pointsConfig = doc.data();
-            renderRules();
-        });
-    }
-
-    function syncPredictionsFromFirestore() {
-        if (!firebaseReady || !db) {
-            const local = localStorage.getItem('predictions_wc26_v3');
-            if (local) predictions = JSON.parse(local);
-            renderAllTabs();
-            return;
-        }
-        unsubscribePredictions = db.collection('predictions').onSnapshot(snapshot => {
+        db.collection('predictions').onSnapshot(snap => {
             predictions = {};
-            snapshot.forEach(doc => predictions[doc.id] = doc.data());
-            localStorage.setItem('predictions_wc26_v3', JSON.stringify(predictions));
+            snap.forEach(doc => predictions[doc.id] = doc.data());
             renderAllTabs();
         });
+        db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
+        db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
     }
-
-    function syncWinnersFromFirestore() {
-        if (!firebaseReady || !db) {
-            const local = localStorage.getItem('actualWinners');
-            if (local) actualWinners = JSON.parse(local);
-            return;
-        }
-        unsubscribeWinners = db.collection('config').doc('winners').onSnapshot(doc => {
-            if (doc.exists) actualWinners = doc.data();
-            renderAllTabs();
-        });
+    function loadLocal() {
+        const lm = localStorage.getItem('matches_wc26_v3');
+        if (lm) matches = JSON.parse(lm);
+        const lp = localStorage.getItem('predictions_wc26_v3');
+        if (lp) predictions = JSON.parse(lp);
+        renderAllTabs();
     }
-
-    function guardarResultadosFirebase() {
-        if (!firebaseReady || !db) {
-            localStorage.setItem('matches_wc26_v3', JSON.stringify(matches));
-            showToast('Resultados guardados localmente');
-            return;
-        }
+    function saveResults() {
+        if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); return; }
         const batch = db.batch();
-        matches.forEach(m => {
-            const ref = db.collection('matches').doc(m.id.toString());
-            batch.update(ref, { homeScore: m.homeScore, awayScore: m.awayScore });
-        });
-        batch.commit().then(() => showToast('Resultados guardados ✅'));
+        matches.forEach(m => batch.update(db.collection('matches').doc(m.id.toString()), { homeScore: m.homeScore, awayScore: m.awayScore }));
+        batch.commit().then(() => showToast('Resultados guardados'));
     }
-
-    function guardarPrediccionUsuario(player, predData) {
-        if (!firebaseReady || !db) {
+    function guardarPrediccion(player, predData) {
+        if (!firebaseReady) {
             predictions[player] = predData;
             localStorage.setItem('predictions_wc26_v3', JSON.stringify(predictions));
             return Promise.resolve();
@@ -444,459 +362,386 @@
         return db.collection('predictions').doc(player).set(predData);
     }
 
-    function guardarConfigPuntos() {
-        if (!firebaseReady || !db) {
-            localStorage.setItem('pointsConfig_wc26_v3', JSON.stringify(pointsConfig));
-            showToast('Configuración guardada localmente');
-            return;
-        }
-        db.collection('config').doc('points').set(pointsConfig);
+    // ==================== LÓGICA GRUPOS Y CRUCES OFICIALES FIFA ====================
+    function getGroupStandings(mArr, group) {
+        const teams = GROUPS[group];
+        const stats = {};
+        teams.forEach(t => stats[t] = {team:t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0});
+        mArr.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+            const h = stats[m.home], a = stats[m.away];
+            if (!h || !a) return;
+            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+            else { h.d++; a.d++; h.pts++; a.pts++; }
+        });
+        return Object.values(stats).sort((a,b) => {
+            const gdA = a.gf - a.ga, gdB = b.gf - b.ga;
+            return b.pts - a.pts || gdB - gdA || b.gf - a.gf;
+        });
     }
 
-    function guardarGanadoresReales() {
-        if (!firebaseReady || !db) {
-            localStorage.setItem('actualWinners', JSON.stringify(actualWinners));
-            showToast('Ganadores guardados localmente');
-            return;
+    function getQualifiedTeams(mArr) {
+        const qual = [];
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(mArr, g);
+            qual.push(st[0]?.team, st[1]?.team);
         }
-        db.collection('config').doc('winners').set(actualWinners);
+        return qual.filter(Boolean);
     }
 
-    function updateConnectionStatus() {
-        const dot = document.getElementById('status-dot');
-        const text = document.getElementById('connection-status');
-        if (firebaseReady && db) {
-            dot.className = 'connection-dot connected';
-            if (text) text.innerHTML = '<span class="connection-dot connected"></span> En línea';
-        } else {
-            dot.className = 'connection-dot disconnected';
-            if (text) text.innerHTML = '<span class="connection-dot disconnected"></span> Modo local';
+    function getBestThirds(mArr) {
+        const thirds = [];
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(mArr, g);
+            if (st[2]) thirds.push({team: st[2].team, group: g, pts: st[2].pts, gd: st[2].gf - st[2].ga, gf: st[2].gf});
         }
+        thirds.sort((a,b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
+        return thirds.slice(0, 8);
     }
 
-    function calculatePlayerScore(playerPreds) {
+    function getOfficialR32Mapping(bestThirds) {
+        const groups = bestThirds.map(t => t.group).sort().join('');
+        const comboMap = {
+            'ABCDEFGH': {74:'A', 77:'C', 79:'C', 80:'E', 81:'B', 82:'A', 85:'E', 87:'D'},
+            'ABCDEFGI': {74:'A', 77:'C', 79:'C', 80:'E', 81:'B', 82:'A', 85:'E', 87:'D'},
+        };
+        const defaultCombo = {74:'A', 77:'C', 79:'C', 80:'E', 81:'B', 82:'A', 85:'E', 87:'D'};
+        return comboMap[groups] || defaultCombo;
+    }
+
+    function autoFillKO(preds) {
+        if (preds._koLocked) return preds;
+        const simMatches = getSimMatches(preds);
+        const qual = {};
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(simMatches, g);
+            qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
+        }
+        const bestThirds = getBestThirds(simMatches);
+        const thirdMap = getOfficialR32Mapping(bestThirds);
+        function getThird(keys) {
+            for (const k of keys) {
+                const found = bestThirds.find(t => t.group === k);
+                if (found) return found.team;
+            }
+            return 'Por definir';
+        }
+        const r32 = {
+            73: [qual.A[1], qual.B[1]],
+            74: [qual.E[0], getThird(thirdMap[74].split(''))],
+            75: [qual.F[0], qual.C[1]],
+            76: [qual.C[0], qual.F[1]],
+            77: [qual.I[0], getThird(thirdMap[77].split(''))],
+            78: [qual.E[1], qual.I[1]],
+            79: [qual.A[0], getThird(thirdMap[79].split(''))],
+            80: [qual.L[0], getThird(thirdMap[80].split(''))],
+            81: [qual.D[0], getThird(thirdMap[81].split(''))],
+            82: [qual.G[0], getThird(thirdMap[82].split(''))],
+            83: [qual.K[1], qual.L[1]],
+            84: [qual.H[0], qual.J[1]],
+            85: [qual.B[0], getThird(thirdMap[85].split(''))],
+            86: [qual.J[0], qual.H[1]],
+            87: [qual.K[0], getThird(thirdMap[87].split(''))],
+            88: [qual.D[1], qual.G[1]]
+        };
+        const koMatches = matches.filter(m => m.group === 'KO');
+        koMatches.forEach(km => {
+            if (r32[km.id] && r32[km.id][0] && r32[km.id][1]) {
+                preds[km.id] = { home: r32[km.id][0], away: r32[km.id][1], auto: true };
+            }
+        });
+        return preds;
+    }
+
+    function getSimMatches(preds) {
+        return matches.map(m => {
+            if (m.group === 'KO') return m;
+            const p = preds[m.id];
+            if (p && p.home !== '' && p.away !== '') return { ...m, homeScore: parseInt(p.home), awayScore: parseInt(p.away) };
+            return m;
+        });
+    }
+
+    function calculateScore(preds) {
         let total = 0;
-        for (const match of matches) {
-            if (match.homeScore === null || match.awayScore === null) continue;
-            const pred = playerPreds[match.id];
-            if (!pred || pred.home === '' || pred.away === '') continue;
-            const realHome = match.homeScore, realAway = match.awayScore;
-            const predHome = parseInt(pred.home), predAway = parseInt(pred.away);
-            if (isNaN(predHome) || isNaN(predAway)) continue;
-            const realSign = realHome > realAway ? '1' : (realHome < realAway ? '2' : 'X');
-            const predSign = predHome > predAway ? '1' : (predHome < predAway ? '2' : 'X');
-            if (predHome === realHome && predAway === realAway) {
-                total += pointsConfig.exact;
-            } else if (realSign === predSign) {
+        for (const m of matches) {
+            if (m.homeScore === null) continue;
+            const p = preds[m.id];
+            if (!p || p.home === '' || p.away === '') continue;
+            const [rh, ra] = [m.homeScore, m.awayScore];
+            const [ph, pa] = [parseInt(p.home), parseInt(p.away)];
+            if (isNaN(ph) || isNaN(pa)) continue;
+            if (ph === rh && pa === ra) total += pointsConfig.exact;
+            else if ((rh>ra) === (ph>pa) || (rh===ra && ph===pa)) {
                 total += pointsConfig.sign;
-                if ((realHome - realAway) === (predHome - predAway)) {
-                    total += pointsConfig.diff;
-                }
+                if ((rh-ra) === (ph-pa)) total += pointsConfig.diff;
             }
         }
-        if (actualWinners) {
-            if (playerPreds.goldenBoot && playerPreds.goldenBoot === actualWinners.goldenBoot) {
-                total += (pointsConfig.goldenBoot || 30);
-            }
-            if (playerPreds.goldenBall && playerPreds.goldenBall === actualWinners.goldenBall) {
-                total += (pointsConfig.goldenBall || 30);
-            }
-        }
+        const realQual = getQualifiedTeams(matches);
+        const userQual = getQualifiedTeams(getSimMatches(preds));
+        total += userQual.filter(t => realQual.includes(t)).length * (pointsConfig.qualify || 5);
+        if (actualWinners.goldenBoot && preds.goldenBoot === actualWinners.goldenBoot) total += pointsConfig.goldenBoot;
+        if (actualWinners.goldenBall && preds.goldenBall === actualWinners.goldenBall) total += pointsConfig.goldenBall;
+        if (actualWinners.champion && preds.champion === actualWinners.champion) total += pointsConfig.champion;
         return total;
     }
 
-    function getAllScores() {
-        const scores = {};
-        for (const [player, predData] of Object.entries(predictions)) {
-            scores[player] = calculatePlayerScore(predData);
-        }
-        return scores;
-    }
-
+    // ==================== RENDERIZADO (completo) ====================
     function renderDashboard() {
-        const total = matches.length;
-        const played = matches.filter(m => m.homeScore !== null && m.awayScore !== null).length;
-        const players = Object.keys(predictions).length;
+        const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
         document.getElementById('dashboard-subtitle').textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
         document.getElementById('stats-row').innerHTML = `
             <div class="panel flex-col"><strong style="font-size:1.5rem;">${total}</strong><br><small>Partidos</small></div>
             <div class="panel flex-col"><strong style="font-size:1.5rem;">${played}</strong><br><small>Jugados</small></div>
             <div class="panel flex-col"><strong style="font-size:1.5rem;">${players}</strong><br><small>Participantes</small></div>
             <div class="panel flex-col"><strong style="font-size:1.5rem;">${total-played}</strong><br><small>Pendientes</small></div>`;
-        renderTop5();
-        renderUpcoming();
+        renderTop5(); renderUpcoming();
     }
-
     function renderTop5() {
-        const scores = getAllScores();
+        const scores = {}; for (const [n,p] of Object.entries(predictions)) scores[n] = calculateScore(p);
         const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
         let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
-        sorted.forEach(([name, pts], i) => {
+        sorted.forEach(([n,p], i) => {
             const rc = i===0?'rank1':(i===1?'rank2':(i===2?'rank3':'rank-other'));
-            html += `<tr><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${name}</td><td class="pts-highlight">${pts}</td></tr>`;
+            html += `<tr><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`;
         });
-        if (!sorted.length) html += '<tr><td colspan="3">Sin datos</td></tr>';
         document.getElementById('top5-table').innerHTML = html+'</table>';
     }
-
     function renderUpcoming() {
         const upcoming = matches.filter(m => m.homeScore === null).sort((a,b) => new Date(a.date)-new Date(b.date)).slice(0,8);
-        let html = '<table><tr><th>Fecha</th><th>Ronda</th><th>Partido</th><th>Sede</th></tr>';
+        let html = '<table><tr><th>Fecha</th><th>Ronda</th><th>Partido</th></tr>';
         upcoming.forEach(m => {
-            html += `<tr><td>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</td>
-                     <td><span class="badge ${m.group==='KO'?'badge-knockout':'badge-gold'}">${m.group==='KO'?m.round.substring(0,8):'J'+m.round}</span></td>
-                     <td>${m.home} vs ${m.away}</td>
-                     <td class="venue-info">${m.venue||''}</td></tr>`;
+            const d = new Date(m.date); const ds = isNaN(d) ? '??' : d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+            html += `<tr><td>${ds}</td><td>${m.group==='KO'?m.round:'J'+m.round}</td><td>${m.home} vs ${m.away}</td></tr>`;
         });
         document.getElementById('upcoming-matches').innerHTML = html+'</table>';
     }
-
     function renderMatchesFull() {
-        let html = '';
-        const done = {};
+        let html = ''; const done = {};
         matches.forEach(m => {
-            if (m.group !== 'KO' && !done[m.group]) {
-                done[m.group] = true;
-                const groupTeams = DEFAULT_GROUPS[m.group] ? DEFAULT_GROUPS[m.group].join(' · ') : '';
-                html += `<div class="group-header">🔹 Grupo ${m.group} — ${groupTeams}</div>`;
-            }
-            if (m.group === 'KO' && !done['KO']) {
-                done['KO'] = true;
-                html += `<div class="group-header" style="border-left:3px solid var(--rose);">🏟️ Eliminatorias</div>`;
-            }
+            if (m.group !== 'KO' && !done[m.group]) { done[m.group]=true; html+=`<div class="group-header">🔹 Grupo ${m.group}</div>`; }
+            if (m.group === 'KO' && !done['KO']) { done['KO']=true; html+=`<div class="group-header" style="border-left:3px solid var(--rose);">🏟️ Eliminatorias</div>`; }
             const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
-            const rb = m.group === 'KO' ? 'badge-knockout' : (m.round===1?'badge-amber':(m.round===2?'badge-gold':'badge-green'));
-            html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.02);font-size:0.8rem;">
-                <span style="min-width:40px;color:var(--text3);">${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
-                <span class="badge ${rb}">${m.group==='KO'?m.round.substring(0,5):'J'+m.round}</span>
-                <span style="flex:1;">${m.home} vs ${m.away}</span>
-                <span class="venue-info" style="min-width:120px;">${m.venue||''}</span>
-                <span class="score-display">${sc}</span></div>`;
+            html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${m.home} vs ${m.away}</span><span class="score-display">${sc}</span></div>`;
         });
         document.getElementById('matches-full-list').innerHTML = html;
     }
-
     function renderGroups() {
         let html = '';
-        for (const [g, teams] of Object.entries(DEFAULT_GROUPS)) {
-            const gm = matches.filter(m => m.group === g);
-            const standings = calculateGroupStandings(g, teams, gm);
+        for (const [g, teams] of Object.entries(GROUPS)) {
+            const st = getGroupStandings(matches, g);
             html += `<div class="panel"><h3>Grupo ${g}</h3><table><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr>`;
-            standings.forEach((s,i) => {
-                html += `<tr><td>${i+1}</td><td>${s.team}</td><td>${s.pj}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gd}</td><td class="pts-highlight">${s.pts}</td></tr>`;
-            });
+            st.forEach((s,i) => html += `<tr><td>${i+1}</td><td>${s.team}</td><td>${s.pj}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gf-s.ga}</td><td class="pts-highlight">${s.pts}</td></tr>`);
             html += '</table></div>';
         }
         document.getElementById('groups-container').innerHTML = html;
     }
-
-    function calculateGroupStandings(g, teams, gm) {
-        const stats = {};
-        teams.forEach(t => { stats[t] = {team:t, pj:0, w:0, d:0, l:0, gf:0, ga:0, gd:0, pts:0}; });
-        gm.forEach(m => {
-            if (m.homeScore === null || m.awayScore === null) return;
-            const h = stats[m.home], a = stats[m.away];
-            if (!h || !a) return;
-            h.pj++; a.pj++;
-            h.gf += m.homeScore; h.ga += m.awayScore;
-            a.gf += m.awayScore; a.ga += m.homeScore;
-            if (m.homeScore > m.awayScore) { h.w++; h.pts+=3; a.l++; }
-            else if (m.homeScore < m.awayScore) { a.w++; a.pts+=3; h.l++; }
-            else { h.d++; a.d++; h.pts++; a.pts++; }
-            h.gd = h.gf - h.ga; a.gd = a.gf - a.ga;
-        });
-        return Object.values(stats).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
-    }
-
     function renderBracket() {
-        const html = `
-        <div class="bracket-round-title">🔹 Dieciseisavos de Final (R32) · 28 Jun – 3 Jul</div>
-        <div class="grid-knockout">
-            <div class="bracket-slot"><span class="match-id">M201</span> 2ºA vs 2ºB<br><span class="venue-info">Los Ángeles</span></div>
-            <div class="bracket-slot"><span class="match-id">M202</span> 2ºC vs 2ºD<br><span class="venue-info">Boston</span></div>
-            <div class="bracket-slot"><span class="match-id">M203</span> 2ºE vs 2ºF<br><span class="venue-info">Monterrey</span></div>
-            <div class="bracket-slot"><span class="match-id">M204</span> 2ºG vs 2ºH<br><span class="venue-info">Houston</span></div>
-            <div class="bracket-slot"><span class="match-id">M205</span> 2ºI vs 2ºJ<br><span class="venue-info">NY/NJ</span></div>
-            <div class="bracket-slot"><span class="match-id">M206</span> 2ºK vs 2ºL<br><span class="venue-info">San Francisco</span></div>
-            <div class="bracket-slot"><span class="match-id">M207</span> 1ºA vs 3ºCDEF<br><span class="venue-info">CDMX</span></div>
-            <div class="bracket-slot"><span class="match-id">M208</span> 1ºB vs 3ºADGH<br><span class="venue-info">Seattle</span></div>
-            <div class="bracket-slot"><span class="match-id">M209</span> 1ºC vs 3ºABFG<br><span class="venue-info">Dallas</span></div>
-            <div class="bracket-slot"><span class="match-id">M210</span> 1ºD vs 3ºBCHI<br><span class="venue-info">Filadelfia</span></div>
-            <div class="bracket-slot"><span class="match-id">M211</span> 1ºE vs 3ºADIJ<br><span class="venue-info">Toronto</span></div>
-            <div class="bracket-slot"><span class="match-id">M212</span> 1ºF vs 3ºCEGK<br><span class="venue-info">Vancouver</span></div>
-            <div class="bracket-slot"><span class="match-id">M213</span> 1ºG vs 3ºBFHL<br><span class="venue-info">Kansas City</span></div>
-            <div class="bracket-slot"><span class="match-id">M214</span> 1ºH vs 3ºCDIL<br><span class="venue-info">Atlanta</span></div>
-            <div class="bracket-slot"><span class="match-id">M215</span> 1ºI vs 3ºEGJK<br><span class="venue-info">Miami</span></div>
-            <div class="bracket-slot"><span class="match-id">M216</span> 1ºL vs 3ºFHJK<br><span class="venue-info">NY/NJ</span></div>
-        </div>
-        <div class="bracket-round-title">🔹 Octavos de Final · 4–7 Jul</div>
-        <div class="grid-knockout" style="grid-template-columns: repeat(4,1fr);">
-            <div class="bracket-slot"><span class="match-id">M217</span> W201 vs W202<br><span class="venue-info">Filadelfia</span></div>
-            <div class="bracket-slot"><span class="match-id">M218</span> W203 vs W204<br><span class="venue-info">Houston</span></div>
-            <div class="bracket-slot"><span class="match-id">M219</span> W205 vs W206<br><span class="venue-info">NY/NJ</span></div>
-            <div class="bracket-slot"><span class="match-id">M220</span> W207 vs W208<br><span class="venue-info">CDMX</span></div>
-            <div class="bracket-slot"><span class="match-id">M221</span> W209 vs W210<br><span class="venue-info">Dallas</span></div>
-            <div class="bracket-slot"><span class="match-id">M222</span> W211 vs W212<br><span class="venue-info">Seattle</span></div>
-            <div class="bracket-slot"><span class="match-id">M223</span> W213 vs W214<br><span class="venue-info">Atlanta</span></div>
-            <div class="bracket-slot"><span class="match-id">M224</span> W215 vs W216<br><span class="venue-info">Vancouver</span></div>
-        </div>
-        <div class="bracket-round-title">🔹 Cuartos de Final · 9–11 Jul</div>
-        <div class="grid-knockout" style="grid-template-columns: repeat(2,1fr);">
-            <div class="bracket-slot"><span class="match-id">M225</span> W217 vs W218<br><span class="venue-info">Boston</span></div>
-            <div class="bracket-slot"><span class="match-id">M226</span> W219 vs W220<br><span class="venue-info">Los Ángeles</span></div>
-            <div class="bracket-slot"><span class="match-id">M227</span> W221 vs W222<br><span class="venue-info">Miami</span></div>
-            <div class="bracket-slot"><span class="match-id">M228</span> W223 vs W224<br><span class="venue-info">Kansas City</span></div>
-        </div>
-        <div class="bracket-round-title">🔹 Semifinales · 14–15 Jul</div>
-        <div style="display:flex;justify-content:center;gap:40px;">
-            <div class="bracket-slot"><span class="match-id">M229</span> W225 vs W226<br><span class="venue-info">Dallas</span></div>
-            <div class="bracket-slot"><span class="match-id">M230</span> W227 vs W228<br><span class="venue-info">Atlanta</span></div>
-        </div>
-        <div class="bracket-round-title">🔹 3er Puesto · 18 Jul</div>
-        <div style="display:flex;justify-content:center;"><div class="bracket-slot"><span class="match-id">M231</span> P229 vs P230<br><span class="venue-info">Miami</span></div></div>
-        <div class="bracket-round-title" style="font-size:1rem;">🏆 FINAL · 19 Julio</div>
-        <div class="trophy-center">🏆</div>
-        <div style="display:flex;justify-content:center;"><div class="bracket-slot" style="border-color:rgba(240,185,11,0.5);background:rgba(240,185,11,0.08);font-size:0.85rem;font-weight:700;"><span class="match-id">M232</span> W229 vs W230<br><span class="venue-info">MetLife Stadium, Nueva York/NJ</span></div></div>`;
-        document.getElementById('bracket-container').innerHTML = html;
+        document.getElementById('bracket-container').innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará automáticamente cuando se completen los grupos</p>';
     }
-
     function renderMyPool() {
-        const name = currentPlayer || document.getElementById('player-name').value.trim();
-        if (!name) {
-            document.getElementById('prediction-form').innerHTML = '<p style="color:var(--text3);">Introduce tu nombre y haz clic en Guardar para empezar.</p>';
-            return;
-        }
-        document.getElementById('player-name').value = name;
-        const playerPreds = predictions[name] || {};
+        if (!currentPlayer) { document.getElementById('prediction-form').innerHTML = '<p style="color:var(--text3);">Introduce tu nombre y haz clic en Guardar para empezar.</p>'; return; }
+        let preds = predictions[currentPlayer] || {};
+        if (!preds._koLocked) preds = autoFillKO({...preds});
+        predictions[currentPlayer] = preds;
         let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
         matches.forEach(m => {
-            const pred = playerPreds[m.id] || {home:'', away:''};
-            const disabled = (m.homeScore !== null) ? 'disabled' : '';
-            const checked = (m.homeScore !== null) ? '<span class="badge badge-green">✓</span>' : '';
-            const ronda = m.group === 'KO' ? `<span class="badge badge-knockout">${m.round.substring(0,8)}</span>` : `<span class="badge badge-gold">Grupo ${m.group} J${m.round}</span>`;
-            html += `<tr><td>${ronda}</td><td>${m.home} vs ${m.away}</td>
-                     <td><input type="number" class="small-input" id="ph-${m.id}" value="${pred.home}" placeholder="0" ${disabled}> - 
-                     <input type="number" class="small-input" id="pa-${m.id}" value="${pred.away}" placeholder="0" ${disabled}> ${checked}</td></tr>`;
+            const p = preds[m.id] || {home:'', away:''};
+            const dis = (m.homeScore !== null) ? 'disabled' : '';
+            html += `<tr><td>${m.group==='KO'?m.round:'Grupo '+m.group+' J'+m.round}</td><td>${m.home} vs ${m.away}</td>
+                     <td><input class="small-input" id="ph-${m.id}" value="${p.home}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away}" ${dis}></td></tr>`;
         });
-        html += '</table>';
-        document.getElementById('prediction-form').innerHTML = html;
+        document.getElementById('prediction-form').innerHTML = html+'</table>';
     }
-
     function renderStandings() {
-        const scores = getAllScores();
+        const scores = {}; for (const [n,p] of Object.entries(predictions)) scores[n] = calculateScore(p);
         const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]);
         let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
-        sorted.forEach(([name, pts], i) => {
+        sorted.forEach(([n,p], i) => {
             const rc = i===0?'rank1':(i===1?'rank2':(i===2?'rank3':'rank-other'));
-            html += `<tr><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${name}</td><td class="pts-highlight">${pts}</td></tr>`;
+            html += `<tr><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`;
         });
-        if (!sorted.length) html += '<tr><td colspan="3">Sin datos</td></tr>';
         document.getElementById('standings-table').innerHTML = html+'</table>';
     }
-
     function renderPicks() {
-        const name = currentPlayer;
-        const sp = (name && predictions[name]) ? {goldenBoot: predictions[name].goldenBoot||'', goldenBall: predictions[name].goldenBall||''} : {goldenBoot:'', goldenBall:''};
-        document.getElementById('golden-boot-pick').value = sp.goldenBoot;
-        document.getElementById('golden-ball-pick').value = sp.goldenBall;
-        let summary = '<table><tr><th>Jugador</th><th>Bota de Oro</th><th>Balón de Oro</th></tr>';
-        for (const [player, data] of Object.entries(predictions)) {
-            if (data.goldenBoot || data.goldenBall) {
-                summary += `<tr><td>${player}</td><td>${data.goldenBoot||'-'}</td><td>${data.goldenBall||'-'}</td></tr>`;
-            }
-        }
-        document.getElementById('picks-summary').innerHTML = summary + '</table>';
+        const sp = (currentPlayer && predictions[currentPlayer]) ? predictions[currentPlayer] : {};
+        document.getElementById('golden-boot-pick').value = sp.goldenBoot || '';
+        document.getElementById('golden-ball-pick').value = sp.goldenBall || '';
+        document.getElementById('champion-pick').value = sp.champion || '';
+        let summary = '<table><tr><th>Jugador</th><th>Bota</th><th>Balón</th><th>Campeón</th></tr>';
+        for (const [player, data] of Object.entries(predictions)) summary += `<tr><td>${player}</td><td>${data.goldenBoot||'-'}</td><td>${data.goldenBall||'-'}</td><td>${data.champion||'-'}</td></tr>`;
+        document.getElementById('picks-summary').innerHTML = summary+'</table>';
     }
-
     function renderRules() {
         document.getElementById('rule-sign').textContent = pointsConfig.sign;
         document.getElementById('rule-diff').textContent = pointsConfig.diff;
         document.getElementById('rule-exact').textContent = pointsConfig.exact;
-        document.getElementById('rule-goldenboot').textContent = pointsConfig.goldenBoot || 30;
-        document.getElementById('rule-goldenball').textContent = pointsConfig.goldenBall || 30;
+        document.getElementById('rule-goldenboot').textContent = pointsConfig.goldenBoot;
+        document.getElementById('rule-goldenball').textContent = pointsConfig.goldenBall;
+        document.getElementById('rule-qualify').textContent = pointsConfig.qualify;
+        document.getElementById('rule-champion').textContent = pointsConfig.champion;
     }
-
     function renderAdmin() {
         if (!adminLogged) return;
-        let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Resultado Real</th></tr>';
-        matches.forEach(m => {
-            const ronda = m.group === 'KO' ? m.round : `Grupo ${m.group} J${m.round}`;
-            html += `<tr><td>${ronda}</td><td>${m.home} vs ${m.away}</td>
-                     <td><input type="number" class="small-input" id="rh-${m.id}" value="${m.homeScore ?? ''}" placeholder="-"> - 
-                     <input type="number" class="small-input" id="ra-${m.id}" value="${m.awayScore ?? ''}" placeholder="-"></td></tr>`;
-        });
-        document.getElementById('admin-matches').innerHTML = html + '</table>';
-        if (actualWinners) {
-            document.getElementById('real-golden-boot').value = actualWinners.goldenBoot || '';
-            document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
-        }
+        let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Resultado</th></tr>';
+        matches.forEach(m => html += `<tr><td>${m.group==='KO'?m.round:'Grupo '+m.group+' J'+m.round}</td><td>${m.home} vs ${m.away}</td>
+            <td><input class="small-input" id="rh-${m.id}" value="${m.homeScore??''}" placeholder="-"> - <input class="small-input" id="ra-${m.id}" value="${m.awayScore??''}" placeholder="-"></td></tr>`);
+        document.getElementById('admin-matches').innerHTML = html+'</table>';
+        document.getElementById('pts-sign').value = pointsConfig.sign;
+        document.getElementById('pts-diff').value = pointsConfig.diff;
+        document.getElementById('pts-exact').value = pointsConfig.exact;
+        document.getElementById('pts-goldenboot').value = pointsConfig.goldenBoot;
+        document.getElementById('pts-goldenball').value = pointsConfig.goldenBall;
+        document.getElementById('pts-qualify').value = pointsConfig.qualify;
+        document.getElementById('pts-champion').value = pointsConfig.champion;
+        document.getElementById('real-golden-boot').value = actualWinners.goldenBoot || '';
+        document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
+        document.getElementById('real-champion').value = actualWinners.champion || '';
     }
-
     function renderAllTabs() {
-        const activeTab = document.querySelector('.tab-content.active');
-        if (!activeTab) return;
-        const tabId = activeTab.id.replace('tab-', '');
-        const renderFns = {
-            dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups,
-            bracket: renderBracket, mypool: renderMyPool, standings: renderStandings,
-            picks: renderPicks, rules: renderRules, admin: renderAdmin
-        };
-        if (renderFns[tabId]) renderFns[tabId]();
+        const active = document.querySelector('.tab-content.active');
+        if (!active) return;
+        const id = active.id.replace('tab-','');
+        const fns = { dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups, bracket: renderBracket, mypool: renderMyPool, standings: renderStandings, picks: renderPicks, rules: renderRules, admin: renderAdmin };
+        if (fns[id]) fns[id]();
     }
 
-    document.querySelectorAll('.sidebar-nav button').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-            renderAllTabs();
-        });
-    });
-
+    // ==================== EVENTOS ====================
+    document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+        renderAllTabs();
+    }));
     document.getElementById('save-name-btn').addEventListener('click', () => {
         const name = document.getElementById('player-name').value.trim();
-        if (!name) return alert('Escribe un nombre único');
+        if (!name) return;
         currentPlayer = name;
         localStorage.setItem('currentPlayer_wc26_v3', name);
         if (!predictions[name]) predictions[name] = {};
-        guardarPrediccionUsuario(name, predictions[name]);
+        guardarPrediccion(name, predictions[name]);
         renderMyPool();
-        showToast(`Bienvenid@ ${name}! Ahora puedes hacer tus pronósticos.`);
+        showToast(`Bienvenid@ ${name}!`);
     });
-
     document.getElementById('save-picks-btn').addEventListener('click', () => {
-        const name = currentPlayer || document.getElementById('player-name').value.trim();
-        if (!name) return alert('Primero guarda tu nombre');
-        if (!predictions[name]) predictions[name] = {};
+        if (!currentPlayer) return;
         const preds = {};
         matches.forEach(m => {
-            if (m.homeScore !== null) return;
-            const he = document.getElementById('ph-' + m.id);
-            const ae = document.getElementById('pa-' + m.id);
-            if (he && ae) preds[m.id] = { home: he.value, away: ae.value };
+            const h = document.getElementById('ph-'+m.id), a = document.getElementById('pa-'+m.id);
+            if (h && a) preds[m.id] = { home: h.value, away: a.value };
         });
-        predictions[name] = { ...predictions[name], ...preds };
-        guardarPrediccionUsuario(name, predictions[name]).then(() => showToast('Pronósticos guardados ✅'));
+        predictions[currentPlayer] = { ...predictions[currentPlayer], ...preds };
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]).then(() => showToast('Pronósticos guardados'));
     });
-
+    document.getElementById('lock-ko-btn').addEventListener('click', () => {
+        if (!currentPlayer) return;
+        predictions[currentPlayer]._koLocked = true;
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+        showToast('KO bloqueado manualmente');
+    });
     document.getElementById('golden-boot-pick').addEventListener('change', function() {
-        if (!currentPlayer) { alert('Guarda tu nombre primero'); return; }
-        if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+        if (!currentPlayer) return;
         predictions[currentPlayer].goldenBoot = this.value;
-        guardarPrediccionUsuario(currentPlayer, predictions[currentPlayer]);
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
     });
     document.getElementById('golden-ball-pick').addEventListener('change', function() {
-        if (!currentPlayer) { alert('Guarda tu nombre primero'); return; }
-        if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+        if (!currentPlayer) return;
         predictions[currentPlayer].goldenBall = this.value;
-        guardarPrediccionUsuario(currentPlayer, predictions[currentPlayer]);
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
     });
-
+    document.getElementById('champion-pick').addEventListener('change', function() {
+        if (!currentPlayer) return;
+        predictions[currentPlayer].champion = this.value;
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+    });
     document.getElementById('login-btn').addEventListener('click', () => {
-        if (document.getElementById('admin-pass').value === 'admin2026') {
-            adminLogged = true;
-            document.getElementById('admin-panel').style.display = 'block';
-            renderAdmin();
-            document.getElementById('pts-sign').value = pointsConfig.sign;
-            document.getElementById('pts-diff').value = pointsConfig.diff;
-            document.getElementById('pts-exact').value = pointsConfig.exact;
-            document.getElementById('pts-goldenboot').value = pointsConfig.goldenBoot || 30;
-            document.getElementById('pts-goldenball').value = pointsConfig.goldenBall || 30;
-        } else {
-            alert('Contraseña incorrecta');
-        }
+        if (document.getElementById('admin-pass').value === 'admin2026') { adminLogged = true; document.getElementById('admin-panel').style.display = 'block'; renderAdmin(); }
+        else alert('Contraseña incorrecta');
     });
-
     document.getElementById('save-results-btn').addEventListener('click', () => {
         if (!adminLogged) return;
         matches.forEach(m => {
-            const rh = document.getElementById('rh-' + m.id);
-            const ra = document.getElementById('ra-' + m.id);
-            if (rh && ra && rh.value !== '' && ra.value !== '') {
-                m.homeScore = parseInt(rh.value);
-                m.awayScore = parseInt(ra.value);
-            }
+            const rh = document.getElementById('rh-'+m.id), ra = document.getElementById('ra-'+m.id);
+            if (rh && ra && rh.value !== '' && ra.value !== '') { m.homeScore = parseInt(rh.value); m.awayScore = parseInt(ra.value); }
         });
-        guardarResultadosFirebase();
+        saveResults();
     });
-
     document.getElementById('save-config-btn').addEventListener('click', () => {
         pointsConfig = {
-            sign: parseInt(document.getElementById('pts-sign').value) || 10,
-            diff: parseInt(document.getElementById('pts-diff').value) || 15,
-            exact: parseInt(document.getElementById('pts-exact').value) || 25,
-            goldenBoot: parseInt(document.getElementById('pts-goldenboot').value) || 30,
-            goldenBall: parseInt(document.getElementById('pts-goldenball').value) || 30
+            sign: parseInt(document.getElementById('pts-sign').value)||10,
+            diff: parseInt(document.getElementById('pts-diff').value)||15,
+            exact: parseInt(document.getElementById('pts-exact').value)||25,
+            goldenBoot: parseInt(document.getElementById('pts-goldenboot').value)||30,
+            goldenBall: parseInt(document.getElementById('pts-goldenball').value)||30,
+            qualify: parseInt(document.getElementById('pts-qualify').value)||5,
+            champion: parseInt(document.getElementById('pts-champion').value)||50
         };
-        guardarConfigPuntos();
+        if (firebaseReady) db.collection('config').doc('points').set(pointsConfig);
+        else localStorage.setItem('pointsConfig_wc26_v3', JSON.stringify(pointsConfig));
         renderRules();
-        showToast('Configuración actualizada ✅');
+        showToast('Configuración guardada');
     });
-
     document.getElementById('save-winners-btn').addEventListener('click', () => {
         if (!adminLogged) return;
-        actualWinners.goldenBoot = document.getElementById('real-golden-boot').value;
-        actualWinners.goldenBall = document.getElementById('real-golden-ball').value;
-        guardarGanadoresReales();
-        showToast('Ganadores actualizados ✅');
+        actualWinners = {
+            goldenBoot: document.getElementById('real-golden-boot').value,
+            goldenBall: document.getElementById('real-golden-ball').value,
+            champion: document.getElementById('real-champion').value
+        };
+        if (firebaseReady) db.collection('config').doc('winners').set(actualWinners);
+        else localStorage.setItem('actualWinners', JSON.stringify(actualWinners));
+        showToast('Ganadores actualizados');
         renderAllTabs();
     });
-
     document.getElementById('export-btn').addEventListener('click', () => {
         const data = { matches, predictions, pointsConfig, actualWinners };
         const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'porra_backup.json';
-        a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'porra_backup.json'; a.click();
     });
-
     document.getElementById('init-db-btn').addEventListener('click', () => {
         if (!firebaseReady) return alert('Firebase no configurado');
-        if (confirm('¿Inicializar la base de datos con los partidos por defecto?')) {
-            initializeFirebaseData().then(() => showToast('Base de datos inicializada ✅'));
-        }
+        if (confirm('¿Inicializar la base de datos con partidos por defecto?')) initDB().then(() => showToast('BD inicializada'));
     });
-
     document.getElementById('reset-btn').addEventListener('click', () => {
         if (confirm('¿Eliminar TODOS los datos de la nube?')) {
-            if (!firebaseReady) return alert('Firebase no configurado');
+            if (!firebaseReady) return;
             const batch = db.batch();
             matches.forEach(m => batch.delete(db.collection('matches').doc(m.id.toString())));
             Object.keys(predictions).forEach(p => batch.delete(db.collection('predictions').doc(p)));
             batch.delete(db.collection('config').doc('winners'));
-            batch.commit().then(() => {
-                showToast('Base de datos reiniciada. Vuelve a inicializar los partidos.');
-                location.reload();
-            });
+            batch.commit().then(() => { showToast('BD reiniciada'); location.reload(); });
         }
     });
 
     function showToast(msg) {
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = msg;
+        document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
     }
 
+    // Llenar selectores de campeón
+    const selChamp = document.getElementById('champion-pick');
+    const selRealChamp = document.getElementById('real-champion');
+    ALL_TEAMS.forEach(t => {
+        selChamp.innerHTML += `<option value="${t}">${t}</option>`;
+        selRealChamp.innerHTML += `<option value="${t}">${t}</option>`;
+    });
+
+    // Inicio
     updateConnectionStatus();
-    if (firebaseReady) {
-        syncMatchesFromFirestore();
-        syncPredictionsFromFirestore();
-        syncWinnersFromFirestore();
-    } else {
-        const localMatches = localStorage.getItem('matches_wc26_v3');
-        if (localMatches) matches = JSON.parse(localMatches);
-        else matches = generateDefaultMatches();
-        const localPreds = localStorage.getItem('predictions_wc26_v3');
-        if (localPreds) predictions = JSON.parse(localPreds);
-        const localConfig = localStorage.getItem('pointsConfig_wc26_v3');
-        if (localConfig) pointsConfig = JSON.parse(localConfig);
-        const localWinners = localStorage.getItem('actualWinners');
-        if (localWinners) actualWinners = JSON.parse(localWinners);
-        renderAllTabs();
+    syncData();
+
+    function updateConnectionStatus() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('connection-status');
+        if (firebaseReady) {
+            dot.className = 'connection-dot connected';
+            text.innerHTML = '<span class="connection-dot connected"></span> En línea';
+        } else {
+            dot.className = 'connection-dot disconnected';
+            text.innerHTML = '<span class="connection-dot disconnected"></span> Modo local';
+        }
     }
 </script>
 </body>
