@@ -110,6 +110,9 @@
         .connection-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
         .connected { background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
         .disconnected { background: var(--rose); box-shadow: 0 0 6px var(--rose); }
+        .instructions { line-height:1.6; }
+        .instructions h2 { margin-top: 20px; }
+        .instructions ul { margin-left: 20px; }
     </style>
 </head>
 <body>
@@ -124,6 +127,7 @@
         <button data-tab="standings"><i class="fa-solid fa-trophy"></i> <span>Clasificación</span></button>
         <button data-tab="picks"><i class="fa-solid fa-star"></i> <span>Premios</span></button>
         <button data-tab="rules"><i class="fa-solid fa-book"></i> <span>Reglas</span></button>
+        <button data-tab="instructions"><i class="fa-solid fa-circle-info"></i> <span>Instrucciones</span></button>
         <button data-tab="admin"><i class="fa-solid fa-lock"></i> <span>Admin</span></button>
     </nav>
     <div class="sidebar-footer" id="connection-status">
@@ -194,6 +198,42 @@
             </ul>
         </div>
     </div>
+    <div id="tab-instructions" class="tab-content instructions">
+        <h1>📘 Instrucciones para los participantes</h1>
+        <div class="panel">
+            <h2>1. Registro</h2>
+            <p>Ve a <strong>Mi Porra</strong>, escribe un nombre único (sin espacios raros) y pulsa <strong>Guardar</strong>. Ese será tu identificador para todo el mundial.</p>
+            
+            <h2>2. Hacer pronósticos</h2>
+            <p>En la misma pestaña <strong>Mi Porra</strong> verás los 104 partidos ordenados por fecha. Para cada uno, introduce el resultado que crees que ocurrirá (goles del equipo local y visitante). Los partidos ya jugados o con resultado oficial aparecerán bloqueados.</p>
+            <p><strong>Importante:</strong> Los cruces de eliminatorias (Dieciseisavos, Octavos...) se rellenan automáticamente a partir de tus pronósticos de la fase de grupos. Si quieres cambiarlos manualmente, pulsa <strong>Bloquear KO manual</strong>.</p>
+            
+            <h2>3. Premios especiales</h2>
+            <p>En <strong>Premios</strong> puedes seleccionar quién será la Bota de Oro, el Balón de Oro y el Campeón del Mundo. Elige con cuidado: suman muchos puntos.</p>
+            
+            <h2>4. Puntuación</h2>
+            <ul>
+                <li><strong>Acierto de signo (1X2):</strong> <span class="text-gold">10 pts</span></li>
+                <li><strong>Acierto de diferencia de goles:</strong> <span class="text-gold">15 pts</span></li>
+                <li><strong>Resultado exacto:</strong> <span class="text-gold">25 pts</span></li>
+                <li><strong>Clasificado a dieciseisavos (por equipo):</strong> <span class="text-gold">5 pts</span></li>
+                <li><strong>Bota de Oro acertada:</strong> <span class="text-gold">30 pts</span></li>
+                <li><strong>Balón de Oro acertado:</strong> <span class="text-gold">30 pts</span></li>
+                <li><strong>Campeón del Mundo acertado:</strong> <span class="text-gold">50 pts</span></li>
+            </ul>
+            <p>La clasificación se actualiza automáticamente en la pestaña <strong>Clasificación</strong> cada vez que el administrador introduce un resultado real.</p>
+            
+            <h2>5. Fechas clave</h2>
+            <ul>
+                <li>La fase de grupos se cierra el 26 de junio de 2026.</li>
+                <li>Una vez finalizada, podrás ajustar tus cruces de eliminatorias antes del primer partido de Dieciseisavos (28 de junio).</li>
+                <li>Los premios especiales se pueden cambiar hasta el inicio de la final.</li>
+            </ul>
+            
+            <h2>6. Consejos</h2>
+            <p>Puedes modificar tus pronósticos tantas veces como quieras mientras los partidos no hayan comenzado. ¡Sé valiente y confía en tu instinto!</p>
+        </div>
+    </div>
     <div id="tab-admin" class="tab-content">
         <h1>🔐 Admin</h1>
         <div class="panel">
@@ -231,7 +271,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
-    // ==================== CONFIGURACIÓN FIREBASE ====================
     const firebaseConfig = {
         apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
         authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
@@ -247,7 +286,6 @@
         firebaseReady = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
     } catch(e) { console.error(e); }
 
-    // ==================== DATOS FIJOS ====================
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
         B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
@@ -286,7 +324,6 @@
             matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:'Por definir', round:3, homeScore:null, awayScore:null});
             matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:'Por definir', round:3, homeScore:null, awayScore:null});
         });
-        // KO
         const koDates = [
             '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
             '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
@@ -304,7 +341,6 @@
     const DEFAULT_MATCHES = buildMatchDates();
     const DEFAULT_POINTS = { sign:10, diff:15, exact:25, goldenBoot:30, goldenBall:30, qualify:5, champion:50 };
 
-    // ==================== ESTADO ====================
     let matches = [...DEFAULT_MATCHES];
     let predictions = {};
     let pointsConfig = {...DEFAULT_POINTS};
@@ -312,11 +348,10 @@
     let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
     let adminLogged = false;
 
-    // ==================== SINCRONIZACIÓN FIREBASE ====================
     function initDB() {
-        if (!firebaseReady) return Promise.reject();
+        if (!firebaseReady) return Promise.reject(new Error('Firebase no configurado.'));
         const batch = db.batch();
-        matches.forEach(m => batch.set(db.collection('matches').doc(m.id.toString()), {
+        DEFAULT_MATCHES.forEach(m => batch.set(db.collection('matches').doc(m.id.toString()), {
             group: m.group, home: m.home, away: m.away, date: m.date,
             venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
         }));
@@ -324,12 +359,16 @@
         batch.set(db.collection('config').doc('winners'), actualWinners);
         return batch.commit();
     }
+
     function syncData() {
         if (!firebaseReady) return loadLocal();
         db.collection('matches').onSnapshot(snap => {
             matches = [];
             snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
             matches.sort((a,b)=>a.id-b.id);
+            if (matches.length === 0) {
+                console.warn('No se encontraron partidos en Firestore. ¿Inicializaste la BD?');
+            }
             renderAllTabs();
         });
         db.collection('predictions').onSnapshot(snap => {
@@ -340,19 +379,23 @@
         db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
         db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
     }
+
     function loadLocal() {
         const lm = localStorage.getItem('matches_wc26_v3');
         if (lm) matches = JSON.parse(lm);
+        else matches = [...DEFAULT_MATCHES];
         const lp = localStorage.getItem('predictions_wc26_v3');
         if (lp) predictions = JSON.parse(lp);
         renderAllTabs();
     }
+
     function saveResults() {
-        if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); return; }
+        if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); showToast('Guardado local'); return; }
         const batch = db.batch();
         matches.forEach(m => batch.update(db.collection('matches').doc(m.id.toString()), { homeScore: m.homeScore, awayScore: m.awayScore }));
-        batch.commit().then(() => showToast('Resultados guardados'));
+        batch.commit().then(() => showToast('Resultados guardados ✅')).catch(e => showToast('Error al guardar'));
     }
+
     function guardarPrediccion(player, predData) {
         if (!firebaseReady) {
             predictions[player] = predData;
@@ -362,7 +405,6 @@
         return db.collection('predictions').doc(player).set(predData);
     }
 
-    // ==================== LÓGICA GRUPOS Y CRUCES OFICIALES FIFA ====================
     function getGroupStandings(mArr, group) {
         const teams = GROUPS[group];
         const stats = {};
@@ -406,8 +448,7 @@
             'ABCDEFGH': {74:'A', 77:'C', 79:'C', 80:'E', 81:'B', 82:'A', 85:'E', 87:'D'},
             'ABCDEFGI': {74:'A', 77:'C', 79:'C', 80:'E', 81:'B', 82:'A', 85:'E', 87:'D'},
         };
-        const defaultCombo = {74:'A', 77:'C', 79:'C', 80:'E', 81:'B', 82:'A', 85:'E', 87:'D'};
-        return comboMap[groups] || defaultCombo;
+        return comboMap[groups] || {74:'A', 77:'C', 79:'C', 80:'E', 81:'B', 82:'A', 85:'E', 87:'D'};
     }
 
     function autoFillKO(preds) {
@@ -473,9 +514,9 @@
             const [ph, pa] = [parseInt(p.home), parseInt(p.away)];
             if (isNaN(ph) || isNaN(pa)) continue;
             if (ph === rh && pa === ra) total += pointsConfig.exact;
-            else if ((rh>ra) === (ph>pa) || (rh===ra && ph===pa)) {
+            else if ((rh > ra) === (ph > pa) || (rh === ra && ph === pa)) {
                 total += pointsConfig.sign;
-                if ((rh-ra) === (ph-pa)) total += pointsConfig.diff;
+                if ((rh - ra) === (ph - pa)) total += pointsConfig.diff;
             }
         }
         const realQual = getQualifiedTeams(matches);
@@ -487,7 +528,6 @@
         return total;
     }
 
-    // ==================== RENDERIZADO (completo) ====================
     function renderDashboard() {
         const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
         document.getElementById('dashboard-subtitle').textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
@@ -498,6 +538,7 @@
             <div class="panel flex-col"><strong style="font-size:1.5rem;">${total-played}</strong><br><small>Pendientes</small></div>`;
         renderTop5(); renderUpcoming();
     }
+
     function renderTop5() {
         const scores = {}; for (const [n,p] of Object.entries(predictions)) scores[n] = calculateScore(p);
         const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
@@ -508,6 +549,7 @@
         });
         document.getElementById('top5-table').innerHTML = html+'</table>';
     }
+
     function renderUpcoming() {
         const upcoming = matches.filter(m => m.homeScore === null).sort((a,b) => new Date(a.date)-new Date(b.date)).slice(0,8);
         let html = '<table><tr><th>Fecha</th><th>Ronda</th><th>Partido</th></tr>';
@@ -517,6 +559,7 @@
         });
         document.getElementById('upcoming-matches').innerHTML = html+'</table>';
     }
+
     function renderMatchesFull() {
         let html = ''; const done = {};
         matches.forEach(m => {
@@ -527,6 +570,7 @@
         });
         document.getElementById('matches-full-list').innerHTML = html;
     }
+
     function renderGroups() {
         let html = '';
         for (const [g, teams] of Object.entries(GROUPS)) {
@@ -537,9 +581,11 @@
         }
         document.getElementById('groups-container').innerHTML = html;
     }
+
     function renderBracket() {
         document.getElementById('bracket-container').innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará automáticamente cuando se completen los grupos</p>';
     }
+
     function renderMyPool() {
         if (!currentPlayer) { document.getElementById('prediction-form').innerHTML = '<p style="color:var(--text3);">Introduce tu nombre y haz clic en Guardar para empezar.</p>'; return; }
         let preds = predictions[currentPlayer] || {};
@@ -554,6 +600,7 @@
         });
         document.getElementById('prediction-form').innerHTML = html+'</table>';
     }
+
     function renderStandings() {
         const scores = {}; for (const [n,p] of Object.entries(predictions)) scores[n] = calculateScore(p);
         const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]);
@@ -564,6 +611,7 @@
         });
         document.getElementById('standings-table').innerHTML = html+'</table>';
     }
+
     function renderPicks() {
         const sp = (currentPlayer && predictions[currentPlayer]) ? predictions[currentPlayer] : {};
         document.getElementById('golden-boot-pick').value = sp.goldenBoot || '';
@@ -573,6 +621,7 @@
         for (const [player, data] of Object.entries(predictions)) summary += `<tr><td>${player}</td><td>${data.goldenBoot||'-'}</td><td>${data.goldenBall||'-'}</td><td>${data.champion||'-'}</td></tr>`;
         document.getElementById('picks-summary').innerHTML = summary+'</table>';
     }
+
     function renderRules() {
         document.getElementById('rule-sign').textContent = pointsConfig.sign;
         document.getElementById('rule-diff').textContent = pointsConfig.diff;
@@ -582,6 +631,7 @@
         document.getElementById('rule-qualify').textContent = pointsConfig.qualify;
         document.getElementById('rule-champion').textContent = pointsConfig.champion;
     }
+
     function renderAdmin() {
         if (!adminLogged) return;
         let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Resultado</th></tr>';
@@ -599,15 +649,16 @@
         document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
         document.getElementById('real-champion').value = actualWinners.champion || '';
     }
+
     function renderAllTabs() {
         const active = document.querySelector('.tab-content.active');
         if (!active) return;
         const id = active.id.replace('tab-','');
-        const fns = { dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups, bracket: renderBracket, mypool: renderMyPool, standings: renderStandings, picks: renderPicks, rules: renderRules, admin: renderAdmin };
+        const fns = { dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups, bracket: renderBracket, mypool: renderMyPool, standings: renderStandings, picks: renderPicks, rules: renderRules, instructions: () => {}, admin: renderAdmin };
         if (fns[id]) fns[id]();
     }
 
-    // ==================== EVENTOS ====================
+    // Eventos de navegación
     document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -615,6 +666,8 @@
         document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
         renderAllTabs();
     }));
+
+    // Eventos de Mi Porra
     document.getElementById('save-name-btn').addEventListener('click', () => {
         const name = document.getElementById('player-name').value.trim();
         if (!name) return;
@@ -641,6 +694,8 @@
         guardarPrediccion(currentPlayer, predictions[currentPlayer]);
         showToast('KO bloqueado manualmente');
     });
+
+    // Eventos de Premios
     document.getElementById('golden-boot-pick').addEventListener('change', function() {
         if (!currentPlayer) return;
         predictions[currentPlayer].goldenBoot = this.value;
@@ -656,9 +711,14 @@
         predictions[currentPlayer].champion = this.value;
         guardarPrediccion(currentPlayer, predictions[currentPlayer]);
     });
+
+    // Admin
     document.getElementById('login-btn').addEventListener('click', () => {
-        if (document.getElementById('admin-pass').value === 'admin2026') { adminLogged = true; document.getElementById('admin-panel').style.display = 'block'; renderAdmin(); }
-        else alert('Contraseña incorrecta');
+        if (document.getElementById('admin-pass').value === 'admin2026') {
+            adminLogged = true;
+            document.getElementById('admin-panel').style.display = 'block';
+            renderAdmin();
+        } else alert('Contraseña incorrecta');
     });
     document.getElementById('save-results-btn').addEventListener('click', () => {
         if (!adminLogged) return;
@@ -700,18 +760,33 @@
         const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'porra_backup.json'; a.click();
     });
+
+    // Inicializar BD (con recarga automática)
     document.getElementById('init-db-btn').addEventListener('click', () => {
-        if (!firebaseReady) return alert('Firebase no configurado');
-        if (confirm('¿Inicializar la base de datos con partidos por defecto?')) initDB().then(() => showToast('BD inicializada'));
+        if (!firebaseReady) return alert('Firebase no disponible. Asegúrate de haber creado la base de datos en la consola.');
+        const btn = document.getElementById('init-db-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Subiendo...';
+        initDB().then(() => {
+            showToast('¡Base de datos inicializada! Recargando...');
+            setTimeout(() => location.reload(), 1500);
+        }).catch(err => {
+            console.error(err);
+            alert('Error al inicializar: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '☁️ Inicializar BD';
+        });
     });
+
     document.getElementById('reset-btn').addEventListener('click', () => {
+        if (!firebaseReady) return;
         if (confirm('¿Eliminar TODOS los datos de la nube?')) {
-            if (!firebaseReady) return;
             const batch = db.batch();
-            matches.forEach(m => batch.delete(db.collection('matches').doc(m.id.toString())));
-            Object.keys(predictions).forEach(p => batch.delete(db.collection('predictions').doc(p)));
-            batch.delete(db.collection('config').doc('winners'));
-            batch.commit().then(() => { showToast('BD reiniciada'); location.reload(); });
+            db.collection('matches').get().then(snap => { snap.forEach(doc => batch.delete(doc.ref)); return db.collection('predictions').get(); })
+            .then(snap => { snap.forEach(doc => batch.delete(doc.ref)); return db.collection('config').doc('winners').delete(); })
+            .then(() => batch.commit())
+            .then(() => { showToast('BD reiniciada'); location.reload(); })
+            .catch(err => alert('Error al reiniciar: ' + err.message));
         }
     });
 
@@ -720,12 +795,12 @@
         document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
     }
 
-    // Llenar selectores de campeón
-    const selChamp = document.getElementById('champion-pick');
-    const selRealChamp = document.getElementById('real-champion');
+    // Selectores de campeón
+    const champ = document.getElementById('champion-pick');
+    const realChamp = document.getElementById('real-champion');
     ALL_TEAMS.forEach(t => {
-        selChamp.innerHTML += `<option value="${t}">${t}</option>`;
-        selRealChamp.innerHTML += `<option value="${t}">${t}</option>`;
+        champ.innerHTML += `<option value="${t}">${t}</option>`;
+        realChamp.innerHTML += `<option value="${t}">${t}</option>`;
     });
 
     // Inicio
