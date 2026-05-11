@@ -259,7 +259,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Configuración Firebase (tus datos reales)
+    // ========== CONFIGURACIÓN DE FIREBASE ==========
     const firebaseConfig = {
         apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
         authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
@@ -268,12 +268,12 @@ document.addEventListener('DOMContentLoaded', () => {
         messagingSenderId: "836976823576",
         appId: "1:836976823576:web:1723e5af127cd56b9fa26d"
     };
-
     let db, firebaseReady = false;
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         firebaseReady = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+        console.log('Firebase inicializado. Modo:', firebaseReady ? 'Online' : 'Local');
     } catch(e) { console.error(e); }
 
     // --- DATOS FIJOS ---
