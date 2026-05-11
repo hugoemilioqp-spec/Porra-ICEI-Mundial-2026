@@ -259,8 +259,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // ========== CONFIGURACIÓN DE FIREBASE (cambia estos valores por los tuyos) ==========
+    // ==================== CONFIGURACIÓN DE FIREBASE ====================
     const firebaseConfig = {
         apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
         authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
@@ -269,14 +268,20 @@ document.addEventListener('DOMContentLoaded', () => {
         messagingSenderId: "836976823576",
         appId: "1:836976823576:web:1723e5af127cd56b9fa26d"
     };
+
+    console.log('Script cargado correctamente');
     let db, firebaseReady = false;
+
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
-        firebaseReady = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
-        console.log('Firebase inicializado. Modo:', firebaseReady ? 'Online' : 'Local');
-    } catch(e) { console.error(e); }
-
+        console.log('Firebase inicializado');
+        // Conectado a menos que sea localhost
+        firebaseReady = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    } catch (e) {
+        console.error('Error al inicializar Firebase:', e);
+        firebaseReady = false;
+    }
     // --- DATOS FIJOS ---
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
