@@ -10,42 +10,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root {
-            --bg-deep: #05070d;
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b24;
-            --bg-card: #1a1f2c;
-            --glass-bg: rgba(22, 27, 36, 0.78);
-            --glass-border: rgba(255, 255, 255, 0.07);
-            --gold: #f0b90b;
-            --gold-light: #fcd535;
-            --gold-dark: #b8860b;
-            --accent: #3b82f6;
-            --accent-light: #60a5fa;
-            --emerald: #10b981;
-            --rose: #f43f5e;
-            --amber: #f59e0b;
-            --text: #e2e8f0;
-            --text2: #94a3b8;
-            --text3: #64748b;
-            --radius: 14px;
-            --shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            --tree-line: rgba(255, 255, 255, 0.2);
+            --bg-deep: #05070d; --bg-primary: #0d1117; --bg-secondary: #161b24; --bg-card: #1a1f2c;
+            --glass-bg: rgba(22, 27, 36, 0.78); --glass-border: rgba(255, 255, 255, 0.07);
+            --gold: #f0b90b; --gold-light: #fcd535; --gold-dark: #b8860b; --accent: #3b82f6;
+            --accent-light: #60a5fa; --emerald: #10b981; --rose: #f43f5e; --amber: #f59e0b;
+            --text: #e2e8f0; --text2: #94a3b8; --text3: #64748b; --radius: 14px;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: 'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-            background: var(--bg-deep);
-            color: var(--text);
-            min-height: 100vh;
-            background-image: radial-gradient(ellipse at 30% 10%, rgba(240, 185, 11, 0.04) 0%, transparent 60%),
-                radial-gradient(ellipse at 70% 50%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 40% 90%, rgba(16, 185, 129, 0.03) 0%, transparent 40%);
+            background: var(--bg-deep); color: var(--text); min-height:100vh;
+            background-image: radial-gradient(ellipse at 30% 10%, rgba(240,185,11,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 50%, rgba(59,130,246,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 40% 90%, rgba(16,185,129,0.03) 0%, transparent 40%);
             display: flex;
         }
-        .sidebar {
-            width: 235px; background: var(--bg-primary); border-right: 1px solid rgba(255,255,255,0.05);
-            display: flex; flex-direction: column; padding: 16px 10px; position: sticky; top: 0; height: 100vh; z-index:10; flex-shrink:0;
-        }
+        .sidebar { width:235px; background:var(--bg-primary); border-right:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; padding:16px 10px; position:sticky; top:0; height:100vh; z-index:10; flex-shrink:0; }
         .sidebar-logo { font-family:'Outfit',sans-serif; font-weight:800; font-size:1.1rem; padding:6px 8px 20px; display:flex; align-items:center; gap:10px; color:#fff; }
         .sidebar-logo .trophy-icon { width:42px; height:42px; background:radial-gradient(circle at 35% 30%, #fef3c7, #b8860b); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.6rem; box-shadow:0 0 24px rgba(240,185,11,0.35); flex-shrink:0; }
         .sidebar-nav { display:flex; flex-direction:column; gap:2px; flex:1; }
@@ -63,7 +43,6 @@
         .flex-row { display:flex; gap:12px; flex-wrap:wrap; } .flex-col { flex:1; min-width:160px; }
         .grid-2 { display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
         .grid-3 { display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:12px; }
-        .grid-knockout { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; }
         table { width:100%; border-collapse:collapse; font-size:0.8rem; }
         th,td { padding:7px 6px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
         th { color:var(--text3); font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.04em; }
@@ -92,16 +71,13 @@
         .group-header { background:linear-gradient(135deg, rgba(240,185,11,0.07), transparent); font-weight:700; color:var(--gold-light); padding:8px 10px; border-radius:8px; margin-bottom:4px; font-size:0.85rem; }
         .weare26-logo { text-align:center; padding:10px; background:linear-gradient(135deg, rgba(240,185,11,0.1), rgba(255,255,255,0.02)); border-radius:12px; margin-bottom:12px; font-family:'Outfit',sans-serif; font-weight:800; font-size:1.3rem; letter-spacing:-0.02em; border:1px solid rgba(240,185,11,0.2); display:flex; align-items:center; justify-content:center; gap:12px; }
         .weare26-logo .official-badge { background:#000; color:var(--gold-light); padding:4px 12px; border-radius:20px; font-size:0.7rem; letter-spacing:0.05em; border:1px solid var(--gold); }
-        .bracket-slot { border:1px solid rgba(255,255,255,0.12); border-radius:6px; padding:5px 8px; font-size:0.7rem; background:rgba(255,255,255,0.02); min-width:110px; text-align:center; transition:all 0.2s; }
-        .bracket-slot:hover { border-color:rgba(240,185,11,0.4); background:rgba(240,185,11,0.04); }
+        .bracket-slot { border:1px solid rgba(255,255,255,0.12); border-radius:6px; padding:5px 8px; font-size:0.7rem; background:rgba(255,255,255,0.02); min-width:110px; text-align:center; }
         .bracket-slot .match-id { font-weight:700; color:var(--gold-light); font-size:0.65rem; }
         .bracket-round-title { text-align:center; font-weight:700; font-size:0.78rem; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin:12px 0 6px; }
         .trophy-center { text-align:center; font-size:3rem; margin:10px 0; filter:drop-shadow(0 0 20px rgba(240,185,11,0.5)); animation:floatTrophy 3s ease-in-out infinite; }
         @keyframes floatTrophy { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
         .pick-section select, .pick-section input { background:rgba(255,255,255,0.05); border:1px solid rgba(240,185,11,0.2); border-radius:8px; padding:8px 12px; color:#fff; font-size:0.85rem; font-weight:600; min-width:200px; }
-        .pick-section select:hover, .pick-section input:hover { border-color:var(--gold); }
-        .pick-section label { font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; }
-        .mt-2{margin-top:8px;} .mt-3{margin-top:14px;} .text-gold{color:var(--gold-light);} .text-muted{color:var(--text3);} .fw-700{font-weight:700;}
+        .mt-2{margin-top:8px;} .mt-3{margin-top:14px;} .text-gold{color:var(--gold-light);} .text-muted{color:var(--text3);}
         .venue-info { font-size:0.65rem; color:var(--text3); font-style:italic; display:block; }
         @media(max-width:768px){
             .sidebar{width:60px;padding:10px 4px;} .sidebar-logo span,.sidebar-nav button span,.sidebar-footer{display:none;}
@@ -111,8 +87,6 @@
         .connected { background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
         .disconnected { background: var(--rose); box-shadow: 0 0 6px var(--rose); }
         .instructions { line-height:1.6; }
-        .instructions h2 { margin-top: 20px; }
-        .instructions ul { margin-left: 20px; }
         .bracket-tree { display: flex; flex-direction: column; align-items: center; overflow-x: auto; padding: 20px; }
         .bracket-round { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; margin: 10px 0; }
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
@@ -165,6 +139,7 @@
         <div class="panel">
             <div class="flex-row" style="align-items:center;margin-bottom:10px;">
                 <input type="text" id="player-name" placeholder="Nombre único" style="max-width:200px;">
+                <input type="text" id="access-code" placeholder="Código de acceso" style="max-width:150px;">
                 <button class="btn btn-gold" id="save-name-btn"><i class="fa-solid fa-user"></i> Guardar</button>
             </div>
             <div id="prediction-form"></div>
@@ -220,25 +195,19 @@
         <h1>📘 Instrucciones detalladas</h1>
         <div class="panel">
             <h2>1. Registro</h2>
-            <p>Ve a <strong>Mi Porra</strong>, escribe un nombre único y pulsa <strong>Guardar</strong>. Ese será tu identificador para todo el mundial.</p>
-            
+            <p>Ve a <strong>Mi Porra</strong>, escribe un nombre único, introduce el <strong>código de acceso</strong> que te ha proporcionado el administrador y pulsa <strong>Guardar</strong>. Ese será tu identificador para todo el mundial. Sin un código válido no podrás participar.</p>
             <h2>2. Hacer pronósticos</h2>
             <p>En <strong>Mi Porra</strong> verás los 104 partidos ordenados por fecha. Para los partidos de la fase de grupos, introduce el marcador (goles del equipo local y visitante) que crees que ocurrirá. Los partidos con resultado oficial aparecen bloqueados.</p>
             <p>Los cruces de eliminatorias (Dieciseisavos, Octavos…) se rellenan automáticamente a partir de <strong>tus propios pronósticos de grupo</strong>. Si quieres cambiarlos manualmente, pulsa <strong>Bloquear KO manual</strong>.</p>
             <p>Cuando el administrador haya introducido todos los resultados de la fase de grupos, se activará el botón <strong>Generar eliminatorias oficiales</strong>. Al pulsarlo, se rellenarán los cruces con los equipos clasificados reales y podrás poner tus marcadores para las eliminatorias.</p>
-            
             <h2>3. Premios especiales</h2>
             <p>En <strong>Premios</strong> puedes escribir el nombre del jugador que crees que ganará la Bota de Oro y el Balón de Oro. También debes seleccionar el <strong>Campeón del Mundo</strong> de la lista. <em>Puedes escribir cualquier nombre, no solo los sugeridos.</em></p>
-            
             <h2>4. Visualización de resultados y clasificación</h2>
             <p>En <strong>Dashboard</strong> verás las estadísticas generales y los próximos partidos. En <strong>Partidos</strong> tienes el calendario completo con fechas y sedes. Los <strong>Grupos</strong> muestran la clasificación actualizada según los resultados oficiales. <strong>Eliminatorias</strong> te muestra el árbol gráfico con los equipos (cuando estén disponibles).</p>
-            
             <h2>5. Verificar tu puntuación</h2>
             <p>En <strong>Mi Puntuación</strong> puedes seleccionar cualquier jugador y ver el desglose exacto de cómo ha obtenido sus puntos: partido por partido (resultado real, su pronóstico y puntos), además de los bonus por clasificados y premios. Esto garantiza total transparencia. También puedes hacer clic en un jugador desde la <strong>Clasificación</strong> para ir directamente a su detalle.</p>
-            
             <h2>6. Reglas</h2>
             <p>Las reglas detalladas están en la pestaña <strong>Reglas</strong>. No se otorgan puntos hasta que el administrador introduce los resultados oficiales. Los puntos por clasificados se calculan automáticamente al finalizar la fase de grupos.</p>
-            
             <h2>7. Consejos</h2>
             <p>Puedes modificar tus pronósticos en cualquier momento antes de que comience el partido. Después aparecerá bloqueado. ¡Suerte!</p>
         </div>
@@ -266,6 +235,16 @@
                     <div><label>Campeón real</label><select id="real-champion"><option value="">--</option></select></div>
                     <button class="btn btn-outline btn-sm" id="save-winners-btn">Guardar Ganadores</button>
                 </div>
+                <hr>
+                <h3>Códigos de acceso</h3>
+                <div class="flex-row" style="align-items:center;">
+                    <input type="text" id="code-to-generate" placeholder="Nuevo código (opcional)" style="max-width:200px;">
+                    <button class="btn btn-outline btn-sm" id="generate-code-btn">Generar código</button>
+                </div>
+                <div id="codes-list" style="margin-top:8px;"></div>
+                <hr>
+                <h3>Participantes</h3>
+                <div id="players-list"></div>
                 <div class="flex-row mt-2">
                     <button class="btn btn-outline btn-sm" id="export-btn">📤 Exportar</button>
                     <button class="btn btn-outline btn-sm" id="init-db-btn">☁️ Inicializar BD</button>
@@ -279,7 +258,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
-    // ==================== CONFIGURACIÓN DE FIREBASE ====================
+document.addEventListener('DOMContentLoaded', () => {
+    // Configuración Firebase (tus datos reales)
     const firebaseConfig = {
         apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
         authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
@@ -289,19 +269,14 @@
         appId: "1:836976823576:web:1723e5af127cd56b9fa26d"
     };
 
-    console.log('Script cargado correctamente');
     let db, firebaseReady = false;
-
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
-        console.log('Firebase inicializado');
-        // Conectado a menos que sea localhost
-        firebaseReady = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    } catch (e) {
-        console.error('Error al inicializar Firebase:', e);
-        firebaseReady = false;
-    }
+        firebaseReady = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+    } catch(e) { console.error(e); }
+
+    // --- DATOS FIJOS ---
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
         B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
@@ -393,9 +368,11 @@
     let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
     let adminLogged = false;
     let selectedPointsPlayer = currentPlayer;
+    let accessCodes = []; // {code: string, usedBy: string|null}
 
+    // Funciones de sincronización
     function initDB() {
-        if (!firebaseReady) return Promise.reject(new Error('Firebase no disponible'));
+        if (!firebaseReady) return Promise.reject('Firebase no disponible');
         const batch = db.batch();
         matches.forEach(m => batch.set(db.collection('matches').doc(m.id.toString()), {
             group: m.group, home: m.home, away: m.away, date: m.date,
@@ -422,6 +399,11 @@
         });
         db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
         db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
+        db.collection('accessCodes').onSnapshot(snap => {
+            accessCodes = [];
+            snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
+            renderAccessCodes();
+        });
     }
     function loadLocal() {
         const lm = localStorage.getItem('matches_wc26_v3');
@@ -429,14 +411,12 @@
         const lp = localStorage.getItem('predictions_wc26_v3');
         if (lp) predictions = JSON.parse(lp);
         renderAllTabs();
-        updateGenerateKOButton();
-        updateBotaBalonSuggestions();
     }
     function saveResults() {
         if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); showToast('Guardado local'); return; }
         const batch = db.batch();
         matches.forEach(m => batch.update(db.collection('matches').doc(m.id.toString()), { homeScore: m.homeScore, awayScore: m.awayScore }));
-        batch.commit().then(() => showToast('Resultados guardados')).catch(e => showToast('Error'));
+        batch.commit().then(() => showToast('Resultados guardados'));
     }
     function guardarPrediccion(player, predData) {
         if (!firebaseReady) {
@@ -446,6 +426,35 @@
         }
         return db.collection('predictions').doc(player).set(predData);
     }
+
+    // Códigos de acceso
+    function generateCode(custom='') {
+        const code = custom || Math.random().toString(36).substring(2, 8).toUpperCase();
+        return db.collection('accessCodes').doc(code).set({ usedBy: null });
+    }
+    function renderAccessCodes() {
+        const div = document.getElementById('codes-list');
+        if (!div) return;
+        let html = '<table><tr><th>Código</th><th>Usado por</th><th>Acción</th></tr>';
+        accessCodes.forEach(c => {
+            html += `<tr><td>${c.code}</td><td>${c.usedBy || 'Disponible'}</td>
+                     <td><button class="btn btn-sm btn-danger" onclick="deleteCode('${c.code}')">🗑️</button></td></tr>`;
+        });
+        div.innerHTML = html + '</table>';
+    }
+    window.deleteCode = async (code) => {
+        if (!firebaseReady) return;
+        await db.collection('accessCodes').doc(code).delete();
+        showToast('Código eliminado');
+    };
+    window.deletePlayer = async (player) => {
+        if (!firebaseReady || !confirm(`¿Eliminar a ${player} y todas sus predicciones?`)) return;
+        await db.collection('predictions').doc(player).delete();
+        // Si el código fue usado por este jugador, liberarlo
+        const codeUsed = accessCodes.find(c => c.usedBy === player);
+        if (codeUsed) await db.collection('accessCodes').doc(codeUsed.code).update({ usedBy: null });
+        showToast('Participante eliminado');
+    };
 
     function getGroupStandings(mArr, group) {
         const teams = GROUPS[group];
