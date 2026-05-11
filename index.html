@@ -181,6 +181,7 @@
         <div class="rules-box">
             <h3>⚽ Puntuación</h3>
             <ul>
+                <!-- Puedes cambiar los valores iniciales aquí, se actualizan con Admin -->
                 <li><i class="fa-solid fa-check-circle"></i> Signo (1X2): <span id="rule-sign">10</span> pts</li>
                 <li><i class="fa-solid fa-bullseye"></i> Resultado exacto: <span id="rule-exact">25</span> pts</li>
                 <li><i class="fa-solid fa-users"></i> Clasificado a dieciseisavos (por equipo): <span id="rule-qualify">5</span> pts</li>
@@ -259,7 +260,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // ========== CONFIGURACIÓN DE FIREBASE ==========
+    // ========== CONFIGURACIÓN DE FIREBASE (cambia estos valores por los tuyos) ==========
     const firebaseConfig = {
         apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
         authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
@@ -359,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return matches;
     }
     const DEFAULT_MATCHES = buildMatchDates();
+    // Valores por defecto de puntuación (puedes cambiarlos aquí)
     const DEFAULT_POINTS = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
 
     let matches = [...DEFAULT_MATCHES];
@@ -370,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedPointsPlayer = currentPlayer;
     let accessCodes = []; // {code: string, usedBy: string|null}
 
-    // Funciones de sincronización
+    // ========== SINCRONIZACIÓN ==========
     function initDB() {
         if (!firebaseReady) return Promise.reject('Firebase no disponible');
         const batch = db.batch();
@@ -396,13 +398,17 @@ document.addEventListener('DOMContentLoaded', () => {
             snap.forEach(doc => predictions[doc.id] = doc.data());
             renderAllTabs();
             updateBotaBalonSuggestions();
+            if (adminLogged) renderPlayersList();
         });
         db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
         db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
         db.collection('accessCodes').onSnapshot(snap => {
             accessCodes = [];
             snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
-            renderAccessCodes();
+            if (adminLogged) {
+                renderAccessCodes();
+                renderPlayersList();
+            }
         });
     }
     function loadLocal() {
@@ -427,10 +433,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return db.collection('predictions').doc(player).set(predData);
     }
 
-    // Códigos de acceso
-    function generateCode(custom='') {
+    // ========== CÓDIGOS DE ACCESO ==========
+    async function generateCode(custom='') {
+        if (!firebaseReady) return;
         const code = custom || Math.random().toString(36).substring(2, 8).toUpperCase();
-        return db.collection('accessCodes').doc(code).set({ usedBy: null });
+        await db.collection('accessCodes').doc(code).set({ usedBy: null });
+        showToast('Código generado: ' + code);
+        document.getElementById('code-to-generate').value = '';
+    }
+    async function deleteCode(code) {
+        if (!firebaseReady || !confirm('¿Eliminar código?')) return;
+        await db.collection('accessCodes').doc(code).delete();
+        showToast('Código eliminado');
+    }
+    async function deletePlayer(player) {
+        if (!firebaseReady || !confirm(`¿Eliminar a ${player} y todas sus predicciones?`)) return;
+        await db.collection('predictions').doc(player).delete();
+        const codeUsed = accessCodes.find(c => c.usedBy === player);
+        if (codeUsed) await db.collection('accessCodes').doc(codeUsed.code).update({ usedBy: null });
+        showToast('Participante eliminado');
     }
     function renderAccessCodes() {
         const div = document.getElementById('codes-list');
@@ -442,20 +463,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         div.innerHTML = html + '</table>';
     }
-    window.deleteCode = async (code) => {
-        if (!firebaseReady) return;
-        await db.collection('accessCodes').doc(code).delete();
-        showToast('Código eliminado');
-    };
-    window.deletePlayer = async (player) => {
-        if (!firebaseReady || !confirm(`¿Eliminar a ${player} y todas sus predicciones?`)) return;
-        await db.collection('predictions').doc(player).delete();
-        // Si el código fue usado por este jugador, liberarlo
-        const codeUsed = accessCodes.find(c => c.usedBy === player);
-        if (codeUsed) await db.collection('accessCodes').doc(codeUsed.code).update({ usedBy: null });
-        showToast('Participante eliminado');
+    function renderPlayersList() {
+        const div = document.getElementById('players-list');
+        if (!div) return;
+        let html = '<table><tr><th>Jugador</th><th>Acción</th></tr>';
+        Object.keys(predictions).forEach(p => {
+            html += `<tr><td>${p}</td><td><button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button></td></tr>`;
+        });
+        div.innerHTML = html + '</table>';
+    }
+    // Exponer funciones globales para onclick
+    window.deleteCode = deleteCode;
+    window.deletePlayer = deletePlayer;
+    window.selectPointsPlayer = function(name) {
+        selectedPointsPlayer = name;
+        document.getElementById('points-player-select').value = name;
+        renderPointsDetail();
+        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+        document.querySelector('[data-tab="mypoints"]').classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-mypoints').classList.add('active');
     };
 
+    // ========== LÓGICA DE GRUPOS Y ELIMINATORIAS ==========
     function getGroupStandings(mArr, group) {
         const teams = GROUPS[group];
         const stats = {};
@@ -558,6 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ========== CÁLCULO DE PUNTOS ==========
     function calculatePointsDetail(playerName) {
         const preds = predictions[playerName] || {};
         const details = [];
@@ -621,6 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return { total, details };
     }
 
+    // ========== RENDERIZADO DE PESTAÑAS ==========
     function renderDashboard() {
         const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
         document.getElementById('dashboard-subtitle').textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
@@ -703,7 +735,6 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<div class="bracket-match">${home} vs ${away}</div>`;
         }
         html += '</div>';
-        // Las siguientes rondas se muestran vacías hasta que haya resultados
         html += '<div class="bracket-round-title">Octavos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
         html += '<div class="bracket-round-title">Cuartos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
         html += '<div class="bracket-round-title">Semifinal</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
@@ -747,15 +778,6 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<tr style="cursor:pointer;" onclick="selectPointsPlayer('${n}')"><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`;
         });
         document.getElementById('standings-table').innerHTML = html+'</table>';
-    }
-    function selectPointsPlayer(name) {
-        selectedPointsPlayer = name;
-        document.getElementById('points-player-select').value = name;
-        renderPointsDetail();
-        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
-        document.querySelector('[data-tab="mypoints"]').classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.getElementById('tab-mypoints').classList.add('active');
     }
     function renderPointsDetail() {
         const select = document.getElementById('points-player-select');
@@ -820,6 +842,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('real-golden-boot').value = actualWinners.goldenBoot || '';
         document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
         document.getElementById('real-champion').value = actualWinners.champion || '';
+        renderAccessCodes();
+        renderPlayersList();
     }
     function renderAllTabs() {
         const active = document.querySelector('.tab-content.active');
@@ -841,7 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.title = allPlayed ? 'Generar cruces con los resultados oficiales' : 'Aún no se han completado todos los partidos de grupo';
     }
 
-    // Navegación
+    // ========== EVENTOS DE NAVEGACIÓN ==========
     document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -849,12 +873,25 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
         renderAllTabs();
         if (btn.dataset.tab === 'mypoints') renderPointsDetail();
+        if (btn.dataset.tab === 'admin') renderAdmin();
     }));
 
-    // Mi Porra
-    document.getElementById('save-name-btn').addEventListener('click', () => {
+    // ========== MI PORRA ==========
+    document.getElementById('save-name-btn').addEventListener('click', async () => {
         const name = document.getElementById('player-name').value.trim();
-        if (!name) return;
+        const code = document.getElementById('access-code').value.trim();
+        if (!name || !code) return alert('Debes introducir un nombre y un código de acceso.');
+        if (!firebaseReady) return alert('Firebase no está disponible.');
+
+        // Validar código de acceso
+        const codeDoc = await db.collection('accessCodes').doc(code).get();
+        if (!codeDoc.exists) return alert('Código de acceso inválido.');
+        const codeData = codeDoc.data();
+        if (codeData.usedBy && codeData.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
+
+        // Marcar código como usado (si no lo estaba)
+        if (!codeData.usedBy) await db.collection('accessCodes').doc(code).update({ usedBy: name });
+
         currentPlayer = name;
         localStorage.setItem('currentPlayer_wc26_v3', name);
         if (!predictions[name]) predictions[name] = {};
@@ -899,7 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Premios (ahora inputs de texto)
+    // ========== PREMIOS ==========
     document.getElementById('golden-boot-pick').addEventListener('input', function() {
         if (!currentPlayer) return;
         if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
@@ -919,10 +956,14 @@ document.addEventListener('DOMContentLoaded', () => {
         guardarPrediccion(currentPlayer, predictions[currentPlayer]);
     });
 
-    // Admin
+    // ========== ADMIN ==========
     document.getElementById('login-btn').addEventListener('click', () => {
-        if (document.getElementById('admin-pass').value === 'admin2026') { adminLogged = true; document.getElementById('admin-panel').style.display = 'block'; renderAdmin(); }
-        else alert('Contraseña incorrecta');
+        // Contraseña de administrador (puedes cambiarla aquí)
+        if (document.getElementById('admin-pass').value === 'admin2026') {
+            adminLogged = true;
+            document.getElementById('admin-panel').style.display = 'block';
+            renderAdmin();
+        } else alert('Contraseña incorrecta');
     });
     document.getElementById('save-results-btn').addEventListener('click', () => {
         if (!adminLogged) return;
@@ -958,6 +999,10 @@ document.addEventListener('DOMContentLoaded', () => {
         else localStorage.setItem('actualWinners', JSON.stringify(actualWinners));
         showToast('Ganadores actualizados');
         renderAllTabs();
+    });
+    document.getElementById('generate-code-btn').addEventListener('click', () => {
+        const custom = document.getElementById('code-to-generate').value.trim();
+        generateCode(custom);
     });
     document.getElementById('export-btn').addEventListener('click', () => {
         const data = { matches, predictions, pointsConfig, actualWinners };
@@ -1014,6 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
             text.innerHTML = '<span class="connection-dot disconnected"></span> Modo local';
         }
     }
+});
 </script>
 </body>
 </html>
