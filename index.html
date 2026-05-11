@@ -90,6 +90,7 @@
         .bracket-tree { display: flex; flex-direction: column; align-items: center; overflow-x: auto; padding: 20px; }
         .bracket-round { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; margin: 10px 0; }
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
+        #connection-detail { color: var(--rose); font-size:0.7rem; margin-top:4px; display:block; }
     </style>
 </head>
 <body>
@@ -109,11 +110,15 @@
         <button data-tab="admin"><i class="fa-solid fa-lock"></i> <span>Admin</span></button>
     </nav>
     <div class="sidebar-footer" id="connection-status">
-        <span class="connection-dot disconnected" id="status-dot"></span> Sin conexión
+        <span class="connection-dot disconnected" id="status-dot"></span>
+        <span id="connection-text">Comprobando...</span>
+        <div id="connection-detail"></div>
     </div>
 </aside>
 
 <div class="main">
+    <!-- Pestañas: Dashboard, Matches, Groups, Bracket, MyPool, Standings, MyPoints, Picks, Rules, Instructions, Admin -->
+    <!-- (Se incluyen completas como en la última versión funcional, con IDs correctos) -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
@@ -124,7 +129,7 @@
     <div id="tab-matches" class="tab-content">
         <h1>📅 Calendario Completo</h1>
         <p class="subtitle">104 partidos · sedes oficiales</p>
-        <div class="panel" id="matches-full-list"></div>
+        <div class="panel" id="matches-full-list"><p class="text-muted">Cargando partidos...</p></div>
     </div>
     <div id="tab-groups" class="tab-content">
         <h1>📊 Grupos</h1>
@@ -143,7 +148,7 @@
                 <button class="btn btn-gold" id="save-name-btn"><i class="fa-solid fa-user"></i> Guardar</button>
             </div>
             <div id="prediction-form"></div>
-            <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;">
+            <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;">
                 <button class="btn btn-accent" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
                 <button class="btn btn-outline btn-sm" id="lock-ko-btn">🔒 Bloquear KO manual</button>
                 <button class="btn btn-outline btn-sm" id="generate-ko-btn" disabled title="Disponible cuando todos los partidos de grupo tengan resultado oficial">🏟️ Generar eliminatorias oficiales</button>
@@ -195,21 +200,15 @@
         <h1>📘 Instrucciones detalladas</h1>
         <div class="panel">
             <h2>1. Registro</h2>
-            <p>Ve a <strong>Mi Porra</strong>, escribe un nombre único, introduce el <strong>código de acceso</strong> que te ha proporcionado el administrador y pulsa <strong>Guardar</strong>. Ese será tu identificador para todo el mundial. Sin un código válido no podrás participar.</p>
+            <p>Ve a <strong>Mi Porra</strong>, escribe un nombre único, introduce el <strong>código de acceso</strong> que te ha proporcionado el administrador y pulsa <strong>Guardar</strong>. Sin un código válido no podrás ver los partidos ni hacer pronósticos.</p>
             <h2>2. Hacer pronósticos</h2>
-            <p>En <strong>Mi Porra</strong> verás los 104 partidos ordenados por fecha. Para los partidos de la fase de grupos, introduce el marcador (goles del equipo local y visitante) que crees que ocurrirá. Los partidos con resultado oficial aparecen bloqueados.</p>
-            <p>Los cruces de eliminatorias (Dieciseisavos, Octavos…) se rellenan automáticamente a partir de <strong>tus propios pronósticos de grupo</strong>. Si quieres cambiarlos manualmente, pulsa <strong>Bloquear KO manual</strong>.</p>
-            <p>Cuando el administrador haya introducido todos los resultados de la fase de grupos, se activará el botón <strong>Generar eliminatorias oficiales</strong>. Al pulsarlo, se rellenarán los cruces con los equipos clasificados reales y podrás poner tus marcadores para las eliminatorias.</p>
+            <p>Una vez registrado, en <strong>Mi Porra</strong> verás los 104 partidos. Introduce el marcador para cada uno. Los partidos con resultado oficial aparecen bloqueados.</p>
             <h2>3. Premios especiales</h2>
-            <p>En <strong>Premios</strong> puedes escribir el nombre del jugador que crees que ganará la Bota de Oro y el Balón de Oro. También debes seleccionar el <strong>Campeón del Mundo</strong> de la lista. <em>Puedes escribir cualquier nombre, no solo los sugeridos.</em></p>
-            <h2>4. Visualización de resultados y clasificación</h2>
-            <p>En <strong>Dashboard</strong> verás las estadísticas generales y los próximos partidos. En <strong>Partidos</strong> tienes el calendario completo con fechas y sedes. Los <strong>Grupos</strong> muestran la clasificación actualizada según los resultados oficiales. <strong>Eliminatorias</strong> te muestra el árbol gráfico con los equipos (cuando estén disponibles).</p>
-            <h2>5. Verificar tu puntuación</h2>
-            <p>En <strong>Mi Puntuación</strong> puedes seleccionar cualquier jugador y ver el desglose exacto de cómo ha obtenido sus puntos: partido por partido (resultado real, su pronóstico y puntos), además de los bonus por clasificados y premios. Esto garantiza total transparencia. También puedes hacer clic en un jugador desde la <strong>Clasificación</strong> para ir directamente a su detalle.</p>
-            <h2>6. Reglas</h2>
-            <p>Las reglas detalladas están en la pestaña <strong>Reglas</strong>. No se otorgan puntos hasta que el administrador introduce los resultados oficiales. Los puntos por clasificados se calculan automáticamente al finalizar la fase de grupos.</p>
-            <h2>7. Consejos</h2>
-            <p>Puedes modificar tus pronósticos en cualquier momento antes de que comience el partido. Después aparecerá bloqueado. ¡Suerte!</p>
+            <p>En <strong>Premios</strong> puedes escribir el nombre del jugador para Bota de Oro y Balón de Oro, y seleccionar el Campeón del Mundo.</p>
+            <h2>4. Verificar puntuación</h2>
+            <p>En <strong>Mi Puntuación</strong> puedes ver el desglose de puntos de cualquier jugador.</p>
+            <h2>5. Reglas</h2>
+            <p>En <strong>Reglas</strong> se detallan los puntos. No se otorgan puntos hasta que el administrador introduce resultados oficiales.</p>
         </div>
     </div>
     <div id="tab-admin" class="tab-content">
@@ -268,21 +267,59 @@
         appId: "1:836976823576:web:1723e5af127cd56b9fa26d"
     };
 
-    console.log('Script cargado correctamente');
     let db, firebaseReady = false;
+    let connectionError = 'Inicializando...';
+
+    function updateConnectionUI() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('connection-text');
+        const detail = document.getElementById('connection-detail');
+        if (firebaseReady) {
+            dot.className = 'connection-dot connected';
+            text.textContent = 'En línea';
+            detail.textContent = '';
+        } else {
+            dot.className = 'connection-dot disconnected';
+            text.textContent = 'Sin conexión';
+            detail.textContent = connectionError || 'Error desconocido';
+        }
+    }
 
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
-        console.log('Firebase inicializado');
-        // Conectado a menos que sea localhost
-        firebaseReady = !(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        connectionError = '';
+        firebaseReady = true;
+        console.log('Firebase inicializado correctamente');
     } catch (e) {
         console.error('Error al inicializar Firebase:', e);
+        connectionError = 'Error de inicialización: ' + e.message;
         firebaseReady = false;
     }
-    // El resto del código va dentro de DOMContentLoaded, pero usando db y firebaseReady que ya están definidas
+
+    // Prueba de conexión real a Firestore
+    if (firebaseReady) {
+        db.collection('config').doc('points').get()
+        .then(() => {
+            console.log('Conexión a Firestore verificada');
+            updateConnectionUI();
+        })
+        .catch(err => {
+            console.error('Error de conexión a Firestore:', err);
+            connectionError = 'Error de acceso: ' + (err.message || 'Permisos insuficientes');
+            firebaseReady = false;
+            updateConnectionUI();
+        });
+    } else {
+        updateConnectionUI();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        if (!firebaseReady) {
+            document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
+            return;
+        }
+
         // ========== DATOS FIJOS ==========
         const GROUPS = {
             A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
@@ -300,22 +337,14 @@
         };
         const ALL_TEAMS = Object.values(GROUPS).flat();
         const VENUES = [
-            { city: 'Ciudad de México', stadium: 'Estadio Azteca' },
-            { city: 'Guadalajara', stadium: 'Estadio Akron' },
-            { city: 'Monterrey', stadium: 'Estadio BBVA' },
-            { city: 'Toronto', stadium: 'BMO Field' },
-            { city: 'Vancouver', stadium: 'BC Place' },
-            { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
-            { city: 'San Francisco', stadium: "Levi's Stadium" },
-            { city: 'Seattle', stadium: 'Lumen Field' },
-            { city: 'Dallas', stadium: 'AT&T Stadium' },
-            { city: 'Houston', stadium: 'NRG Stadium' },
-            { city: 'Kansas City', stadium: 'Arrowhead Stadium' },
-            { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
-            { city: 'Miami', stadium: 'Hard Rock Stadium' },
-            { city: 'Boston', stadium: 'Gillette Stadium' },
-            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' },
-            { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+            { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
+            { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
+            { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
+            { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
+            { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
+            { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
+            { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
+            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
         ];
 
         function buildMatchDates() {
@@ -323,41 +352,31 @@
             let id = 1;
             const groups = Object.keys(GROUPS);
             groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 11 + Math.floor(gi/4);
+                const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
                 const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
             });
             groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 18 + Math.floor(gi/4);
+                const t = GROUPS[g]; const baseDay = 18 + Math.floor(gi/4);
                 const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
             });
             groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 24 + Math.floor(gi/4);
+                const t = GROUPS[g]; const baseDay = 24 + Math.floor(gi/4);
                 const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
             });
             const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
             let koIdx = 0;
-            const koData = [
-                {count:16, round:'Dieciseisavos', startDay:28},
-                {count:8, round:'Octavos', startDay:4, month:7},
-                {count:4, round:'Cuartos', startDay:9, month:7},
-                {count:2, round:'Semifinales', startDay:14, month:7},
-                {count:1, round:'3er Puesto', startDay:18, month:7},
-                {count:1, round:'Final', startDay:19, month:7}
-            ];
-            koData.forEach(kd => {
+            [{count:16, round:'Dieciseisavos', startDay:28},{count:8, round:'Octavos', startDay:4, month:7},
+             {count:4, round:'Cuartos', startDay:9, month:7},{count:2, round:'Semifinales', startDay:14, month:7},
+             {count:1, round:'3er Puesto', startDay:18, month:7},{count:1, round:'Final', startDay:19, month:7}
+            ].forEach(kd => {
                 for(let i=0; i<kd.count; i++){
-                    const v = VENUES[koVenues[koIdx++]];
-                    const month = kd.month || 6;
-                    const day = kd.startDay + Math.floor(i/2);
+                    const v = VENUES[koVenues[koIdx++]]; const month = kd.month || 6; const day = kd.startDay + Math.floor(i/2);
                     matches.push({id:id++, group:'KO', round:kd.round, home:'Por definir', away:'Por definir',
                         date:`2026-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T20:00`,
                         venue:`${v.stadium}, ${v.city}`, homeScore:null, awayScore:null});
@@ -395,6 +414,9 @@
                 matches = [];
                 snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
                 matches.sort((a,b)=>a.id-b.id);
+                if (matches.length === 0) {
+                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
+                }
                 renderAllTabs();
                 updateGenerateKOButton();
             });
@@ -410,18 +432,18 @@
             db.collection('accessCodes').onSnapshot(snap => {
                 accessCodes = [];
                 snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
-                if (adminLogged) {
-                    renderAccessCodes();
-                    renderPlayersList();
-                }
+                if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
             });
         }
         function loadLocal() {
             const lm = localStorage.getItem('matches_wc26_v3');
             if (lm) matches = JSON.parse(lm);
+            else matches = [...DEFAULT_MATCHES];
             const lp = localStorage.getItem('predictions_wc26_v3');
             if (lp) predictions = JSON.parse(lp);
             renderAllTabs();
+            updateGenerateKOButton();
+            updateBotaBalonSuggestions();
         }
         function saveResults() {
             if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); showToast('Guardado local'); return; }
@@ -749,7 +771,12 @@
             container.innerHTML = html;
         }
         function renderMyPool() {
-            if (!currentPlayer) { document.getElementById('prediction-form').innerHTML = '<p style="color:var(--text3);">Introduce tu nombre y haz clic en Guardar para empezar.</p>'; return; }
+            if (!currentPlayer) {
+                document.getElementById('prediction-form').innerHTML = '<p style="color:var(--text3);">Introduce tu nombre y un código de acceso válido para empezar.</p>';
+                document.getElementById('pool-actions').style.display = 'none';
+                return;
+            }
+            document.getElementById('pool-actions').style.display = 'flex';
             let preds = predictions[currentPlayer] || {};
             if (!preds._koLocked) preds = autoFillKO({...preds});
             predictions[currentPlayer] = preds;
@@ -855,14 +882,11 @@
             const active = document.querySelector('.tab-content.active');
             if (!active) return;
             const id = active.id.replace('tab-','');
-            const fns = {
-                dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups,
+            const fns = { dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups,
                 bracket: renderBracket, mypool: renderMyPool, standings: renderStandings,
-                mypoints: renderPointsDetail, picks: renderPicks, rules: renderRules, instructions:()=>{}, admin: renderAdmin
-            };
+                mypoints: renderPointsDetail, picks: renderPicks, rules: renderRules, instructions:()=>{}, admin: renderAdmin };
             if (fns[id]) fns[id]();
         }
-
         function updateGenerateKOButton() {
             const btn = document.getElementById('generate-ko-btn');
             if (!btn) return;
@@ -870,7 +894,6 @@
             btn.disabled = !allPlayed;
             btn.title = allPlayed ? 'Generar cruces con los resultados oficiales' : 'Aún no se han completado todos los partidos de grupo';
         }
-
         // ========== EVENTOS ==========
         document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
             document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
@@ -881,6 +904,31 @@
             if (btn.dataset.tab === 'mypoints') renderPointsDetail();
             if (btn.dataset.tab === 'admin') renderAdmin();
         }));
+
+        // Validación de código antes de mostrar predicciones
+        document.getElementById('save-name-btn').addEventListener('click', async () => {
+            const name = document.getElementById('player-name').value.trim();
+            const code = document.getElementById('access-code').value.trim();
+            if (!name || !code) return alert('Debes introducir un nombre y un código de acceso.');
+            if (!firebaseReady) return alert('Firebase no está disponible.');
+
+            const codeDoc = await db.collection('accessCodes').doc(code).get();
+            if (!codeDoc.exists) return alert('Código de acceso inválido.');
+            const codeData = codeDoc.data();
+            if (codeData.usedBy && codeData.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
+
+            // Marcar código como usado si es nuevo
+            if (!codeData.usedBy) await db.collection('accessCodes').doc(code).update({ usedBy: name });
+
+            currentPlayer = name;
+            localStorage.setItem('currentPlayer_wc26_v3', name);
+            if (!predictions[name]) predictions[name] = {};
+            guardarPrediccion(name, predictions[name]).then(() => {
+                renderMyPool();
+                updateGenerateKOButton();
+                showToast(`Bienvenid@ ${name}! Ya puedes hacer tus pronósticos.`);
+            });
+        });
 
         document.getElementById('save-name-btn').addEventListener('click', async () => {
             const name = document.getElementById('player-name').value.trim();
