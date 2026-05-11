@@ -98,7 +98,7 @@
         .bracket-round-title { text-align:center; font-weight:700; font-size:0.78rem; color:var(--gold-light); text-transform:uppercase; letter-spacing:0.05em; margin:12px 0 6px; }
         .trophy-center { text-align:center; font-size:3rem; margin:10px 0; filter:drop-shadow(0 0 20px rgba(240,185,11,0.5)); animation:floatTrophy 3s ease-in-out infinite; }
         @keyframes floatTrophy { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
-        .pick-section select, .pick-section input { background:rgba(255,255,255,0.05); border:1px solid rgba(240,185,11,0.2); border-radius:8px; padding:8px 12px; color:#fff; font-size:0.85rem; font-weight:600; cursor:pointer; min-width:200px; }
+        .pick-section select, .pick-section input { background:rgba(255,255,255,0.05); border:1px solid rgba(240,185,11,0.2); border-radius:8px; padding:8px 12px; color:#fff; font-size:0.85rem; font-weight:600; min-width:200px; }
         .pick-section select:hover, .pick-section input:hover { border-color:var(--gold); }
         .pick-section label { font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px; }
         .mt-2{margin-top:8px;} .mt-3{margin-top:14px;} .text-gold{color:var(--gold-light);} .text-muted{color:var(--text3);} .fw-700{font-weight:700;}
@@ -114,8 +114,8 @@
         .instructions h2 { margin-top: 20px; }
         .instructions ul { margin-left: 20px; }
         .bracket-tree { display: flex; flex-direction: column; align-items: center; overflow-x: auto; padding: 20px; }
-        .bracket-round { display: flex; justify-content: space-around; width: 100%; margin: 10px 0; }
-        .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; }
+        .bracket-round { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; margin: 10px 0; }
+        .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
     </style>
 </head>
 <body>
@@ -140,7 +140,6 @@
 </aside>
 
 <div class="main">
-    <!-- Pestañas (dashboard, matches, groups, bracket, mypool, standings, mypoints, picks, rules, instructions, admin) -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
@@ -180,7 +179,6 @@
         <h1>🏅 Clasificación General</h1>
         <p class="subtitle">Haz clic en un jugador para ver el detalle de sus puntos</p>
         <div class="panel" id="standings-table"></div>
-        <!-- Detalle de otro jugador se muestra en Mi Puntuación al hacer clic -->
     </div>
     <div id="tab-mypoints" class="tab-content">
         <h1>🔍 Mi Puntuación</h1>
@@ -194,8 +192,8 @@
         <h1>⭐ Premios del Mundial</h1>
         <div class="panel">
             <div class="flex-row">
-                <div class="flex-col pick-section"><label><i class="fa-solid fa-futbol text-gold"></i> Bota de Oro</label><input list="bota-suggestions" id="golden-boot-pick" placeholder="Escribe un nombre"><datalist id="bota-suggestions"></datalist></div>
-                <div class="flex-col pick-section"><label><i class="fa-solid fa-trophy text-gold"></i> Balón de Oro</label><input list="balon-suggestions" id="golden-ball-pick" placeholder="Escribe un nombre"><datalist id="balon-suggestions"></datalist></div>
+                <div class="flex-col pick-section"><label><i class="fa-solid fa-futbol text-gold"></i> Bota de Oro</label><input type="text" id="golden-boot-pick" placeholder="Escribe un nombre" list="bota-suggestions"><datalist id="bota-suggestions"></datalist></div>
+                <div class="flex-col pick-section"><label><i class="fa-solid fa-trophy text-gold"></i> Balón de Oro</label><input type="text" id="golden-ball-pick" placeholder="Escribe un nombre" list="balon-suggestions"><datalist id="balon-suggestions"></datalist></div>
             </div>
             <div class="flex-row mt-2">
                 <div class="flex-col pick-section"><label><i class="fa-solid fa-crown text-gold"></i> Campeón del Mundo</label><select id="champion-pick"><option value="">-- Selecciona --</option></select></div>
@@ -233,10 +231,10 @@
             <p>En <strong>Premios</strong> puedes escribir el nombre del jugador que crees que ganará la Bota de Oro y el Balón de Oro. También debes seleccionar el <strong>Campeón del Mundo</strong> de la lista. <em>Puedes escribir cualquier nombre, no solo los sugeridos.</em></p>
             
             <h2>4. Visualización de resultados y clasificación</h2>
-            <p>En <strong>Dashboard</strong> verás las estadísticas generales y los próximos partidos. En <strong>Partidos</strong> tienes el calendario completo con fechas y sedes. Los <strong>Grupos</strong> muestran la clasificación actualizada según los resultados oficiales. <strong>Eliminatorias</strong> te muestra el árbol gráfico con los equipos y marcadores.</p>
+            <p>En <strong>Dashboard</strong> verás las estadísticas generales y los próximos partidos. En <strong>Partidos</strong> tienes el calendario completo con fechas y sedes. Los <strong>Grupos</strong> muestran la clasificación actualizada según los resultados oficiales. <strong>Eliminatorias</strong> te muestra el árbol gráfico con los equipos (cuando estén disponibles).</p>
             
             <h2>5. Verificar tu puntuación</h2>
-            <p>En <strong>Mi Puntuación</strong> puedes seleccionar cualquier jugador y ver el desglose exacto de cómo ha obtenido sus puntos: partido por partido (resultado real, su pronóstico y puntos), además de los bonus por clasificados y premios. Esto garantiza total transparencia.</p>
+            <p>En <strong>Mi Puntuación</strong> puedes seleccionar cualquier jugador y ver el desglose exacto de cómo ha obtenido sus puntos: partido por partido (resultado real, su pronóstico y puntos), además de los bonus por clasificados y premios. Esto garantiza total transparencia. También puedes hacer clic en un jugador desde la <strong>Clasificación</strong> para ir directamente a su detalle.</p>
             
             <h2>6. Reglas</h2>
             <p>Las reglas detalladas están en la pestaña <strong>Reglas</strong>. No se otorgan puntos hasta que el administrador introduce los resultados oficiales. Los puntos por clasificados se calculan automáticamente al finalizar la fase de grupos.</p>
@@ -278,11 +276,9 @@
     </div>
 </div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script>
-    // Configuración Firebase
+<script>
     const firebaseConfig = {
         apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
         authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
@@ -298,7 +294,6 @@
         firebaseReady = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
     } catch(e) { console.error(e); }
 
-    // Datos fijos
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
         B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
@@ -314,8 +309,6 @@
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
     const ALL_TEAMS = Object.values(GROUPS).flat();
-
-    // Sedes oficiales (simuladas)
     const VENUES = [
         { city: 'Ciudad de México', stadium: 'Estadio Azteca' },
         { city: 'Guadalajara', stadium: 'Estadio Akron' },
@@ -339,7 +332,6 @@
         const matches = [];
         let id = 1;
         const groups = Object.keys(GROUPS);
-        // Fase de grupos con sedes
         groups.forEach((g, gi) => {
             const t = GROUPS[g];
             const baseDay = 11 + Math.floor(gi/4);
@@ -361,7 +353,6 @@
             matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
             matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
         });
-        // Eliminatorias con sedes
         const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
         let koIdx = 0;
         const koData = [
@@ -393,9 +384,8 @@
     let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
     let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
     let adminLogged = false;
-    let selectedPointsPlayer = currentPlayer; // para pestaña Mi Puntuación
+    let selectedPointsPlayer = currentPlayer;
 
-    // ---------- SINCRONIZACIÓN ----------
     function initDB() {
         if (!firebaseReady) return Promise.reject(new Error('Firebase no disponible'));
         const batch = db.batch();
@@ -449,7 +439,6 @@
         return db.collection('predictions').doc(player).set(predData);
     }
 
-    // ---------- LÓGICA DE GRUPOS Y ELIMINATORIAS ----------
     function getGroupStandings(mArr, group) {
         const teams = GROUPS[group];
         const stats = {};
@@ -468,9 +457,7 @@
         const qual = [];
         for (const g of Object.keys(GROUPS)) {
             const st = getGroupStandings(mArr, g);
-            if (st.length >= 2 && st[0].pj > 0) { // solo si hay resultados
-                qual.push(st[0].team, st[1].team);
-            }
+            if (st.length >= 2 && st[0].pj > 0) { qual.push(st[0].team, st[1].team); }
         }
         return qual;
     }
@@ -498,14 +485,14 @@
     function autoFillKO(preds, useOfficial = false) {
         if (preds._koLocked && !useOfficial) return preds;
         const simMatches = useOfficial ? matches : getSimMatches(preds);
-        if (useOfficial && !allGroupMatchesPlayed(matches)) return preds; // no generar si no están todos los resultados
+        if (useOfficial && !allGroupMatchesPlayed(matches)) return preds;
         const qual = {};
         for (const g of Object.keys(GROUPS)) {
             const st = getGroupStandings(simMatches, g);
             qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
         }
         const bestThirds = getBestThirds(simMatches);
-        if (bestThirds.length < 8 && useOfficial) return preds; // aún no hay 8 terceros
+        if (useOfficial && bestThirds.length < 8) return preds;
         const thirdMap = getOfficialR32Mapping(bestThirds);
         function getThird(keys) {
             for (const k of keys) {
@@ -554,12 +541,10 @@
         });
     }
 
-    // ---------- CÁLCULO DE PUNTOS ----------
     function calculatePointsDetail(playerName) {
         const preds = predictions[playerName] || {};
         const details = [];
         let total = 0;
-        // Partidos
         for (const m of matches) {
             if (m.homeScore === null || m.awayScore === null) continue;
             const p = preds[m.id];
@@ -586,8 +571,7 @@
             else if (signOk) points = pointsConfig.sign;
             if (points > 0) {
                 details.push({
-                    type: 'partido',
-                    matchId: m.id,
+                    type: 'Partido',
                     match: `${homeTeam} vs ${awayTeam}`,
                     realResult: `${rh}-${ra}`,
                     userResult: `${ph}-${pa}`,
@@ -596,17 +580,15 @@
                 total += points;
             }
         }
-        // Clasificados (solo si fase de grupos completada)
         if (allGroupMatchesPlayed(matches)) {
             const realQual = getQualifiedTeams(matches);
             const userQual = getQualifiedTeams(getSimMatches(preds));
             const correct = userQual.filter(t => realQual.includes(t));
             correct.forEach(team => {
-                details.push({type:'clasificado', team, points: pointsConfig.qualify});
+                details.push({type:'Clasificado', team, points: pointsConfig.qualify});
                 total += pointsConfig.qualify;
             });
         }
-        // Premios
         if (actualWinners.goldenBoot && preds.goldenBoot === actualWinners.goldenBoot) {
             details.push({type:'Bota de Oro', name: actualWinners.goldenBoot, points: pointsConfig.goldenBoot});
             total += pointsConfig.goldenBoot;
@@ -622,7 +604,6 @@
         return { total, details };
     }
 
-    // ---------- RENDERIZADO ----------
     function renderDashboard() {
         const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
         document.getElementById('dashboard-subtitle').textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
@@ -679,7 +660,6 @@
             container.innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará cuando terminen los grupos.</p>';
             return;
         }
-        // Construir árbol visual
         const qual = {};
         for (const g of Object.keys(GROUPS)) {
             const st = getGroupStandings(matches, g);
@@ -699,26 +679,19 @@
             [qual.K[0], getThird(thirdMap[87].split(''))], [qual.D[1], qual.G[1]]
         ];
         let html = '<div class="bracket-tree">';
-        const rounds = ['Dieciseisavos','Octavos','Cuartos','Semifinales','Final'];
-        let currentRound = [];
+        html += '<div class="bracket-round-title">Dieciseisavos</div><div class="bracket-round">';
         for (let i=0; i<16; i++) {
-            const m = matches.find(m => m.id === 73 + i);
             const home = r32[i] ? r32[i][0] : '?';
             const away = r32[i] ? r32[i][1] : '?';
-            const score = m ? (m.homeScore !== null ? `${m.homeScore}-${m.awayScore}` : 'vs') : 'vs';
-            currentRound.push(`<div class="bracket-match">${home} ${score} ${away}</div>`);
+            html += `<div class="bracket-match">${home} vs ${away}</div>`;
         }
-        html += `<div class="bracket-round"><div class="bracket-round-title">Dieciseisavos</div><div class="flex-row" style="justify-content:center;gap:6px;">${currentRound.join('')}</div></div>`;
-        // Simplifico octavos y siguientes
-        for (let r=1; r<4; r++) {
-            const count = 8 / Math.pow(2, r-1);
-            currentRound = [];
-            for (let i=0; i<count; i++) {
-                currentRound.push('<div class="bracket-match">?</div>');
-            }
-            html += `<div class="bracket-round"><div class="bracket-round-title">${rounds[r]}</div><div class="flex-row" style="justify-content:center;gap:6px;">${currentRound.join('')}</div></div>`;
-        }
-        html += `<div class="trophy-center">🏆</div></div>`;
+        html += '</div>';
+        // Las siguientes rondas se muestran vacías hasta que haya resultados
+        html += '<div class="bracket-round-title">Octavos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="bracket-round-title">Cuartos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="bracket-round-title">Semifinal</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="bracket-round-title">Final</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="trophy-center">🏆</div></div>';
         container.innerHTML = html;
     }
     function renderMyPool() {
@@ -762,7 +735,6 @@
         selectedPointsPlayer = name;
         document.getElementById('points-player-select').value = name;
         renderPointsDetail();
-        // Cambiar a pestaña Mi Puntuación
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         document.querySelector('[data-tab="mypoints"]').classList.add('active');
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -776,11 +748,15 @@
             return;
         }
         const det = calculatePointsDetail(selectedPointsPlayer);
-        let html = `<h3>${selectedPointsPlayer} – Total: <span class="pts-highlight">${det.total}</span> pts</h3><ul>`;
-        det.details.forEach(d => {
-            html += `<li>${d.type}: ${d.match || d.team || d.name} → +${d.points} pts</li>`;
-        });
-        html += '</ul>';
+        let html = `<h3>${selectedPointsPlayer} – Total: <span class="pts-highlight">${det.total}</span> pts</h3>`;
+        if (det.details.length === 0) html += '<p>Aún no hay puntos (espera a que se introduzcan resultados oficiales).</p>';
+        else {
+            html += '<table><tr><th>Evento</th><th>Detalle</th><th>Puntos</th></tr>';
+            det.details.forEach(d => {
+                html += `<tr><td>${d.type}</td><td>${d.match || d.team || d.name}</td><td class="pts-highlight">+${d.points}</td></tr>`;
+            });
+            html += '</table>';
+        }
         document.getElementById('points-detail').innerHTML = html;
     }
     function updateBotaBalonSuggestions() {
@@ -795,6 +771,232 @@
         botaList.innerHTML = [...allBota].map(n => `<option value="${n}">`).join('');
         balonList.innerHTML = [...allBalon].map(n => `<option value="${n}">`).join('');
     }
-    // ... (resto de funciones ya definidas en el código anterior, como renderPicks, renderRules, renderAdmin, etc.)
-    // Por brevedad, las incluyo en el siguiente bloque, pero están en la lógica previa.
+    function renderPicks() {
+        const sp = (currentPlayer && predictions[currentPlayer]) ? predictions[currentPlayer] : {};
+        document.getElementById('golden-boot-pick').value = sp.goldenBoot || '';
+        document.getElementById('golden-ball-pick').value = sp.goldenBall || '';
+        document.getElementById('champion-pick').value = sp.champion || '';
+        let summary = '<table><tr><th>Jugador</th><th>Bota</th><th>Balón</th><th>Campeón</th></tr>';
+        for (const [player, data] of Object.entries(predictions)) summary += `<tr><td>${player}</td><td>${data.goldenBoot||'-'}</td><td>${data.goldenBall||'-'}</td><td>${data.champion||'-'}</td></tr>`;
+        document.getElementById('picks-summary').innerHTML = summary+'</table>';
+    }
+    function renderRules() {
+        document.getElementById('rule-sign').textContent = pointsConfig.sign;
+        document.getElementById('rule-exact').textContent = pointsConfig.exact;
+        document.getElementById('rule-qualify').textContent = pointsConfig.qualify;
+        document.getElementById('rule-goldenboot').textContent = pointsConfig.goldenBoot;
+        document.getElementById('rule-goldenball').textContent = pointsConfig.goldenBall;
+        document.getElementById('rule-champion').textContent = pointsConfig.champion;
+    }
+    function renderAdmin() {
+        if (!adminLogged) return;
+        let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Resultado</th></tr>';
+        matches.forEach(m => html += `<tr><td>${m.group==='KO'?m.round:'Grupo '+m.group+' J'+m.round}</td><td>${m.home} vs ${m.away}</td>
+            <td><input class="small-input" id="rh-${m.id}" value="${m.homeScore??''}" placeholder="-"> - <input class="small-input" id="ra-${m.id}" value="${m.awayScore??''}" placeholder="-"></td></tr>`);
+        document.getElementById('admin-matches').innerHTML = html+'</table>';
+        document.getElementById('pts-sign').value = pointsConfig.sign;
+        document.getElementById('pts-exact').value = pointsConfig.exact;
+        document.getElementById('pts-qualify').value = pointsConfig.qualify;
+        document.getElementById('pts-goldenboot').value = pointsConfig.goldenBoot;
+        document.getElementById('pts-goldenball').value = pointsConfig.goldenBall;
+        document.getElementById('pts-champion').value = pointsConfig.champion;
+        document.getElementById('real-golden-boot').value = actualWinners.goldenBoot || '';
+        document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
+        document.getElementById('real-champion').value = actualWinners.champion || '';
+    }
+    function renderAllTabs() {
+        const active = document.querySelector('.tab-content.active');
+        if (!active) return;
+        const id = active.id.replace('tab-','');
+        const fns = {
+            dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups,
+            bracket: renderBracket, mypool: renderMyPool, standings: renderStandings,
+            mypoints: renderPointsDetail, picks: renderPicks, rules: renderRules, instructions:()=>{}, admin: renderAdmin
+        };
+        if (fns[id]) fns[id]();
+    }
+
+    function updateGenerateKOButton() {
+        const btn = document.getElementById('generate-ko-btn');
+        if (!btn) return;
+        const allPlayed = allGroupMatchesPlayed(matches);
+        btn.disabled = !allPlayed;
+        btn.title = allPlayed ? 'Generar cruces con los resultados oficiales' : 'Aún no se han completado todos los partidos de grupo';
+    }
+
+    // Navegación
+    document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+        renderAllTabs();
+        if (btn.dataset.tab === 'mypoints') renderPointsDetail();
+    }));
+
+    // Mi Porra
+    document.getElementById('save-name-btn').addEventListener('click', () => {
+        const name = document.getElementById('player-name').value.trim();
+        if (!name) return;
+        currentPlayer = name;
+        localStorage.setItem('currentPlayer_wc26_v3', name);
+        if (!predictions[name]) predictions[name] = {};
+        guardarPrediccion(name, predictions[name]).then(() => {
+            renderMyPool();
+            updateGenerateKOButton();
+            showToast(`Bienvenid@ ${name}!`);
+        });
+    });
+    document.getElementById('save-picks-btn').addEventListener('click', () => {
+        if (!currentPlayer) return;
+        const preds = predictions[currentPlayer] || {};
+        matches.forEach(m => {
+            const h = document.getElementById('ph-'+m.id), a = document.getElementById('pa-'+m.id);
+            if (h && a) {
+                if (m.group === 'KO') {
+                    preds[m.id] = preds[m.id] || {};
+                    preds[m.id].homeScore = h.value;
+                    preds[m.id].awayScore = a.value;
+                } else {
+                    preds[m.id] = { home: h.value, away: a.value };
+                }
+            }
+        });
+        predictions[currentPlayer] = preds;
+        guardarPrediccion(currentPlayer, preds).then(() => showToast('Pronósticos guardados'));
+    });
+    document.getElementById('lock-ko-btn').addEventListener('click', () => {
+        if (!currentPlayer) return;
+        predictions[currentPlayer]._koLocked = true;
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+        showToast('KO bloqueado manualmente');
+    });
+    document.getElementById('generate-ko-btn').addEventListener('click', () => {
+        if (!currentPlayer) return;
+        let preds = predictions[currentPlayer] || {};
+        preds = autoFillKO({...preds}, true);
+        predictions[currentPlayer] = preds;
+        guardarPrediccion(currentPlayer, preds).then(() => {
+            renderMyPool();
+            showToast('Eliminatorias oficiales generadas. Introduce tus marcadores.');
+        });
+    });
+
+    // Premios (ahora inputs de texto)
+    document.getElementById('golden-boot-pick').addEventListener('input', function() {
+        if (!currentPlayer) return;
+        if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+        predictions[currentPlayer].goldenBoot = this.value;
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+    });
+    document.getElementById('golden-ball-pick').addEventListener('input', function() {
+        if (!currentPlayer) return;
+        if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+        predictions[currentPlayer].goldenBall = this.value;
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+    });
+    document.getElementById('champion-pick').addEventListener('change', function() {
+        if (!currentPlayer) return;
+        if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+        predictions[currentPlayer].champion = this.value;
+        guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+    });
+
+    // Admin
+    document.getElementById('login-btn').addEventListener('click', () => {
+        if (document.getElementById('admin-pass').value === 'admin2026') { adminLogged = true; document.getElementById('admin-panel').style.display = 'block'; renderAdmin(); }
+        else alert('Contraseña incorrecta');
+    });
+    document.getElementById('save-results-btn').addEventListener('click', () => {
+        if (!adminLogged) return;
+        matches.forEach(m => {
+            const rh = document.getElementById('rh-'+m.id), ra = document.getElementById('ra-'+m.id);
+            if (rh && ra && rh.value !== '' && ra.value !== '') { m.homeScore = parseInt(rh.value); m.awayScore = parseInt(ra.value); }
+        });
+        saveResults();
+        updateGenerateKOButton();
+    });
+    document.getElementById('save-config-btn').addEventListener('click', () => {
+        pointsConfig = {
+            sign: parseInt(document.getElementById('pts-sign').value)||10,
+            exact: parseInt(document.getElementById('pts-exact').value)||25,
+            qualify: parseInt(document.getElementById('pts-qualify').value)||5,
+            goldenBoot: parseInt(document.getElementById('pts-goldenboot').value)||30,
+            goldenBall: parseInt(document.getElementById('pts-goldenball').value)||30,
+            champion: parseInt(document.getElementById('pts-champion').value)||50
+        };
+        if (firebaseReady) db.collection('config').doc('points').set(pointsConfig);
+        else localStorage.setItem('pointsConfig_wc26_v3', JSON.stringify(pointsConfig));
+        renderRules();
+        showToast('Configuración guardada');
+    });
+    document.getElementById('save-winners-btn').addEventListener('click', () => {
+        if (!adminLogged) return;
+        actualWinners = {
+            goldenBoot: document.getElementById('real-golden-boot').value,
+            goldenBall: document.getElementById('real-golden-ball').value,
+            champion: document.getElementById('real-champion').value
+        };
+        if (firebaseReady) db.collection('config').doc('winners').set(actualWinners);
+        else localStorage.setItem('actualWinners', JSON.stringify(actualWinners));
+        showToast('Ganadores actualizados');
+        renderAllTabs();
+    });
+    document.getElementById('export-btn').addEventListener('click', () => {
+        const data = { matches, predictions, pointsConfig, actualWinners };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'porra_backup.json'; a.click();
+    });
+    document.getElementById('init-db-btn').addEventListener('click', () => {
+        if (!firebaseReady) return alert('Firebase no disponible.');
+        const btn = document.getElementById('init-db-btn');
+        btn.disabled = true; btn.textContent = '⏳ Subiendo...';
+        initDB().then(() => {
+            showToast('¡Base de datos inicializada! Recargando...');
+            setTimeout(() => location.reload(), 1500);
+        }).catch(err => {
+            console.error(err);
+            alert('Error: ' + err.message);
+            btn.disabled = false; btn.textContent = '☁️ Inicializar BD';
+        });
+    });
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        if (!firebaseReady || !confirm('¿Eliminar TODOS los datos de la nube?')) return;
+        const batch = db.batch();
+        db.collection('matches').get().then(snap => { snap.forEach(doc => batch.delete(doc.ref)); return db.collection('predictions').get(); })
+        .then(snap => { snap.forEach(doc => batch.delete(doc.ref)); return db.collection('config').doc('winners').delete(); })
+        .then(() => batch.commit())
+        .then(() => { showToast('BD reiniciada'); location.reload(); })
+        .catch(err => alert('Error: ' + err.message));
+    });
+
+    function showToast(msg) {
+        const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = msg;
+        document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Selectores de campeón
+    const champ = document.getElementById('champion-pick');
+    const realChamp = document.getElementById('real-champion');
+    ALL_TEAMS.forEach(t => {
+        champ.innerHTML += `<option value="${t}">${t}</option>`;
+        realChamp.innerHTML += `<option value="${t}">${t}</option>`;
+    });
+
+    updateConnectionStatus();
+    syncData();
+
+    function updateConnectionStatus() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('connection-status');
+        if (firebaseReady) {
+            dot.className = 'connection-dot connected';
+            text.innerHTML = '<span class="connection-dot connected"></span> En línea';
+        } else {
+            dot.className = 'connection-dot disconnected';
+            text.innerHTML = '<span class="connection-dot disconnected"></span> Modo local';
+        }
+    }
 </script>
+</body>
+</html>
