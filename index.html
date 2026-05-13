@@ -297,23 +297,58 @@
         firebaseReady = false;
     }
 
-    // Prueba de conexión real a Firestore
+    // Función para mostrar el estado de conexión en la interfaz
+    function updateConnectionUI() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('connection-text');
+        const detail = document.getElementById('connection-detail');
+        if (firebaseReady) {
+            dot.className = 'connection-dot connected';
+            text.textContent = 'En línea';
+            detail.textContent = '';
+        } else {
+            dot.className = 'connection-dot disconnected';
+            text.textContent = 'Sin conexión';
+            detail.textContent = connectionError || 'Error desconocido';
+        }
+        // Habilitar/deshabilitar botones de BD según estado
+        const initBtn = document.getElementById('init-db-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        if (initBtn) initBtn.disabled = !firebaseReady;
+        if (resetBtn) resetBtn.disabled = !firebaseReady;
+    }
+
+    // Prueba de conexión real a Firestore con timeout
     if (firebaseReady) {
-        db.collection('config').doc('points').get()
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout de conexión')), 5000)
+        );
+
+        Promise.race([
+            db.collection('config').doc('points').get(),
+            timeoutPromise
+        ])
         .then(() => {
             console.log('Conexión a Firestore verificada');
-            updateConnectionUI();
+            connectionError = '';
+            firebaseReady = true;
         })
         .catch(err => {
             console.error('Error de conexión a Firestore:', err);
             connectionError = 'Error de acceso: ' + (err.message || 'Permisos insuficientes');
             firebaseReady = false;
+        })
+        .finally(() => {
             updateConnectionUI();
+            // Volver a ejecutar syncData si la conexión se restableció
+            if (firebaseReady && typeof syncData === 'function') {
+                // syncData ya fue llamada anteriormente? Podemos llamarla de nuevo si es necesario
+                // pero como ya se llama en DOMContentLoaded, aquí solo actualizamos UI.
+            }
         });
     } else {
         updateConnectionUI();
     }
-
     document.addEventListener('DOMContentLoaded', () => {
         if (!firebaseReady) {
             document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
