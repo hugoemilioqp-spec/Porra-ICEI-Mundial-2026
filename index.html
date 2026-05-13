@@ -499,7 +499,6 @@
             });
             div.innerHTML = html + '</table>';
         }
-
         // Exponer funciones globales para onclick
         window.deleteCode = deleteCode;
         window.deletePlayer = deletePlayer;
@@ -882,11 +881,14 @@
             const active = document.querySelector('.tab-content.active');
             if (!active) return;
             const id = active.id.replace('tab-','');
-            const fns = { dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups,
+            const fns = {
+                dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups,
                 bracket: renderBracket, mypool: renderMyPool, standings: renderStandings,
-                mypoints: renderPointsDetail, picks: renderPicks, rules: renderRules, instructions:()=>{}, admin: renderAdmin };
+                mypoints: renderPointsDetail, picks: renderPicks, rules: renderRules, instructions:()=>{}, admin: renderAdmin
+            };
             if (fns[id]) fns[id]();
         }
+
         function updateGenerateKOButton() {
             const btn = document.getElementById('generate-ko-btn');
             if (!btn) return;
@@ -894,6 +896,7 @@
             btn.disabled = !allPlayed;
             btn.title = allPlayed ? 'Generar cruces con los resultados oficiales' : 'Aún no se han completado todos los partidos de grupo';
         }
+
         // ========== EVENTOS ==========
         document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
             document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
@@ -905,7 +908,6 @@
             if (btn.dataset.tab === 'admin') renderAdmin();
         }));
 
-        // Validación de código antes de mostrar predicciones
         document.getElementById('save-name-btn').addEventListener('click', async () => {
             const name = document.getElementById('player-name').value.trim();
             const code = document.getElementById('access-code').value.trim();
@@ -917,7 +919,6 @@
             const codeData = codeDoc.data();
             if (codeData.usedBy && codeData.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
 
-            // Marcar código como usado si es nuevo
             if (!codeData.usedBy) await db.collection('accessCodes').doc(code).update({ usedBy: name });
 
             currentPlayer = name;
@@ -930,28 +931,6 @@
             });
         });
 
-        document.getElementById('save-name-btn').addEventListener('click', async () => {
-            const name = document.getElementById('player-name').value.trim();
-            const code = document.getElementById('access-code').value.trim();
-            if (!name || !code) return alert('Debes introducir un nombre y un código de acceso.');
-            if (!firebaseReady) return alert('Firebase no está disponible.');
-
-            const codeDoc = await db.collection('accessCodes').doc(code).get();
-            if (!codeDoc.exists) return alert('Código de acceso inválido.');
-            const codeData = codeDoc.data();
-            if (codeData.usedBy && codeData.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
-
-            if (!codeData.usedBy) await db.collection('accessCodes').doc(code).update({ usedBy: name });
-
-            currentPlayer = name;
-            localStorage.setItem('currentPlayer_wc26_v3', name);
-            if (!predictions[name]) predictions[name] = {};
-            guardarPrediccion(name, predictions[name]).then(() => {
-                renderMyPool();
-                updateGenerateKOButton();
-                showToast(`Bienvenid@ ${name}!`);
-            });
-        });
         document.getElementById('save-picks-btn').addEventListener('click', () => {
             if (!currentPlayer) return;
             const preds = predictions[currentPlayer] || {};
@@ -970,12 +949,14 @@
             predictions[currentPlayer] = preds;
             guardarPrediccion(currentPlayer, preds).then(() => showToast('Pronósticos guardados'));
         });
+
         document.getElementById('lock-ko-btn').addEventListener('click', () => {
             if (!currentPlayer) return;
             predictions[currentPlayer]._koLocked = true;
             guardarPrediccion(currentPlayer, predictions[currentPlayer]);
             showToast('KO bloqueado manualmente');
         });
+
         document.getElementById('generate-ko-btn').addEventListener('click', () => {
             if (!currentPlayer) return;
             let preds = predictions[currentPlayer] || {};
@@ -1104,21 +1085,5 @@
             realChamp.innerHTML += `<option value="${t}">${t}</option>`;
         });
 
-        updateConnectionStatus();
+        updateConnectionUI();
         syncData();
-
-        function updateConnectionStatus() {
-            const dot = document.getElementById('status-dot');
-            const text = document.getElementById('connection-status');
-            if (firebaseReady) {
-                dot.className = 'connection-dot connected';
-                text.innerHTML = '<span class="connection-dot connected"></span> En línea';
-            } else {
-                dot.className = 'connection-dot disconnected';
-                text.innerHTML = '<span class="connection-dot disconnected"></span> Modo local';
-            }
-        }
-    });
-</script>
-</body>
-</html>
