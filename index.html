@@ -1087,6 +1087,20 @@
 
         updateConnectionUI();
         syncData();
+// Deshabilitar botones de BD si no hay conexión
+function updateDBButtons() {
+    const initBtn = document.getElementById('init-db-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    if (initBtn) initBtn.disabled = !firebaseReady;
+    if (resetBtn) resetBtn.disabled = !firebaseReady;
+}
+// Llamar cada vez que cambie el estado
+const originalUpdateUI = updateConnectionUI;
+updateConnectionUI = function() {
+    originalUpdateUI();
+    updateDBButtons();
+};
+updateDBButtons();
     });
 .btn, .btn-sm, .btn-outline, .btn-danger, .btn-accent, .btn-gold {
     cursor: pointer !important;
