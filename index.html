@@ -435,42 +435,54 @@
             batch.set(db.collection('config').doc('winners'), actualWinners);
             return batch.commit();
         }
-        function syncData() {
-            if (!firebaseReady) return loadLocal();
-            db.collection('matches').onSnapshot(snap => {
-                matches = [];
-                snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
-                matches.sort((a,b)=>a.id-b.id);
-                if (matches.length === 0) {
-                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
-                }
-                renderAllTabs();
-                updateGenerateKOButton();
-            });
-            db.collection('predictions').onSnapshot(snap => {
-                predictions = {};
-                snap.forEach(doc => predictions[doc.id] = doc.data());
-                renderAllTabs();
-                updateBotaBalonSuggestions();
-                if (adminLogged) renderPlayersList();
-            });
-            db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
-            db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
-            db.collection('accessCodes').onSnapshot(snap => {
-                accessCodes = [];
-                snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
-                if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
-            });
+function syncData() {
+    if (!firebaseReady) return loadLocal();
+    // Desuscribir listeners anteriores si existen
+    if (typeof unsubscribeMatches === 'function') unsubscribeMatches();
+    if (typeof unsubscribePredictions === 'function') unsubscribePredictions();
+    if (typeof unsubscribeCodes === 'function') unsubscribeCodes();
+
+    unsubscribeMatches = db.collection('matches').onSnapshot(snap => {
+        matches = [];
+        snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
+        matches.sort((a,b)=>a.id-b.id);
+        if (matches.length === 0) {
+            document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
         }
-        function loadLocal() {
-            const lm = localStorage.getItem('matches_wc26_v3');
-            if (lm) matches = JSON.parse(lm);
-            const lp = localStorage.getItem('predictions_wc26_v3');
-            if (lp) predictions = JSON.parse(lp);
-            renderAllTabs();
-            updateGenerateKOButton();
-            updateBotaBalonSuggestions();
-        }
+        renderAllTabs();
+        updateGenerateKOButton();
+    });
+
+    unsubscribePredictions = db.collection('predictions').onSnapshot(snap => {
+        predictions = {};
+        snap.forEach(doc => predictions[doc.id] = doc.data());
+        renderAllTabs();
+        updateBotaBalonSuggestions();
+        if (adminLogged) renderPlayersList();
+    });
+
+    db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
+    db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
+
+    unsubscribeCodes = db.collection('accessCodes').onSnapshot(snap => {
+        accessCodes = [];
+        snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
+        if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
+    });
+}
+function loadLocal() {
+    const lm = localStorage.getItem('matches_wc26_v3');
+    if (lm) {
+        matches = JSON.parse(lm);
+    } else {
+        matches = [...DEFAULT_MATCHES]; // Cargar partidos por defecto
+    }
+    const lp = localStorage.getItem('predictions_wc26_v3');
+    predictions = lp ? JSON.parse(lp) : {};
+    renderAllTabs();
+    updateGenerateKOButton();
+    updateBotaBalonSuggestions();
+}
         function saveResults() {
             if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); showToast('Guardado local'); return; }
             const batch = db.batch();
@@ -1118,39 +1130,51 @@
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'porra_backup.json'; a.click();
         });
-        document.getElementById('init-db-btn').addEventListener('click', () => {
-            if (!firebaseReady) return alert('Firebase no disponible. Revisa las reglas en la consola de Firebase.');
-            const btn = document.getElementById('init-db-btn');
-            btn.disabled = true; btn.textContent = '⏳ Subiendo...';
-            initDB().then(() => {
-                showToast('¡Base de datos inicializada! Recargando...');
-                setTimeout(() => location.reload(), 1500);
-            }).catch(err => {
-                console.error(err);
-                alert('Error: ' + err.message);
-                btn.disabled = false; btn.textContent = '☁️ Inicializar BD';
-            });
-        });
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            if (!firebaseReady || !confirm('¿Eliminar TODOS los datos de la nube?')) return;
-            const batch = db.batch();
-            Promise.all([
-                db.collection('matches').get(),
-                db.collection('predictions').get(),
-                db.collection('accessCodes').get()
-            ]).then(([mSnap, pSnap, aSnap]) => {
-                mSnap.forEach(doc => batch.delete(doc.ref));
-                pSnap.forEach(doc => batch.delete(doc.ref));
-                aSnap.forEach(doc => batch.delete(doc.ref));
-                batch.delete(db.collection('config').doc('points'));
-                batch.delete(db.collection('config').doc('winners'));
-                return batch.commit();
-            }).then(() => {
-                showToast('BD reiniciada');
-                location.reload();
-            }).catch(err => alert('Error: ' + err.message));
-        });
+document.getElementById('init-db-btn').addEventListener('click', () => {
+    if (!firebaseReady) return alert('Firebase no disponible. Revisa las reglas en la consola de Firebase.');
+    const btn = document.getElementById('init-db-btn');
+    btn.disabled = true; btn.textContent = '⏳ Subiendo...';
+    initDB().then(() => {
+        showToast('¡Base de datos inicializada! Recargando...');
+        // Limpiar localStorage por si acaso
+        localStorage.removeItem('matches_wc26_v3');
+        setTimeout(() => location.reload(), 1500);
+    }).catch(err => {
+        console.error(err);
+        alert('Error: ' + err.message);
+        btn.disabled = false; btn.textContent = '☁️ Inicializar BD';
+    });
+});
+document.getElementById('reset-btn').addEventListener('click', () => {
+    if (!firebaseReady || !confirm('¿Eliminar TODOS los datos de la nube?')) return;
+    // Desuscribir listeners para que no reciban datos durante el borrado
+    if (typeof unsubscribeMatches === 'function') unsubscribeMatches();
+    if (typeof unsubscribePredictions === 'function') unsubscribePredictions();
+    if (typeof unsubscribeCodes === 'function') unsubscribeCodes();
 
+    const batch = db.batch();
+    Promise.all([
+        db.collection('matches').get(),
+        db.collection('predictions').get(),
+        db.collection('accessCodes').get()
+    ]).then(([mSnap, pSnap, aSnap]) => {
+        mSnap.forEach(doc => batch.delete(doc.ref));
+        pSnap.forEach(doc => batch.delete(doc.ref));
+        aSnap.forEach(doc => batch.delete(doc.ref));
+        batch.delete(db.collection('config').doc('points'));
+        batch.delete(db.collection('config').doc('winners'));
+        return batch.commit();
+    }).then(() => {
+        // Limpiar localStorage por completo
+        localStorage.removeItem('matches_wc26_v3');
+        localStorage.removeItem('predictions_wc26_v3');
+        localStorage.removeItem('pointsConfig_wc26_v3');
+        localStorage.removeItem('actualWinners');
+        localStorage.removeItem('currentPlayer_wc26_v3');
+        showToast('BD reiniciada. Recargando...');
+        setTimeout(() => location.reload(), 1500);
+    }).catch(err => alert('Error: ' + err.message));
+});
         function showToast(msg) {
             const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = msg;
             document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
