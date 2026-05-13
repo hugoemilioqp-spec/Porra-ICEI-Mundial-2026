@@ -50,7 +50,10 @@
         input,select { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:6px 8px; color:#fff; font-family:inherit; font-size:0.82rem; outline:none; }
         input:focus,select:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(240,185,11,0.08); }
         .small-input { width:40px; text-align:center; padding:4px; font-weight:600; font-family:'Space Grotesk',monospace; }
-        .btn { padding:8px 16px; border-radius:30px; border:none; font-weight:600; font-size:0.82rem; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s; }
+        .btn, .btn-sm, .btn-outline, .btn-danger, .btn-accent, .btn-gold {
+            cursor: pointer !important;
+        }
+        .btn { padding:8px 16px; border-radius:30px; border:none; font-weight:600; font-size:0.82rem; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s; }
         .btn-gold { background:linear-gradient(135deg,var(--gold-dark),var(--gold)); color:#000; } .btn-gold:hover { filter:brightness(1.12); }
         .btn-accent { background:var(--accent); color:#fff; }
         .btn-outline { background:transparent; border:1px solid rgba(255,255,255,0.2); color:var(--text); }
@@ -117,8 +120,6 @@
 </aside>
 
 <div class="main">
-    <!-- Pestañas: Dashboard, Matches, Groups, Bracket, MyPool, Standings, MyPoints, Picks, Rules, Instructions, Admin -->
-    <!-- (Se incluyen completas como en la última versión funcional, con IDs correctos) -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
@@ -270,21 +271,7 @@
     let db, firebaseReady = false;
     let connectionError = 'Inicializando...';
 
-    function updateConnectionUI() {
-        const dot = document.getElementById('status-dot');
-        const text = document.getElementById('connection-text');
-        const detail = document.getElementById('connection-detail');
-        if (firebaseReady) {
-            dot.className = 'connection-dot connected';
-            text.textContent = 'En línea';
-            detail.textContent = '';
-        } else {
-            dot.className = 'connection-dot disconnected';
-            text.textContent = 'Sin conexión';
-            detail.textContent = connectionError || 'Error desconocido';
-        }
-    }
-
+    // Intentar inicializar Firebase
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
@@ -297,7 +284,7 @@
         firebaseReady = false;
     }
 
-    // Función para mostrar el estado de conexión en la interfaz
+    // Actualizar UI de conexión y deshabilitar botones si no hay conexión
     function updateConnectionUI() {
         const dot = document.getElementById('status-dot');
         const text = document.getElementById('connection-text');
@@ -311,22 +298,22 @@
             text.textContent = 'Sin conexión';
             detail.textContent = connectionError || 'Error desconocido';
         }
-        // Habilitar/deshabilitar botones de BD según estado
+        // Habilitar/deshabilitar botones críticos
         const initBtn = document.getElementById('init-db-btn');
         const resetBtn = document.getElementById('reset-btn');
         if (initBtn) initBtn.disabled = !firebaseReady;
         if (resetBtn) resetBtn.disabled = !firebaseReady;
     }
 
-    // Prueba de conexión real a Firestore con timeout
+    // Comprobación real de Firestore con timeout
     if (firebaseReady) {
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout de conexión')), 5000)
+        const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout de conexión (Firestore no responde)')), 5000)
         );
 
         Promise.race([
             db.collection('config').doc('points').get(),
-            timeoutPromise
+            timeout
         ])
         .then(() => {
             console.log('Conexión a Firestore verificada');
@@ -335,24 +322,25 @@
         })
         .catch(err => {
             console.error('Error de conexión a Firestore:', err);
-            connectionError = 'Error de acceso: ' + (err.message || 'Permisos insuficientes');
+            connectionError = 'Error: ' + (err.message || 'Permisos insuficientes');
             firebaseReady = false;
         })
         .finally(() => {
             updateConnectionUI();
-            // Volver a ejecutar syncData si la conexión se restableció
-            if (firebaseReady && typeof syncData === 'function') {
-                // syncData ya fue llamada anteriormente? Podemos llamarla de nuevo si es necesario
-                // pero como ya se llama en DOMContentLoaded, aquí solo actualizamos UI.
-            }
+            // Si la conexión es exitosa, la variable firebaseReady ya es true, y el DOM está listo,
+            // podemos llamar a syncData (que se llamará dentro de DOMContentLoaded de todas formas)
         });
     } else {
         updateConnectionUI();
     }
+
     document.addEventListener('DOMContentLoaded', () => {
+        // Si después de la comprobación seguimos sin conexión, mostramos mensaje y no continuamos
         if (!firebaseReady) {
             document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
-            return;
+            // Desactivar botones de BD
+            updateConnectionUI();
+            // No retornamos, permitimos que la página sea interactiva para ver el error
         }
 
         // ========== DATOS FIJOS ==========
@@ -372,14 +360,22 @@
         };
         const ALL_TEAMS = Object.values(GROUPS).flat();
         const VENUES = [
-            { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
-            { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
-            { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
-            { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
-            { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
-            { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
-            { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
-            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+            { city: 'Ciudad de México', stadium: 'Estadio Azteca' },
+            { city: 'Guadalajara', stadium: 'Estadio Akron' },
+            { city: 'Monterrey', stadium: 'Estadio BBVA' },
+            { city: 'Toronto', stadium: 'BMO Field' },
+            { city: 'Vancouver', stadium: 'BC Place' },
+            { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
+            { city: 'San Francisco', stadium: "Levi's Stadium" },
+            { city: 'Seattle', stadium: 'Lumen Field' },
+            { city: 'Dallas', stadium: 'AT&T Stadium' },
+            { city: 'Houston', stadium: 'NRG Stadium' },
+            { city: 'Kansas City', stadium: 'Arrowhead Stadium' },
+            { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
+            { city: 'Miami', stadium: 'Hard Rock Stadium' },
+            { city: 'Boston', stadium: 'Gillette Stadium' },
+            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' },
+            { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
         ];
 
         function buildMatchDates() {
@@ -387,31 +383,41 @@
             let id = 1;
             const groups = Object.keys(GROUPS);
             groups.forEach((g, gi) => {
-                const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
+                const t = GROUPS[g];
+                const baseDay = 11 + Math.floor(gi/4);
                 const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
             });
             groups.forEach((g, gi) => {
-                const t = GROUPS[g]; const baseDay = 18 + Math.floor(gi/4);
+                const t = GROUPS[g];
+                const baseDay = 18 + Math.floor(gi/4);
                 const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
             });
             groups.forEach((g, gi) => {
-                const t = GROUPS[g]; const baseDay = 24 + Math.floor(gi/4);
+                const t = GROUPS[g];
+                const baseDay = 24 + Math.floor(gi/4);
                 const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
             });
             const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
             let koIdx = 0;
-            [{count:16, round:'Dieciseisavos', startDay:28},{count:8, round:'Octavos', startDay:4, month:7},
-             {count:4, round:'Cuartos', startDay:9, month:7},{count:2, round:'Semifinales', startDay:14, month:7},
-             {count:1, round:'3er Puesto', startDay:18, month:7},{count:1, round:'Final', startDay:19, month:7}
-            ].forEach(kd => {
+            const koData = [
+                {count:16, round:'Dieciseisavos', startDay:28},
+                {count:8, round:'Octavos', startDay:4, month:7},
+                {count:4, round:'Cuartos', startDay:9, month:7},
+                {count:2, round:'Semifinales', startDay:14, month:7},
+                {count:1, round:'3er Puesto', startDay:18, month:7},
+                {count:1, round:'Final', startDay:19, month:7}
+            ];
+            koData.forEach(kd => {
                 for(let i=0; i<kd.count; i++){
-                    const v = VENUES[koVenues[koIdx++]]; const month = kd.month || 6; const day = kd.startDay + Math.floor(i/2);
+                    const v = VENUES[koVenues[koIdx++]];
+                    const month = kd.month || 6;
+                    const day = kd.startDay + Math.floor(i/2);
                     matches.push({id:id++, group:'KO', round:kd.round, home:'Por definir', away:'Por definir',
                         date:`2026-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T20:00`,
                         venue:`${v.stadium}, ${v.city}`, homeScore:null, awayScore:null});
@@ -431,7 +437,7 @@
         let selectedPointsPlayer = currentPlayer;
         let accessCodes = [];
 
-        // ========== SINCRONIZACIÓN ==========
+        // ========== FUNCIONES DE SINCRONIZACIÓN ==========
         function initDB() {
             if (!firebaseReady) return Promise.reject('Firebase no disponible');
             const batch = db.batch();
@@ -473,7 +479,6 @@
         function loadLocal() {
             const lm = localStorage.getItem('matches_wc26_v3');
             if (lm) matches = JSON.parse(lm);
-            else matches = [...DEFAULT_MATCHES];
             const lp = localStorage.getItem('predictions_wc26_v3');
             if (lp) predictions = JSON.parse(lp);
             renderAllTabs();
@@ -534,7 +539,6 @@
             });
             div.innerHTML = html + '</table>';
         }
-        // Exponer funciones globales para onclick
         window.deleteCode = deleteCode;
         window.deletePlayer = deletePlayer;
         window.selectPointsPlayer = function(name) {
@@ -1075,7 +1079,7 @@
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'porra_backup.json'; a.click();
         });
         document.getElementById('init-db-btn').addEventListener('click', () => {
-            if (!firebaseReady) return alert('Firebase no disponible.');
+            if (!firebaseReady) return alert('Firebase no disponible. Revisa las reglas en la consola de Firebase.');
             const btn = document.getElementById('init-db-btn');
             btn.disabled = true; btn.textContent = '⏳ Subiendo...';
             initDB().then(() => {
@@ -1120,24 +1124,16 @@
             realChamp.innerHTML += `<option value="${t}">${t}</option>`;
         });
 
-        updateConnectionUI();
-        syncData();
-// Deshabilitar botones de BD si no hay conexión
-function updateDBButtons() {
-    const initBtn = document.getElementById('init-db-btn');
-    const resetBtn = document.getElementById('reset-btn');
-    if (initBtn) initBtn.disabled = !firebaseReady;
-    if (resetBtn) resetBtn.disabled = !firebaseReady;
-}
-// Llamar cada vez que cambie el estado
-const originalUpdateUI = updateConnectionUI;
-updateConnectionUI = function() {
-    originalUpdateUI();
-    updateDBButtons();
-};
-updateDBButtons();
-    });
+        // Llamar a syncData si hay conexión, si no, se queda en modo local (ya se llamó loadLocal si no hay conexión)
+        if (firebaseReady) {
+            syncData();
+        } else {
+            loadLocal();
+        }
 
+        // Actualizar UI de botones nuevamente por si acaso
+        updateConnectionUI();
+    });
 </script>
 </body>
 </html>
