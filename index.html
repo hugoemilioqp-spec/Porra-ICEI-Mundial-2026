@@ -50,9 +50,7 @@
         input,select { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:6px 8px; color:#fff; font-family:inherit; font-size:0.82rem; outline:none; }
         input:focus,select:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(240,185,11,0.08); }
         .small-input { width:40px; text-align:center; padding:4px; font-weight:600; font-family:'Space Grotesk',monospace; }
-        .btn, .btn-sm, .btn-outline, .btn-danger, .btn-accent, .btn-gold {
-            cursor: pointer !important;
-        }
+        .btn, .btn-sm, .btn-outline, .btn-danger, .btn-accent, .btn-gold { cursor: pointer !important; }
         .btn { padding:8px 16px; border-radius:30px; border:none; font-weight:600; font-size:0.82rem; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s; }
         .btn-gold { background:linear-gradient(135deg,var(--gold-dark),var(--gold)); color:#000; } .btn-gold:hover { filter:brightness(1.12); }
         .btn-accent { background:var(--accent); color:#fff; }
@@ -94,6 +92,7 @@
         .bracket-round { display: flex; flex-wrap: wrap; justify-content: center; width: 100%; margin: 10px 0; }
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
         #connection-detail { color: var(--rose); font-size:0.7rem; margin-top:4px; display:block; }
+        .locked-input { opacity: 0.5; background: rgba(255,255,255,0.02); }
     </style>
 </head>
 <body>
@@ -107,7 +106,6 @@
         <button data-tab="mypool"><i class="fa-solid fa-pen-to-square"></i> <span>Mi Porra</span></button>
         <button data-tab="standings"><i class="fa-solid fa-trophy"></i> <span>Clasificación</span></button>
         <button data-tab="mypoints"><i class="fa-solid fa-magnifying-glass-chart"></i> <span>Mi Puntuación</span></button>
-        <button data-tab="picks"><i class="fa-solid fa-star"></i> <span>Premios</span></button>
         <button data-tab="rules"><i class="fa-solid fa-book"></i> <span>Reglas</span></button>
         <button data-tab="instructions"><i class="fa-solid fa-circle-info"></i> <span>Instrucciones</span></button>
         <button data-tab="admin"><i class="fa-solid fa-lock"></i> <span>Admin</span></button>
@@ -149,6 +147,32 @@
                 <button class="btn btn-gold" id="save-name-btn"><i class="fa-solid fa-user"></i> Guardar</button>
             </div>
             <div id="prediction-form"></div>
+            <!-- Premios dentro de Mi Porra -->
+            <div class="panel mt-3" id="special-picks-panel" style="display:none;">
+                <h2>⭐ Premios del Mundial</h2>
+                <div class="flex-row">
+                    <div class="flex-col pick-section">
+                        <label><i class="fa-solid fa-futbol text-gold"></i> Bota de Oro</label>
+                        <input type="text" id="golden-boot-pick" placeholder="Escribe un nombre" list="bota-suggestions" disabled>
+                        <datalist id="bota-suggestions"></datalist>
+                    </div>
+                    <div class="flex-col pick-section">
+                        <label><i class="fa-solid fa-trophy text-gold"></i> Balón de Oro</label>
+                        <input type="text" id="golden-ball-pick" placeholder="Escribe un nombre" list="balon-suggestions" disabled>
+                        <datalist id="balon-suggestions"></datalist>
+                    </div>
+                </div>
+                <div class="flex-row mt-2">
+                    <div class="flex-col pick-section">
+                        <label><i class="fa-solid fa-crown text-gold"></i> Campeón del Mundo</label>
+                        <select id="champion-pick" disabled>
+                            <option value="">-- Selecciona --</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-muted mt-2" id="picks-locked-msg" style="display:none;">Tus premios ya están bloqueados.</p>
+                <button class="btn btn-outline btn-sm mt-2" id="save-special-picks-btn" disabled>🔒 Guardar y bloquear premios</button>
+            </div>
             <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;">
                 <button class="btn btn-accent" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
                 <button class="btn btn-outline btn-sm" id="lock-ko-btn">🔒 Bloquear KO manual</button>
@@ -168,19 +192,6 @@
             <select id="points-player-select" style="max-width:250px;"></select>
         </div>
         <div class="panel" id="points-detail"></div>
-    </div>
-    <div id="tab-picks" class="tab-content">
-        <h1>⭐ Premios del Mundial</h1>
-        <div class="panel">
-            <div class="flex-row">
-                <div class="flex-col pick-section"><label><i class="fa-solid fa-futbol text-gold"></i> Bota de Oro</label><input type="text" id="golden-boot-pick" placeholder="Escribe un nombre" list="bota-suggestions"><datalist id="bota-suggestions"></datalist></div>
-                <div class="flex-col pick-section"><label><i class="fa-solid fa-trophy text-gold"></i> Balón de Oro</label><input type="text" id="golden-ball-pick" placeholder="Escribe un nombre" list="balon-suggestions"><datalist id="balon-suggestions"></datalist></div>
-            </div>
-            <div class="flex-row mt-2">
-                <div class="flex-col pick-section"><label><i class="fa-solid fa-crown text-gold"></i> Campeón del Mundo</label><select id="champion-pick"><option value="">-- Selecciona --</option></select></div>
-            </div>
-            <div class="panel mt-2"><h2>Pronósticos de Premios</h2><div id="picks-summary"></div></div>
-        </div>
     </div>
     <div id="tab-rules" class="tab-content">
         <h1>📖 Reglas</h1>
@@ -205,7 +216,7 @@
             <h2>2. Hacer pronósticos</h2>
             <p>Una vez registrado, en <strong>Mi Porra</strong> verás los 104 partidos. Introduce el marcador para cada uno. Los partidos con resultado oficial aparecen bloqueados.</p>
             <h2>3. Premios especiales</h2>
-            <p>En <strong>Premios</strong> puedes escribir el nombre del jugador para Bota de Oro y Balón de Oro, y seleccionar el Campeón del Mundo.</p>
+            <p>En la misma pestaña <strong>Mi Porra</strong>, después de guardar los partidos, podrás seleccionar la Bota de Oro, el Balón de Oro y el Campeón del Mundo. <strong>Una vez que pulses "Guardar y bloquear premios" no podrás cambiarlos.</strong></p>
             <h2>4. Verificar puntuación</h2>
             <p>En <strong>Mi Puntuación</strong> puedes ver el desglose de puntos de cualquier jugador.</p>
             <h2>5. Reglas</h2>
@@ -271,7 +282,6 @@
     let db, firebaseReady = false;
     let connectionError = 'Inicializando...';
 
-    // Intentar inicializar Firebase
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
@@ -284,7 +294,6 @@
         firebaseReady = false;
     }
 
-    // Actualizar UI de conexión y deshabilitar botones si no hay conexión
     function updateConnectionUI() {
         const dot = document.getElementById('status-dot');
         const text = document.getElementById('connection-text');
@@ -298,14 +307,12 @@
             text.textContent = 'Sin conexión';
             detail.textContent = connectionError || 'Error desconocido';
         }
-        // Habilitar/deshabilitar botones críticos
         const initBtn = document.getElementById('init-db-btn');
         const resetBtn = document.getElementById('reset-btn');
         if (initBtn) initBtn.disabled = !firebaseReady;
         if (resetBtn) resetBtn.disabled = !firebaseReady;
     }
 
-    // Comprobación real de Firestore con timeout
     if (firebaseReady) {
         const timeout = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout de conexión (Firestore no responde)')), 5000)
@@ -327,20 +334,15 @@
         })
         .finally(() => {
             updateConnectionUI();
-            // Si la conexión es exitosa, la variable firebaseReady ya es true, y el DOM está listo,
-            // podemos llamar a syncData (que se llamará dentro de DOMContentLoaded de todas formas)
         });
     } else {
         updateConnectionUI();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Si después de la comprobación seguimos sin conexión, mostramos mensaje y no continuamos
         if (!firebaseReady) {
             document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
-            // Desactivar botones de BD
             updateConnectionUI();
-            // No retornamos, permitimos que la página sea interactiva para ver el error
         }
 
         // ========== DATOS FIJOS ==========
@@ -360,22 +362,14 @@
         };
         const ALL_TEAMS = Object.values(GROUPS).flat();
         const VENUES = [
-            { city: 'Ciudad de México', stadium: 'Estadio Azteca' },
-            { city: 'Guadalajara', stadium: 'Estadio Akron' },
-            { city: 'Monterrey', stadium: 'Estadio BBVA' },
-            { city: 'Toronto', stadium: 'BMO Field' },
-            { city: 'Vancouver', stadium: 'BC Place' },
-            { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
-            { city: 'San Francisco', stadium: "Levi's Stadium" },
-            { city: 'Seattle', stadium: 'Lumen Field' },
-            { city: 'Dallas', stadium: 'AT&T Stadium' },
-            { city: 'Houston', stadium: 'NRG Stadium' },
-            { city: 'Kansas City', stadium: 'Arrowhead Stadium' },
-            { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
-            { city: 'Miami', stadium: 'Hard Rock Stadium' },
-            { city: 'Boston', stadium: 'Gillette Stadium' },
-            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' },
-            { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+            { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
+            { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
+            { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
+            { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
+            { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
+            { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
+            { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
+            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
         ];
 
         function buildMatchDates() {
@@ -383,22 +377,19 @@
             let id = 1;
             const groups = Object.keys(GROUPS);
             groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 11 + Math.floor(gi/4);
+                const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
                 const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
             });
             groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 18 + Math.floor(gi/4);
+                const t = GROUPS[g]; const baseDay = 18 + Math.floor(gi/4);
                 const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
             });
             groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 24 + Math.floor(gi/4);
+                const t = GROUPS[g]; const baseDay = 24 + Math.floor(gi/4);
                 const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
                 matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
                 matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
@@ -406,18 +397,13 @@
             const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
             let koIdx = 0;
             const koData = [
-                {count:16, round:'Dieciseisavos', startDay:28},
-                {count:8, round:'Octavos', startDay:4, month:7},
-                {count:4, round:'Cuartos', startDay:9, month:7},
-                {count:2, round:'Semifinales', startDay:14, month:7},
-                {count:1, round:'3er Puesto', startDay:18, month:7},
-                {count:1, round:'Final', startDay:19, month:7}
+                {count:16, round:'Dieciseisavos', startDay:28}, {count:8, round:'Octavos', startDay:4, month:7},
+                {count:4, round:'Cuartos', startDay:9, month:7}, {count:2, round:'Semifinales', startDay:14, month:7},
+                {count:1, round:'3er Puesto', startDay:18, month:7}, {count:1, round:'Final', startDay:19, month:7}
             ];
             koData.forEach(kd => {
                 for(let i=0; i<kd.count; i++){
-                    const v = VENUES[koVenues[koIdx++]];
-                    const month = kd.month || 6;
-                    const day = kd.startDay + Math.floor(i/2);
+                    const v = VENUES[koVenues[koIdx++]]; const month = kd.month || 6; const day = kd.startDay + Math.floor(i/2);
                     matches.push({id:id++, group:'KO', round:kd.round, home:'Por definir', away:'Por definir',
                         date:`2026-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T20:00`,
                         venue:`${v.stadium}, ${v.city}`, homeScore:null, awayScore:null});
@@ -437,7 +423,7 @@
         let selectedPointsPlayer = currentPlayer;
         let accessCodes = [];
 
-        // ========== FUNCIONES DE SINCRONIZACIÓN ==========
+        // ========== SINCRONIZACIÓN ==========
         function initDB() {
             if (!firebaseReady) return Promise.reject('Firebase no disponible');
             const batch = db.batch();
@@ -717,6 +703,60 @@
             }
             return { total, details };
         }
+        // ========== BLOQUEO DE PREMIOS ==========
+        function checkPicksLocked() {
+            if (!currentPlayer || !predictions[currentPlayer]) return false;
+            return predictions[currentPlayer]._picksLocked === true;
+        }
+
+        function renderSpecialPicks() {
+            const panel = document.getElementById('special-picks-panel');
+            if (!currentPlayer) {
+                panel.style.display = 'none';
+                return;
+            }
+            panel.style.display = 'block';
+            const preds = predictions[currentPlayer] || {};
+            const locked = checkPicksLocked();
+            document.getElementById('golden-boot-pick').disabled = locked;
+            document.getElementById('golden-ball-pick').disabled = locked;
+            document.getElementById('champion-pick').disabled = locked;
+            document.getElementById('save-special-picks-btn').disabled = locked;
+            document.getElementById('picks-locked-msg').style.display = locked ? 'block' : 'none';
+
+            // Rellenar valores actuales
+            document.getElementById('golden-boot-pick').value = preds.goldenBoot || '';
+            document.getElementById('golden-ball-pick').value = preds.goldenBall || '';
+            document.getElementById('champion-pick').value = preds.champion || '';
+
+            // Si ya está bloqueado, mostrar mensaje y deshabilitar
+            if (!locked) {
+                // Habilitar el botón de guardar solo si hay al menos un valor
+                const hasValue = document.getElementById('golden-boot-pick').value || document.getElementById('golden-ball-pick').value || document.getElementById('champion-pick').value;
+                document.getElementById('save-special-picks-btn').disabled = !hasValue;
+            }
+        }
+
+        // Evento para guardar y bloquear premios
+        document.getElementById('save-special-picks-btn').addEventListener('click', () => {
+            if (!currentPlayer) return;
+            if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+            predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
+            predictions[currentPlayer].goldenBall = document.getElementById('golden-ball-pick').value;
+            predictions[currentPlayer].champion = document.getElementById('champion-pick').value;
+            predictions[currentPlayer]._picksLocked = true;
+            guardarPrediccion(currentPlayer, predictions[currentPlayer]).then(() => {
+                renderSpecialPicks();
+                showToast('Premios bloqueados correctamente.');
+            });
+        });
+
+        // Modificar renderMyPool para que llame a renderSpecialPicks al final
+        const originalRenderMyPool = renderMyPool;
+        renderMyPool = function() {
+            originalRenderMyPool();
+            renderSpecialPicks();
+        };
 
         // ========== RENDERIZADO ==========
         function renderDashboard() {
