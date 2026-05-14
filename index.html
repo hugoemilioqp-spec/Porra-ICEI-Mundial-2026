@@ -360,6 +360,7 @@
         await firestoreRequest('DELETE', path);
     }
 
+    // Única definición de showToast (global)
     function showToast(msg) {
         const toast = document.createElement('div');
         toast.className = 'toast';
@@ -377,8 +378,8 @@
     let adminLogged = false;
     let selectedPointsPlayer = currentPlayer;
     let accessCodes = [];
-    let dataLoaded = false;   // Para control de carga
-    
+    let dataLoaded = false;
+
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
         B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
@@ -409,7 +410,6 @@
         const matches = [];
         let id = 1;
         const groups = Object.keys(GROUPS);
-        // Fase de grupos
         groups.forEach((g, gi) => {
             const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
             const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
@@ -429,14 +429,13 @@
             matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
         });
 
-        // Eliminatorias (32 fechas correctas)
         const koDates = [
             '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
             '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
             '2026-07-03','2026-07-03','2026-07-03','2026-07-03',
             '2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06',
             '2026-07-07','2026-07-07',
-            '2026-07-09','2026-07-09','2026-07-10','2026-07-10',  // <-- Cuartos añadidos
+            '2026-07-09','2026-07-09','2026-07-10','2026-07-10',
             '2026-07-14','2026-07-15',
             '2026-07-18',
             '2026-07-19'
@@ -467,12 +466,10 @@
                 awayScore: null
             });
         }
-
         return matches;
     }
     const DEFAULT_MATCHES = buildMatchDates();
 
-    // ========== FUNCIONES REST ==========
     async function refreshAllData() {
         try {
             const matchesDocs = await getDocs('matches', 200);
@@ -504,7 +501,6 @@
             updateGenerateKOButton();
             updateBotaBalonSuggestions();
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
-            // Habilitar botón de guardar nombre si los datos ya están listos
             const saveNameBtn = document.getElementById('save-name-btn');
             if (saveNameBtn) saveNameBtn.disabled = false;
         } catch (err) {
@@ -512,6 +508,7 @@
             document.getElementById('matches-full-list').innerHTML = `<p class="text-muted">Error al cargar datos: ${err.message}</p>`;
         }
     }
+
     async function initDB() {
         for (const m of DEFAULT_MATCHES) {
             await setDoc(`matches/${m.id}`, {
@@ -532,21 +529,19 @@
         }
         await refreshAllData();
         showToast('Resultados guardados');
-        renderAccessCodes(); // <-- añadir esta línea
     }
 
     async function guardarPrediccion(player, predData) {
         await setDoc(`predictions/${player}`, predData);
     }
 
-    // ========== CÓDIGOS Y PARTICIPANTES ==========
     async function generateCode(custom='') {
         const code = custom || Math.random().toString(36).substring(2, 8).toUpperCase();
         await setDoc(`accessCodes/${code}`, { usedBy: null });
         showToast('Código generado: ' + code);
         document.getElementById('code-to-generate').value = '';
-        await refreshAllData();  // Recarga los códigos desde Firestore
-        renderAccessCodes();     // Actualiza la tabla inmediatamente
+        await refreshAllData();
+        renderAccessCodes();
     }
 
     async function deleteCode(code) {
@@ -601,7 +596,6 @@
         document.getElementById('tab-mypoints').classList.add('active');
     };
 
-    // ========== LÓGICA DE GRUPOS Y ELIMINATORIAS ==========
     function getGroupStandings(mArr, group) {
         const teams = GROUPS[group];
         const stats = {};
@@ -704,7 +698,6 @@
         });
     }
 
-    // ========== CÁLCULO DE PUNTOS ==========
     function calculatePointsDetail(playerName) {
         const preds = predictions[playerName] || {};
         const details = [];
@@ -768,13 +761,6 @@
         return { total, details };
     }
 
-    // ========== BLOQUEO DE PREMIOS ==========
-    function checkPicksLocked() {
-        if (!currentPlayer || !predictions[currentPlayer]) return false;
-        return predictions[currentPlayer]._picksLocked === true;
-    }
-
-    // ========== BLOQUEO DE PREMIOS ==========
     function renderSpecialPicks() {
         const panel = document.getElementById('special-picks-panel');
         if (!currentPlayer) {
@@ -802,21 +788,6 @@
         }
     }
 
-    // Evento para guardar y bloquear premios (sin cambios)
-    document.getElementById('save-special-picks-btn').addEventListener('click', async () => {
-        if (!currentPlayer) return;
-        if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
-        predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
-        predictions[currentPlayer].goldenBall = document.getElementById('golden-ball-pick').value;
-        predictions[currentPlayer].champion = document.getElementById('champion-pick').value;
-        predictions[currentPlayer]._picksLocked = true;
-        await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
-        renderSpecialPicks();
-        showToast('Premios bloqueados correctamente.');
-    });
-
-
-    // ========== RENDERIZADO ==========
     function renderDashboard() {
         const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
         document.getElementById('dashboard-subtitle').textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
@@ -849,7 +820,6 @@
     }
     function renderMatchesFull() {
         let html = '';
-        // Agrupar por grupo y dentro por jornada
         const groups = Object.keys(GROUPS);
         groups.forEach(g => {
             html += `<div class="group-header">🔹 Grupo ${g}</div>`;
@@ -868,7 +838,6 @@
                 });
             }
         });
-        // Eliminatorias
         html += `<div class="group-header" style="border-left:3px solid var(--rose);">🏟️ Eliminatorias</div>`;
         const koMatches = matches.filter(m => m.group === 'KO');
         koMatches.forEach(m => {
@@ -933,7 +902,6 @@
         container.innerHTML = html;
     }
     function renderMyPool() {
-        // Bloquear acceso si no hay sesión
         if (!currentPlayer) {
             document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Introduce tu nombre y un código de acceso válido para empezar.</p>';
             document.getElementById('pool-actions').style.display = 'none';
@@ -946,7 +914,6 @@
         const groupsComplete = allGroupMatchesPlayed(matches);
         const preds = predictions[currentPlayer] || {};
 
-        // Fase de grupos (siempre editable)
         let html = '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
         matches.filter(m => m.group !== 'KO').forEach(m => {
             const p = preds[m.id] || {};
@@ -956,7 +923,6 @@
         });
         html += '</table>';
 
-        // Proyección de eliminatorias (solo visual hasta que se activen)
         html += '<h3 class="mt-3">Proyección de eliminatorias</h3>';
         const koMatches = matches.filter(m => m.group === 'KO');
         const rounds = ['Dieciseisavos', 'Octavos', 'Cuartos', 'Semifinales', '3er Puesto', 'Final'];
@@ -983,10 +949,8 @@
         document.getElementById('prediction-form').innerHTML = html;
         renderSpecialPicks();
 
-        // Ocultar botón de generar KO si los grupos no están completos
         document.getElementById('generate-ko-btn').style.display = groupsComplete ? 'inline-flex' : 'none';
     }
-
 
     function renderStandings() {
         const scores = {}; 
@@ -1080,9 +1044,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
 
-                // Deshabilitar botón Guardar hasta que datos estén listos
         document.getElementById('save-name-btn').disabled = true;
-        // Autocompletar nombre si existe en localStorage
         const savedName = localStorage.getItem('currentPlayer_wc26_v3');
         if (savedName) document.getElementById('player-name').value = savedName;
         
@@ -1111,7 +1073,6 @@
 
                 currentPlayer = name;
                 localStorage.setItem('currentPlayer_wc26_v3', name);
-                // Asegurarse de que predictions[currentPlayer] exista sin sobrescribir
                 if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
                 await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
                 renderMyPool();
@@ -1142,12 +1103,7 @@
             showToast('Pronósticos guardados');
         });
 
-        document.getElementById('lock-ko-btn').addEventListener('click', async () => {
-            if (!currentPlayer) return;
-            predictions[currentPlayer]._koLocked = true;
-            await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
-            showToast('KO bloqueado manualmente');
-        });
+        // Eliminado el listener de lock-ko-btn
 
         document.getElementById('generate-ko-btn').addEventListener('click', async () => {
             if (!currentPlayer) return;
@@ -1257,11 +1213,6 @@
                 alert('Error: ' + err.message);
             }
         });
-
-        function showToast(msg) {
-            const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = msg;
-            document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
-        }
 
         // Selectores de campeón
         const champ = document.getElementById('champion-pick');
