@@ -378,6 +378,7 @@
         const matches = [];
         let id = 1;
         const groups = Object.keys(GROUPS);
+        // Fase de grupos (sin cambios)
         groups.forEach((g, gi) => {
             const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
             const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
@@ -396,21 +397,46 @@
             matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
             matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
         });
-        const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
-        let koIdx = 0;
-        const koData = [
-            {count:16, round:'Dieciseisavos', startDay:28}, {count:8, round:'Octavos', startDay:4, month:7},
-            {count:4, round:'Cuartos', startDay:9, month:7}, {count:2, round:'Semifinales', startDay:14, month:7},
-            {count:1, round:'3er Puesto', startDay:18, month:7}, {count:1, round:'Final', startDay:19, month:7}
+
+        // ===== CORRECCIÓN: Fechas de eliminatorias predefinidas (evita "Invalid Date") =====
+        const koDates = [
+            '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
+            '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
+            '2026-07-03','2026-07-03','2026-07-03','2026-07-03',
+            '2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06',
+            '2026-07-07','2026-07-07',
+            '2026-07-10','2026-07-10','2026-07-11','2026-07-11',
+            '2026-07-14','2026-07-15',
+            '2026-07-18',
+            '2026-07-19'
         ];
-        koData.forEach(kd => {
-            for(let i=0; i<kd.count; i++){
-                const v = VENUES[koVenues[koIdx++]]; const month = kd.month || 6; const day = kd.startDay + Math.floor(i/2);
-                matches.push({id:id++, group:'KO', round:kd.round, home:'Por definir', away:'Por definir',
-                    date:`2026-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T20:00`,
-                    venue:`${v.stadium}, ${v.city}`, homeScore:null, awayScore:null});
-            }
-        });
+        const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
+        const roundNames = [
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos',
+            'Cuartos','Cuartos','Cuartos','Cuartos',
+            'Semifinales','Semifinales',
+            '3er Puesto',
+            'Final'
+        ];
+        for (let i = 0; i < koDates.length; i++) {
+            const v = VENUES[koVenues[i]];
+            matches.push({
+                id: id++,
+                group: 'KO',
+                round: roundNames[i],
+                home: 'Por definir',
+                away: 'Por definir',
+                date: koDates[i] + 'T20:00',
+                venue: `${v.stadium}, ${v.city}`,
+                homeScore: null,
+                awayScore: null
+            });
+        }
+
         return matches;
     }
     const DEFAULT_MATCHES = buildMatchDates();
