@@ -93,6 +93,7 @@
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
         #connection-detail { color: var(--rose); font-size:0.7rem; margin-top:4px; display:block; }
         .locked-input { opacity: 0.5; background: rgba(255,255,255,0.02); }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 999; }
     </style>
 </head>
 <body>
@@ -116,6 +117,8 @@
         <div id="connection-detail"></div>
     </div>
 </aside>
+
+<div class="main">
 
 <div class="main">
     <div id="tab-dashboard" class="tab-content active">
@@ -313,33 +316,35 @@
         if (!response.ok) throw new Error(`Error ${response.status}: ${await response.text()}`);
         return response.json();
     }
-async function getDocs(collection, pageSize = 200) {
-    const data = await firestoreRequest('GET', collection + `?pageSize=${pageSize}`);
-    const docs = [];
-    if (data.documents) {
-        for (const doc of data.documents) {
-            const id = doc.name.split('/').pop();
-            const fields = doc.fields || {};
-            const obj = { id };
+
+    async function getDocs(collection, pageSize = 200) {
+        const data = await firestoreRequest('GET', collection + `?pageSize=${pageSize}`);
+        const docs = [];
+        if (data.documents) {
+            for (const doc of data.documents) {
+                const id = doc.name.split('/').pop();
+                const fields = doc.fields || {};
+                const obj = { id };
+                for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
+                docs.push(obj);
+            }
+        }
+        return docs;
+    }
+
+    async function getDoc(path) {
+        try {
+            const data = await firestoreRequest('GET', path);
+            const fields = data.fields || {};
+            const obj = {};
             for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
-            docs.push(obj);
+            return obj;
+        } catch (err) {
+            if (err.message.includes('404')) return null;
+            throw err;
         }
     }
-    return docs;
-}
-async function getDoc(path) {
-    try {
-        const data = await firestoreRequest('GET', path);
-        const fields = data.fields || {};
-        const obj = {};
-        for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
-        return obj;
-    } catch (err) {
-        // Si es 404, devolvemos null sin mostrar error
-        if (err.message.includes('404')) return null;
-        throw err; // otros errores sí los lanzamos
-    }
-}
+
     async function setDoc(path, data) {
         const fields = {};
         for (const [key, value] of Object.entries(data)) {
@@ -357,14 +362,14 @@ async function getDoc(path) {
     async function deleteDoc(path) {
         await firestoreRequest('DELETE', path);
     }
-   
+
     function showToast(msg) {
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = msg;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
 
     // ========== ESTADO GLOBAL ==========
     let matches = [];
@@ -375,7 +380,8 @@ async function getDoc(path) {
     let adminLogged = false;
     let selectedPointsPlayer = currentPlayer;
     let accessCodes = [];
-
+    let dataLoaded = false;   // Para control de carga
+    
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
         B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
@@ -489,23 +495,26 @@ async function getDoc(path) {
             } else {
                 matches = [...DEFAULT_MATCHES];
             }
-            const predsDocs = await getDocs('predictions');
+            const predsDocs = await getDocs('predictions', 200);
             predictions = {};
             for (const doc of predsDocs) predictions[doc.id] = doc;
-            try { pointsConfig = await getDoc('config/points') || pointsConfig; } catch(e) {}
-            try { actualWinners = await getDoc('config/winners') || actualWinners; } catch(e) {}
-            const codesDocs = await getDocs('accessCodes');
+            pointsConfig = (await getDoc('config/points')) || pointsConfig;
+            actualWinners = (await getDoc('config/winners')) || actualWinners;
+            const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
+            dataLoaded = true;
             renderAllTabs();
             updateGenerateKOButton();
             updateBotaBalonSuggestions();
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
+            // Habilitar botón de guardar nombre si los datos ya están listos
+            const saveNameBtn = document.getElementById('save-name-btn');
+            if (saveNameBtn) saveNameBtn.disabled = false;
         } catch (err) {
             console.error(err);
             document.getElementById('matches-full-list').innerHTML = `<p class="text-muted">Error al cargar datos: ${err.message}</p>`;
         }
     }
-
     async function initDB() {
         for (const m of DEFAULT_MATCHES) {
             await setDoc(`matches/${m.id}`, {
@@ -533,14 +542,14 @@ async function getDoc(path) {
         await setDoc(`predictions/${player}`, predData);
     }
 
-    // ========== CÓDIGOS Y PARTICIPANTES (REST) ==========
+    // ========== CÓDIGOS Y PARTICIPANTES ==========
     async function generateCode(custom='') {
         const code = custom || Math.random().toString(36).substring(2, 8).toUpperCase();
         await setDoc(`accessCodes/${code}`, { usedBy: null });
         showToast('Código generado: ' + code);
         document.getElementById('code-to-generate').value = '';
-        await refreshAllData();
-        renderAccessCodes(); // <-- añadir esta línea
+        await refreshAllData();  // Recarga los códigos desde Firestore
+        renderAccessCodes();     // Actualiza la tabla inmediatamente
     }
 
     async function deleteCode(code) {
@@ -548,18 +557,18 @@ async function getDoc(path) {
         await deleteDoc(`accessCodes/${code}`);
         showToast('Código eliminado');
         await refreshAllData();
-        renderAccessCodes(); // <-- añadir esta línea
-  
+        renderAccessCodes();
     }
 
     async function deletePlayer(player) {
-        if (!confirm(`¿Eliminar a ${player} y todas sus predicciones?`)) return;
+        if (!confirm(`¿Eliminar a ${player}?`)) return;
         await deleteDoc(`predictions/${player}`);
         const codeUsed = accessCodes.find(c => c.usedBy === player);
         if (codeUsed) await setDoc(`accessCodes/${codeUsed.code}`, { usedBy: null });
         showToast('Participante eliminado');
         await refreshAllData();
-        renderAccessCodes(); // <-- añadir esta línea
+        renderAccessCodes();
+        renderPlayersList();
     }
 
     function renderAccessCodes() {
@@ -885,36 +894,60 @@ async function getDoc(path) {
     }
     function renderMyPool() {
         if (!currentPlayer) {
-            document.getElementById('prediction-form').innerHTML = '<p style="color:var(--text3);">Introduce tu nombre y un código de acceso válido para empezar.</p>';
+            document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Introduce tu nombre y un código de acceso válido.</p>';
             document.getElementById('pool-actions').style.display = 'none';
             return;
         }
-        document.getElementById('pool-actions').style.display = 'flex';
-        let preds = predictions[currentPlayer] || {};
-        if (!preds._koLocked) preds = autoFillKO({...preds});
-        predictions[currentPlayer] = preds;
-        let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
-        matches.forEach(m => {
+        const groupsComplete = allGroupMatchesPlayed(matches);
+        const preds = predictions[currentPlayer] || {};
+        // Solo autocompletar KO si es fase de grupos y no está bloqueado
+        if (!groupsComplete && !preds._koLocked) {
+            autoFillKO(preds, false); // proyección
+        }
+
+        let html = '';
+        // Fase de grupos (siempre visible)
+        html += '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
+        matches.filter(m => m.group !== 'KO').forEach(m => {
             const p = preds[m.id] || {};
-            let teamDisplay = `${m.home} vs ${m.away}`;
-            let homeVal = '', awayVal = '';
-            if (m.group === 'KO') {
+            const dis = (m.homeScore !== null) ? 'disabled' : '';
+            html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td>
+                     <td><input class="small-input" id="ph-${m.id}" value="${p.home||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away||''}" ${dis}></td></tr>`;
+        });
+        html += '</table>';
+
+        // Proyección de eliminatorias (solo visual, sin inputs)
+        html += '<h3 class="mt-3">Proyección de eliminatorias</h3>';
+        const koMatches = matches.filter(m => m.group === 'KO');
+        const rounds = ['Dieciseisavos', 'Octavos', 'Cuartos', 'Semifinales', '3er Puesto', 'Final'];
+        rounds.forEach(round => {
+            const roundMatches = koMatches.filter(m => m.round === round);
+            if (roundMatches.length === 0) return;
+            html += `<div class="group-header">🏟️ ${round}</div>`;
+            roundMatches.forEach(m => {
+                const p = preds[m.id] || {};
                 const homeTeam = p.homeTeam || m.home;
                 const awayTeam = p.awayTeam || m.away;
-                teamDisplay = `${homeTeam} vs ${awayTeam}`;
-                homeVal = p.homeScore || '';
-                awayVal = p.awayScore || '';
-            } else {
-                homeVal = p.home || '';
-                awayVal = p.away || '';
-            }
-            const dis = (m.homeScore !== null) ? 'disabled' : '';
-            html += `<tr><td>${m.group==='KO'?m.round:'Grupo '+m.group+' J'+m.round}</td><td>${teamDisplay}</td>
-                     <td><input class="small-input" id="ph-${m.id}" value="${homeVal}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${awayVal}" ${dis}></td></tr>`;
+                const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
+                html += `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${homeTeam} ${score} ${awayTeam}</span>`;
+                if (groupsComplete && p.homeTeam && p.homeTeam !== 'Por definir') {
+                    // Si los grupos están completos y el usuario ya generó las eliminatorias oficiales, mostramos inputs
+                    const dis = (m.homeScore !== null) ? 'disabled' : '';
+                    html += `<td><input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis}></td>`;
+                }
+                html += '</div>';
+            });
         });
-        document.getElementById('prediction-form').innerHTML = html+'</table>';
+
+        document.getElementById('prediction-form').innerHTML = html;
+        document.getElementById('pool-actions').style.display = 'flex';
+        // Mostrar/ocultar botones según fase
+        document.getElementById('generate-ko-btn').style.display = groupsComplete ? 'inline-flex' : 'none';
+        document.getElementById('lock-ko-btn').style.display = groupsComplete ? 'none' : 'inline-flex';
+
         renderSpecialPicks();
     }
+
     function renderStandings() {
         const scores = {}; 
         for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
@@ -1007,6 +1040,12 @@ async function getDoc(path) {
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
 
+                // Deshabilitar botón Guardar hasta que datos estén listos
+        document.getElementById('save-name-btn').disabled = true;
+        // Autocompletar nombre si existe en localStorage
+        const savedName = localStorage.getItem('currentPlayer_wc26_v3');
+        if (savedName) document.getElementById('player-name').value = savedName;
+        
         document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
             document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -1021,21 +1060,23 @@ async function getDoc(path) {
             const name = document.getElementById('player-name').value.trim();
             const code = document.getElementById('access-code').value.trim();
             if (!name || !code) return alert('Debes introducir un nombre y un código de acceso.');
+            if (!dataLoaded) return alert('Los datos aún se están cargando. Espera unos segundos.');
 
             try {
                 const codeDoc = await getDoc(`accessCodes/${code}`);
-                if (!codeDoc || !codeDoc.usedBy === undefined) return alert('Código de acceso inválido.');
+                if (!codeDoc || codeDoc.usedBy === undefined) return alert('Código de acceso inválido.');
                 if (codeDoc.usedBy && codeDoc.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
 
                 if (!codeDoc.usedBy) await setDoc(`accessCodes/${code}`, { usedBy: name });
 
                 currentPlayer = name;
                 localStorage.setItem('currentPlayer_wc26_v3', name);
-                if (!predictions[name]) predictions[name] = {};
-                await guardarPrediccion(name, predictions[name]);
+                // Asegurarse de que predictions[currentPlayer] exista sin sobrescribir
+                if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+                await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
                 renderMyPool();
                 updateGenerateKOButton();
-                showToast(`Bienvenid@ ${name}! Ya puedes hacer tus pronósticos.`);
+                showToast(`Bienvenid@ ${name}!`);
             } catch (err) {
                 alert('Error al validar el código: ' + err.message);
             }
