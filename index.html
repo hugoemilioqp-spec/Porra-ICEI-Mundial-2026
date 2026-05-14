@@ -513,6 +513,7 @@ async function getDocs(collection, pageSize = 200) {
         }
         await refreshAllData();
         showToast('Resultados guardados');
+        renderAccessCodes(); // <-- añadir esta línea
     }
 
     async function guardarPrediccion(player, predData) {
@@ -526,6 +527,7 @@ async function getDocs(collection, pageSize = 200) {
         showToast('Código generado: ' + code);
         document.getElementById('code-to-generate').value = '';
         await refreshAllData();
+        renderAccessCodes(); // <-- añadir esta línea
     }
 
     async function deleteCode(code) {
@@ -533,6 +535,8 @@ async function getDocs(collection, pageSize = 200) {
         await deleteDoc(`accessCodes/${code}`);
         showToast('Código eliminado');
         await refreshAllData();
+        renderAccessCodes(); // <-- añadir esta línea
+  
     }
 
     async function deletePlayer(player) {
@@ -542,6 +546,7 @@ async function getDocs(collection, pageSize = 200) {
         if (codeUsed) await setDoc(`accessCodes/${codeUsed.code}`, { usedBy: null });
         showToast('Participante eliminado');
         await refreshAllData();
+        renderAccessCodes(); // <-- añadir esta línea
     }
 
     function renderAccessCodes() {
