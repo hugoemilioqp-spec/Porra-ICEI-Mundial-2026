@@ -119,7 +119,6 @@
 </aside>
 
 <div class="main">
-    <!-- Todas las pestañas se mantienen exactamente igual que en tu código -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
@@ -149,7 +148,6 @@
                 <button class="btn btn-gold" id="save-name-btn"><i class="fa-solid fa-user"></i> Guardar</button>
             </div>
             <div id="prediction-form"></div>
-            <!-- Premios dentro de Mi Porra -->
             <div class="panel mt-3" id="special-picks-panel" style="display:none;">
                 <h2>⭐ Premios del Mundial</h2>
                 <div class="flex-row">
@@ -267,8 +265,9 @@
         </div>
     </div>
 </div>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
     // ==================== CONFIGURACIÓN DE FIREBASE ====================
     const firebaseConfig = {
@@ -286,8 +285,6 @@
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
-        // CORRECCIÓN: solo experimentalForceLongPolling, sin merge
-        db.settings({ experimentalForceLongPolling: true });
         connectionError = '';
         firebaseReady = true;
         console.log('Firebase inicializado correctamente');
@@ -316,28 +313,21 @@
         if (resetBtn) resetBtn.disabled = !firebaseReady;
     }
 
+    // Verificar conexión con una lectura simple
     if (firebaseReady) {
-        const timeout = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout de conexión (Firestore no responde)')), 5000)
-        );
-
-        Promise.race([
-            db.collection('config').doc('points').get(),
-            timeout
-        ])
-        .then(() => {
-            console.log('Conexión a Firestore verificada');
-            connectionError = '';
-            firebaseReady = true;
-        })
-        .catch(err => {
-            console.error('Error de conexión a Firestore:', err);
-            connectionError = 'Error: ' + (err.message || 'Permisos insuficientes');
-            firebaseReady = false;
-        })
-        .finally(() => {
-            updateConnectionUI();
-        });
+        db.collection('config').doc('points').get()
+            .then(() => {
+                console.log('Conexión a Firestore verificada');
+                connectionError = '';
+                firebaseReady = true;
+                updateConnectionUI();
+            })
+            .catch(err => {
+                console.error('Error de conexión a Firestore:', err);
+                connectionError = 'Error: ' + (err.message || 'Permisos insuficientes');
+                firebaseReady = false;
+                updateConnectionUI();
+            });
     } else {
         updateConnectionUI();
     }
@@ -345,12 +335,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         if (!firebaseReady) {
             document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
-            updateConnectionUI();
             return;
         }
-
-        // Variables de listeners
-        let unsubscribeMatches, unsubscribePredictions, unsubscribeCodes;
 
         // ========== DATOS FIJOS ==========
         const GROUPS = {
@@ -430,7 +416,52 @@
         let selectedPointsPlayer = currentPlayer;
         let accessCodes = [];
 
-        // ========== SINCRONIZACIÓN (MEJORADA) ==========
+        // ========== FUNCIONES DE LECTURA (sin streaming) ==========
+        function loadAllData() {
+            if (!firebaseReady) return;
+            // Cargar partidos
+            db.collection('matches').get().then(snap => {
+                matches = [];
+                snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
+                matches.sort((a,b)=>a.id-b.id);
+                if (matches.length === 0) {
+                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
+                }
+                renderAllTabs();
+                updateGenerateKOButton();
+            }).catch(err => {
+                console.error('Error al cargar partidos:', err);
+                document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">Error al cargar partidos. Revisa la consola.</p>';
+            });
+
+            // Cargar predicciones
+            db.collection('predictions').get().then(snap => {
+                predictions = {};
+                snap.forEach(doc => predictions[doc.id] = doc.data());
+                renderAllTabs();
+                updateBotaBalonSuggestions();
+                if (adminLogged) renderPlayersList();
+            });
+
+            // Cargar configuración de puntos
+            db.collection('config').doc('points').get().then(doc => {
+                if (doc.exists) pointsConfig = doc.data();
+            });
+
+            // Cargar ganadores reales
+            db.collection('config').doc('winners').get().then(doc => {
+                if (doc.exists) actualWinners = doc.data();
+            });
+
+            // Cargar códigos de acceso
+            db.collection('accessCodes').get().then(snap => {
+                accessCodes = [];
+                snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
+                if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
+            });
+        }
+
+        // Inicializar DB (escribe los partidos)
         function initDB() {
             if (!firebaseReady) return Promise.reject('Firebase no disponible');
             const batch = db.batch();
@@ -443,95 +474,25 @@
             return batch.commit();
         }
 
-        function loadMatchesFromFirestore() {
-            // Carga inicial con get() para asegurar que los partidos se lean
-            db.collection('matches').get().then(snap => {
-                matches = [];
-                snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
-                matches.sort((a,b)=>a.id-b.id);
-                console.log('Partidos cargados con get():', matches.length);
-                if (matches.length === 0) {
-                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos en la base de datos. ¿Inicializaste la BD?</p>';
-                }
-                renderAllTabs();
-                updateGenerateKOButton();
-                // Ahora activar listeners en tiempo real
-                activateRealTimeListeners();
-            }).catch(err => {
-                console.error('Error al cargar partidos:', err);
-                document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">Error al cargar partidos: ' + err.message + '</p>';
-                // Intentar con localStorage como fallback
-                loadLocal();
-            });
-        }
-
-        function activateRealTimeListeners() {
-            if (unsubscribeMatches) unsubscribeMatches();
-            unsubscribeMatches = db.collection('matches').onSnapshot(snap => {
-                matches = [];
-                snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
-                matches.sort((a,b)=>a.id-b.id);
-                if (matches.length === 0) {
-                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
-                }
-                renderAllTabs();
-                updateGenerateKOButton();
-            });
-
-            if (unsubscribePredictions) unsubscribePredictions();
-            unsubscribePredictions = db.collection('predictions').onSnapshot(snap => {
-                predictions = {};
-                snap.forEach(doc => predictions[doc.id] = doc.data());
-                renderAllTabs();
-                updateBotaBalonSuggestions();
-                if (adminLogged) renderPlayersList();
-            });
-
-            db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
-            db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
-
-            if (unsubscribeCodes) unsubscribeCodes();
-            unsubscribeCodes = db.collection('accessCodes').onSnapshot(snap => {
-                accessCodes = [];
-                snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
-                if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
-            });
-        }
-
-        function syncData() {
-            if (!firebaseReady) return loadLocal();
-            loadMatchesFromFirestore();
-        }
-
-        function loadLocal() {
-            const lm = localStorage.getItem('matches_wc26_v3');
-            if (lm) {
-                matches = JSON.parse(lm);
-            } else {
-                matches = [...DEFAULT_MATCHES];
-            }
-            const lp = localStorage.getItem('predictions_wc26_v3');
-            predictions = lp ? JSON.parse(lp) : {};
-            renderAllTabs();
-            updateGenerateKOButton();
-            updateBotaBalonSuggestions();
-        }
         function saveResults() {
-            if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); showToast('Guardado local'); return; }
+            if (!firebaseReady) return;
             const batch = db.batch();
             matches.forEach(m => batch.update(db.collection('matches').doc(m.id.toString()), { homeScore: m.homeScore, awayScore: m.awayScore }));
-            batch.commit().then(() => showToast('Resultados guardados'));
+            batch.commit().then(() => {
+                showToast('Resultados guardados');
+                loadAllData(); // Recargar datos tras guardar
+            });
         }
 
         function guardarPrediccion(player, predData) {
-            if (!firebaseReady) {
-                predictions[player] = predData;
-                localStorage.setItem('predictions_wc26_v3', JSON.stringify(predictions));
-                return Promise.resolve();
-            }
+            if (!firebaseReady) return Promise.resolve();
             return db.collection('predictions').doc(player).set(predData);
         }
 
+        // Cargar datos al iniciar y luego cada 30 segundos
+        loadAllData();
+        setInterval(loadAllData, 30000);
+        
         // ========== CÓDIGOS Y PARTICIPANTES ==========
         async function generateCode(custom='') {
             if (!firebaseReady) return;
