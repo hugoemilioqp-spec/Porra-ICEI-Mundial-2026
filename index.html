@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -266,7 +267,6 @@
         </div>
     </div>
 </div>
-
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
@@ -286,8 +286,8 @@
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
-        // ⚠️ CORRECCIÓN: Forzar long polling para evitar errores CORS en hosting estático
-        db.settings({ experimentalForceLongPolling: true, merge: true });
+        // CORRECCIÓN: solo experimentalForceLongPolling, sin merge
+        db.settings({ experimentalForceLongPolling: true });
         connectionError = '';
         firebaseReady = true;
         console.log('Firebase inicializado correctamente');
@@ -346,9 +346,10 @@
         if (!firebaseReady) {
             document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
             updateConnectionUI();
+            return;
         }
 
-        // ⚠️ CORRECCIÓN: Declarar las variables de unsubscribe
+        // Variables de listeners
         let unsubscribeMatches, unsubscribePredictions, unsubscribeCodes;
 
         // ========== DATOS FIJOS ==========
@@ -429,7 +430,7 @@
         let selectedPointsPlayer = currentPlayer;
         let accessCodes = [];
 
-        // ========== SINCRONIZACIÓN ==========
+        // ========== SINCRONIZACIÓN (MEJORADA) ==========
         function initDB() {
             if (!firebaseReady) return Promise.reject('Firebase no disponible');
             const batch = db.batch();
@@ -442,13 +443,30 @@
             return batch.commit();
         }
 
-        function syncData() {
-            if (!firebaseReady) return loadLocal();
-            // Desuscribir listeners anteriores si existen
-            if (typeof unsubscribeMatches === 'function') unsubscribeMatches();
-            if (typeof unsubscribePredictions === 'function') unsubscribePredictions();
-            if (typeof unsubscribeCodes === 'function') unsubscribeCodes();
+        function loadMatchesFromFirestore() {
+            // Carga inicial con get() para asegurar que los partidos se lean
+            db.collection('matches').get().then(snap => {
+                matches = [];
+                snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
+                matches.sort((a,b)=>a.id-b.id);
+                console.log('Partidos cargados con get():', matches.length);
+                if (matches.length === 0) {
+                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos en la base de datos. ¿Inicializaste la BD?</p>';
+                }
+                renderAllTabs();
+                updateGenerateKOButton();
+                // Ahora activar listeners en tiempo real
+                activateRealTimeListeners();
+            }).catch(err => {
+                console.error('Error al cargar partidos:', err);
+                document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">Error al cargar partidos: ' + err.message + '</p>';
+                // Intentar con localStorage como fallback
+                loadLocal();
+            });
+        }
 
+        function activateRealTimeListeners() {
+            if (unsubscribeMatches) unsubscribeMatches();
             unsubscribeMatches = db.collection('matches').onSnapshot(snap => {
                 matches = [];
                 snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
@@ -460,6 +478,7 @@
                 updateGenerateKOButton();
             });
 
+            if (unsubscribePredictions) unsubscribePredictions();
             unsubscribePredictions = db.collection('predictions').onSnapshot(snap => {
                 predictions = {};
                 snap.forEach(doc => predictions[doc.id] = doc.data());
@@ -471,11 +490,17 @@
             db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
             db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
 
+            if (unsubscribeCodes) unsubscribeCodes();
             unsubscribeCodes = db.collection('accessCodes').onSnapshot(snap => {
                 accessCodes = [];
                 snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
                 if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
             });
+        }
+
+        function syncData() {
+            if (!firebaseReady) return loadLocal();
+            loadMatchesFromFirestore();
         }
 
         function loadLocal() {
@@ -491,7 +516,6 @@
             updateGenerateKOButton();
             updateBotaBalonSuggestions();
         }
-
         function saveResults() {
             if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); showToast('Guardado local'); return; }
             const batch = db.batch();
