@@ -469,8 +469,8 @@ async function getDocs(collection, pageSize = 200) {
                     date: doc.date,
                     venue: doc.venue,
                     round: doc.round,
-                    homeScore: doc.homeScore !== undefined ? parseInt(doc.homeScore) : null,
-                    awayScore: doc.awayScore !== undefined ? parseInt(doc.awayScore) : null
+                    homeScore: doc.homeScore != null ? parseInt(doc.homeScore) : null,
+                    awayScore: doc.awayScore != null ? parseInt(doc.awayScore) : null
                 }));
                 matches.sort((a,b)=>a.id-b.id);
             } else {
