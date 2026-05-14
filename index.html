@@ -1152,12 +1152,6 @@
             realChamp.innerHTML += `<option value="${t}">${t}</option>`;
         });
 
-        if (firebaseReady) {
-            syncData();
-        } else {
-            loadLocal();
-        }
-
         updateConnectionUI();
     });
 </script>
