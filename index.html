@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -94,6 +93,8 @@
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
         #connection-detail { color: var(--rose); font-size:0.7rem; margin-top:4px; display:block; }
         .locked-input { opacity: 0.5; background: rgba(255,255,255,0.02); }
+        .refresh-btn { font-size:0.8rem; cursor:pointer; background:transparent; border:1px solid var(--accent); color:var(--accent-light); border-radius:20px; padding:4px 12px; margin-left:10px; }
+        .refresh-btn:hover { background:rgba(59,130,246,0.1); }
     </style>
 </head>
 <body>
@@ -121,7 +122,8 @@
 <div class="main">
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
-        <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
+        <h1>🏆 Dashboard <button class="refresh-btn" onclick="window.refreshAllData()"><i class="fa-solid fa-arrows-rotate"></i> Refrescar</button></h1>
+        <p class="subtitle" id="dashboard-subtitle"></p>
         <div class="flex-row" id="stats-row"></div>
         <div class="panel"><h2>Top 5 Clasificación</h2><div id="top5-table"></div></div>
         <div class="panel"><h2>Próximos Partidos</h2><div id="upcoming-matches"></div></div>
@@ -285,9 +287,11 @@
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        // CLAVE: forzar long polling y desactivar sincronización de pestañas
+        db.settings({ experimentalForceLongPolling: true, synchronizeTabs: false });
         connectionError = '';
         firebaseReady = true;
-        console.log('Firebase inicializado correctamente');
+        console.log('Firebase inicializado correctamente (sin streaming)');
     } catch (e) {
         console.error('Error al inicializar Firebase:', e);
         connectionError = 'Error de inicialización: ' + e.message;
@@ -416,52 +420,53 @@
         let selectedPointsPlayer = currentPlayer;
         let accessCodes = [];
 
-        // ========== FUNCIONES DE LECTURA (sin streaming) ==========
-        function loadAllData() {
+        // ========== FUNCIONES DE LECTURA (solo peticiones GET) ==========
+        async function refreshAllData() {
             if (!firebaseReady) return;
-            // Cargar partidos
-            db.collection('matches').get().then(snap => {
+            console.log('Refrescando datos desde Firestore...');
+            try {
+                // Partidos
+                const mSnap = await db.collection('matches').get();
                 matches = [];
-                snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
+                mSnap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
                 matches.sort((a,b)=>a.id-b.id);
                 if (matches.length === 0) {
                     document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
                 }
+
+                // Predicciones
+                const pSnap = await db.collection('predictions').get();
+                predictions = {};
+                pSnap.forEach(doc => predictions[doc.id] = doc.data());
+
+                // Config puntos
+                const ptDoc = await db.collection('config').doc('points').get();
+                if (ptDoc.exists) pointsConfig = ptDoc.data();
+
+                // Ganadores reales
+                const wDoc = await db.collection('config').doc('winners').get();
+                if (wDoc.exists) actualWinners = wDoc.data();
+
+                // Códigos de acceso
+                const cSnap = await db.collection('accessCodes').get();
+                accessCodes = [];
+                cSnap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
+
                 renderAllTabs();
                 updateGenerateKOButton();
-            }).catch(err => {
-                console.error('Error al cargar partidos:', err);
-                document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">Error al cargar partidos. Revisa la consola.</p>';
-            });
-
-            // Cargar predicciones
-            db.collection('predictions').get().then(snap => {
-                predictions = {};
-                snap.forEach(doc => predictions[doc.id] = doc.data());
-                renderAllTabs();
                 updateBotaBalonSuggestions();
-                if (adminLogged) renderPlayersList();
-            });
-
-            // Cargar configuración de puntos
-            db.collection('config').doc('points').get().then(doc => {
-                if (doc.exists) pointsConfig = doc.data();
-            });
-
-            // Cargar ganadores reales
-            db.collection('config').doc('winners').get().then(doc => {
-                if (doc.exists) actualWinners = doc.data();
-            });
-
-            // Cargar códigos de acceso
-            db.collection('accessCodes').get().then(snap => {
-                accessCodes = [];
-                snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
                 if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
-            });
+                showToast('Datos actualizados correctamente');
+            } catch (err) {
+                console.error('Error al refrescar datos:', err);
+                showToast('Error al actualizar: ' + err.message);
+            }
         }
 
-        // Inicializar DB (escribe los partidos)
+        // Hacer accesible globalmente para el botón Refrescar
+        window.refreshAllData = refreshAllData;
+
+        // ========== ESCRITURA ==========
         function initDB() {
             if (!firebaseReady) return Promise.reject('Firebase no disponible');
             const batch = db.batch();
@@ -474,24 +479,27 @@
             return batch.commit();
         }
 
-        function saveResults() {
+        async function saveResults() {
             if (!firebaseReady) return;
             const batch = db.batch();
             matches.forEach(m => batch.update(db.collection('matches').doc(m.id.toString()), { homeScore: m.homeScore, awayScore: m.awayScore }));
-            batch.commit().then(() => {
+            try {
+                await batch.commit();
                 showToast('Resultados guardados');
-                loadAllData(); // Recargar datos tras guardar
-            });
+                await refreshAllData(); // Recargar datos inmediatamente
+            } catch (err) {
+                console.error('Error al guardar resultados:', err);
+                showToast('Error al guardar');
+            }
         }
 
-        function guardarPrediccion(player, predData) {
+        async function guardarPrediccion(player, predData) {
             if (!firebaseReady) return Promise.resolve();
             return db.collection('predictions').doc(player).set(predData);
         }
 
-        // Cargar datos al iniciar y luego cada 30 segundos
-        loadAllData();
-        setInterval(loadAllData, 30000);
+        // ========== INICIALIZACIÓN ==========
+        refreshAllData();
         
         // ========== CÓDIGOS Y PARTICIPANTES ==========
         async function generateCode(custom='') {
