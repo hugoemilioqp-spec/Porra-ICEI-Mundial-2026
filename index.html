@@ -120,8 +120,7 @@
 <div class="main">
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
-        <h1>🏆 Dashboard <button class="refresh-btn" onclick="window.refreshAllData()"><i class="fa-solid fa-arrows-rotate"></i> Refrescar</button></h1>
-        <p class="subtitle" id="dashboard-subtitle"></p>
+        <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
         <div class="flex-row" id="stats-row"></div>
         <div class="panel"><h2>Top 5 Clasificación</h2><div id="top5-table"></div></div>
         <div class="panel"><h2>Próximos Partidos</h2><div id="upcoming-matches"></div></div>
@@ -266,15 +265,12 @@
     </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
-    // ==================== CONFIGURACIÓN API REST FIREBASE ====================
+    // ==================== API REST DE FIRESTORE ====================
     const API_KEY = "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU";
     const PROJECT_ID = "porra-mundial-2026-7fb4c";
     const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-    // Función genérica para peticiones a Firestore REST
     async function firestoreRequest(method, path, body = null) {
         const url = `${BASE_URL}/${path}`;
         const options = {
@@ -285,12 +281,11 @@
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Firestore error ${response.status}: ${errorText}`);
+            throw new Error(`Error ${response.status}: ${errorText}`);
         }
         return response.json();
     }
 
-    // Funciones de utilidad para leer colecciones/documentos
     async function getDocs(collection) {
         const data = await firestoreRequest('GET', collection);
         const docs = [];
@@ -300,7 +295,7 @@
                 const fields = doc.fields || {};
                 const obj = { id };
                 for (const [key, value] of Object.entries(fields)) {
-                    obj[key] = Object.values(value)[0]; // stringValue, integerValue, etc.
+                    obj[key] = Object.values(value)[0];
                 }
                 docs.push(obj);
             }
@@ -343,8 +338,7 @@
         await firestoreRequest('DELETE', path);
     }
 
-    // Variables globales
-    let firebaseReady = true; // Siempre true, ya que no dependemos de SDK
+    // ========== ESTADO GLOBAL ==========
     let matches = [];
     let predictions = {};
     let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
@@ -353,80 +347,77 @@
     let adminLogged = false;
     let selectedPointsPlayer = currentPlayer;
     let accessCodes = [];
-        // ========== DATOS FIJOS ==========
-        const GROUPS = {
-            A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
-            B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
-            C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
-            D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
-            E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
-            F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
-            G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
-            H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
-            I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
-            J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
-            K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
-            L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
-        };
-        const ALL_TEAMS = Object.values(GROUPS).flat();
-        const VENUES = [
-            { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
-            { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
-            { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
-            { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
-            { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
-            { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
-            { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
-            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+
+    const GROUPS = {
+        A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
+        B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
+        C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
+        D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
+        E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
+        F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
+        G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
+        H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
+        I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
+        J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
+        K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
+        L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
+    };
+    const ALL_TEAMS = Object.values(GROUPS).flat();
+    const VENUES = [
+        { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
+        { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
+        { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
+        { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
+        { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
+        { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
+        { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
+        { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+    ];
+
+    function buildMatchDates() {
+        const matches = [];
+        let id = 1;
+        const groups = Object.keys(GROUPS);
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
+            const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
+            matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
+        });
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g]; const baseDay = 18 + Math.floor(gi/4);
+            const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
+            matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
+        });
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g]; const baseDay = 24 + Math.floor(gi/4);
+            const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
+            matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
+        });
+        const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
+        let koIdx = 0;
+        const koData = [
+            {count:16, round:'Dieciseisavos', startDay:28}, {count:8, round:'Octavos', startDay:4, month:7},
+            {count:4, round:'Cuartos', startDay:9, month:7}, {count:2, round:'Semifinales', startDay:14, month:7},
+            {count:1, round:'3er Puesto', startDay:18, month:7}, {count:1, round:'Final', startDay:19, month:7}
         ];
+        koData.forEach(kd => {
+            for(let i=0; i<kd.count; i++){
+                const v = VENUES[koVenues[koIdx++]]; const month = kd.month || 6; const day = kd.startDay + Math.floor(i/2);
+                matches.push({id:id++, group:'KO', round:kd.round, home:'Por definir', away:'Por definir',
+                    date:`2026-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T20:00`,
+                    venue:`${v.stadium}, ${v.city}`, homeScore:null, awayScore:null});
+            }
+        });
+        return matches;
+    }
+    const DEFAULT_MATCHES = buildMatchDates();
 
-        function buildMatchDates() {
-            const matches = [];
-            let id = 1;
-            const groups = Object.keys(GROUPS);
-            groups.forEach((g, gi) => {
-                const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
-                const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
-                matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
-                matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
-            });
-            groups.forEach((g, gi) => {
-                const t = GROUPS[g]; const baseDay = 18 + Math.floor(gi/4);
-                const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
-                matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
-                matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
-            });
-            groups.forEach((g, gi) => {
-                const t = GROUPS[g]; const baseDay = 24 + Math.floor(gi/4);
-                const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
-                matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
-                matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
-            });
-            const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
-            let koIdx = 0;
-            const koData = [
-                {count:16, round:'Dieciseisavos', startDay:28}, {count:8, round:'Octavos', startDay:4, month:7},
-                {count:4, round:'Cuartos', startDay:9, month:7}, {count:2, round:'Semifinales', startDay:14, month:7},
-                {count:1, round:'3er Puesto', startDay:18, month:7}, {count:1, round:'Final', startDay:19, month:7}
-            ];
-            koData.forEach(kd => {
-                for(let i=0; i<kd.count; i++){
-                    const v = VENUES[koVenues[koIdx++]]; const month = kd.month || 6; const day = kd.startDay + Math.floor(i/2);
-                    matches.push({id:id++, group:'KO', round:kd.round, home:'Por definir', away:'Por definir',
-                        date:`2026-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T20:00`,
-                        venue:`${v.stadium}, ${v.city}`, homeScore:null, awayScore:null});
-                }
-            });
-            return matches;
-        }
-        const DEFAULT_MATCHES = buildMatchDates();
-        const DEFAULT_POINTS = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
-
-
-    // ========== FUNCIONES DE CARGA DE DATOS (REST) ==========
+    // ========== FUNCIONES DE LECTURA/ESCRITURA ==========
     async function refreshAllData() {
         try {
-            // Partidos
             const matchesDocs = await getDocs('matches');
             if (matchesDocs.length > 0) {
                 matches = matchesDocs.map(doc => ({
@@ -444,38 +435,26 @@
             } else {
                 matches = [...DEFAULT_MATCHES];
             }
-            // Predicciones
             const predsDocs = await getDocs('predictions');
             predictions = {};
             for (const doc of predsDocs) {
                 predictions[doc.id] = doc;
             }
-            // Config puntos
-            try {
-                const ptDoc = await getDoc('config/points');
-                if (ptDoc && ptDoc.sign) pointsConfig = ptDoc;
-            } catch(e) {}
-            // Ganadores reales
-            try {
-                const wDoc = await getDoc('config/winners');
-                if (wDoc && (wDoc.goldenBoot || wDoc.goldenBall || wDoc.champion)) actualWinners = wDoc;
-            } catch(e) {}
-            // Códigos de acceso
+            try { pointsConfig = await getDoc('config/points') || pointsConfig; } catch(e) {}
+            try { actualWinners = await getDoc('config/winners') || actualWinners; } catch(e) {}
             const codesDocs = await getDocs('accessCodes');
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
-
             renderAllTabs();
             updateGenerateKOButton();
             updateBotaBalonSuggestions();
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
         } catch (err) {
-            console.error('Error al cargar datos:', err);
-            document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">Error al cargar datos. Revisa la consola.</p>';
+            console.error(err);
+            document.getElementById('matches-full-list').innerHTML = `<p class="text-muted">Error al cargar datos: ${err.message}</p>`;
         }
     }
 
     async function initDB() {
-        // Escribir todos los partidos por defecto
         for (const m of DEFAULT_MATCHES) {
             await setDoc(`matches/${m.id}`, {
                 group: m.group, home: m.home, away: m.away, date: m.date,
@@ -1163,9 +1142,19 @@
             champ.innerHTML += `<option value="${t}">${t}</option>`;
             realChamp.innerHTML += `<option value="${t}">${t}</option>`;
         });
+ 
+        // Inicializar
+    updateConnectionUI();
+    refreshAllData();
 
-        updateConnectionUI();
-    });
+    function updateConnectionUI() {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('connection-text');
+        dot.className = 'connection-dot connected';
+        text.textContent = 'En línea (REST)';
+        document.getElementById('init-db-btn').disabled = false;
+        document.getElementById('reset-btn').disabled = false;
+    }
 </script>
 </body>
 </html>
