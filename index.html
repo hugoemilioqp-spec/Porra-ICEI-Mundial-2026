@@ -93,8 +93,6 @@
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
         #connection-detail { color: var(--rose); font-size:0.7rem; margin-top:4px; display:block; }
         .locked-input { opacity: 0.5; background: rgba(255,255,255,0.02); }
-        .refresh-btn { font-size:0.8rem; cursor:pointer; background:transparent; border:1px solid var(--accent); color:var(--accent-light); border-radius:20px; padding:4px 12px; margin-left:10px; }
-        .refresh-btn:hover { background:rgba(59,130,246,0.1); }
     </style>
 </head>
 <body>
@@ -271,77 +269,90 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
-    // ==================== CONFIGURACIÓN DE FIREBASE ====================
-    const firebaseConfig = {
-        apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
-        authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
-        projectId: "porra-mundial-2026-7fb4c",
-        storageBucket: "porra-mundial-2026-7fb4c.firebasestorage.app",
-        messagingSenderId: "836976823576",
-        appId: "1:836976823576:web:1723e5af127cd56b9fa26d"
-    };
+    // ==================== CONFIGURACIÓN API REST FIREBASE ====================
+    const API_KEY = "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU";
+    const PROJECT_ID = "porra-mundial-2026-7fb4c";
+    const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-    let db, firebaseReady = false;
-    let connectionError = 'Inicializando...';
-
-    try {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
-        // CLAVE: forzar long polling y desactivar sincronización de pestañas
-        db.settings({ experimentalForceLongPolling: true, synchronizeTabs: false });
-        connectionError = '';
-        firebaseReady = true;
-        console.log('Firebase inicializado correctamente (sin streaming)');
-    } catch (e) {
-        console.error('Error al inicializar Firebase:', e);
-        connectionError = 'Error de inicialización: ' + e.message;
-        firebaseReady = false;
-    }
-
-    function updateConnectionUI() {
-        const dot = document.getElementById('status-dot');
-        const text = document.getElementById('connection-text');
-        const detail = document.getElementById('connection-detail');
-        if (firebaseReady) {
-            dot.className = 'connection-dot connected';
-            text.textContent = 'En línea';
-            detail.textContent = '';
-        } else {
-            dot.className = 'connection-dot disconnected';
-            text.textContent = 'Sin conexión';
-            detail.textContent = connectionError || 'Error desconocido';
+    // Función genérica para peticiones a Firestore REST
+    async function firestoreRequest(method, path, body = null) {
+        const url = `${BASE_URL}/${path}`;
+        const options = {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+        };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Firestore error ${response.status}: ${errorText}`);
         }
-        const initBtn = document.getElementById('init-db-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        if (initBtn) initBtn.disabled = !firebaseReady;
-        if (resetBtn) resetBtn.disabled = !firebaseReady;
+        return response.json();
     }
 
-    // Verificar conexión con una lectura simple
-    if (firebaseReady) {
-        db.collection('config').doc('points').get()
-            .then(() => {
-                console.log('Conexión a Firestore verificada');
-                connectionError = '';
-                firebaseReady = true;
-                updateConnectionUI();
-            })
-            .catch(err => {
-                console.error('Error de conexión a Firestore:', err);
-                connectionError = 'Error: ' + (err.message || 'Permisos insuficientes');
-                firebaseReady = false;
-                updateConnectionUI();
-            });
-    } else {
-        updateConnectionUI();
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        if (!firebaseReady) {
-            document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
-            return;
+    // Funciones de utilidad para leer colecciones/documentos
+    async function getDocs(collection) {
+        const data = await firestoreRequest('GET', collection);
+        const docs = [];
+        if (data.documents) {
+            for (const doc of data.documents) {
+                const id = doc.name.split('/').pop();
+                const fields = doc.fields || {};
+                const obj = { id };
+                for (const [key, value] of Object.entries(fields)) {
+                    obj[key] = Object.values(value)[0]; // stringValue, integerValue, etc.
+                }
+                docs.push(obj);
+            }
         }
+        return docs;
+    }
 
+    async function getDoc(path) {
+        const data = await firestoreRequest('GET', path);
+        const fields = data.fields || {};
+        const obj = {};
+        for (const [key, value] of Object.entries(fields)) {
+            obj[key] = Object.values(value)[0];
+        }
+        return obj;
+    }
+
+    async function setDoc(path, data) {
+        const fields = {};
+        for (const [key, value] of Object.entries(data)) {
+            let firestoreValue;
+            if (value === null || value === undefined) {
+                firestoreValue = { nullValue: null };
+            } else if (typeof value === 'string') {
+                firestoreValue = { stringValue: value };
+            } else if (typeof value === 'number') {
+                firestoreValue = { integerValue: value };
+            } else if (typeof value === 'boolean') {
+                firestoreValue = { booleanValue: value };
+            } else {
+                firestoreValue = { stringValue: String(value) };
+            }
+            fields[key] = firestoreValue;
+        }
+        const body = { fields };
+        await firestoreRequest('PATCH', path, body);
+    }
+
+    async function deleteDoc(path) {
+        await firestoreRequest('DELETE', path);
+    }
+
+    // Variables globales
+    let firebaseReady = true; // Siempre true, ya que no dependemos de SDK
+    let matches = [];
+    let predictions = {};
+    let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
+    let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
+    let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
+    let adminLogged = false;
+    let selectedPointsPlayer = currentPlayer;
+    let accessCodes = [];
         // ========== DATOS FIJOS ==========
         const GROUPS = {
             A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
@@ -411,94 +422,87 @@
         const DEFAULT_MATCHES = buildMatchDates();
         const DEFAULT_POINTS = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
 
-        let matches = [...DEFAULT_MATCHES];
-        let predictions = {};
-        let pointsConfig = {...DEFAULT_POINTS};
-        let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
-        let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
-        let adminLogged = false;
-        let selectedPointsPlayer = currentPlayer;
-        let accessCodes = [];
 
-        // ========== FUNCIONES DE LECTURA (solo peticiones GET) ==========
-        async function refreshAllData() {
-            if (!firebaseReady) return;
-            console.log('Refrescando datos desde Firestore...');
-            try {
-                // Partidos
-                const mSnap = await db.collection('matches').get();
-                matches = [];
-                mSnap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
+    // ========== FUNCIONES DE CARGA DE DATOS (REST) ==========
+    async function refreshAllData() {
+        try {
+            // Partidos
+            const matchesDocs = await getDocs('matches');
+            if (matchesDocs.length > 0) {
+                matches = matchesDocs.map(doc => ({
+                    id: parseInt(doc.id),
+                    group: doc.group,
+                    home: doc.home,
+                    away: doc.away,
+                    date: doc.date,
+                    venue: doc.venue,
+                    round: doc.round,
+                    homeScore: doc.homeScore !== undefined ? parseInt(doc.homeScore) : null,
+                    awayScore: doc.awayScore !== undefined ? parseInt(doc.awayScore) : null
+                }));
                 matches.sort((a,b)=>a.id-b.id);
-                if (matches.length === 0) {
-                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
-                }
-
-                // Predicciones
-                const pSnap = await db.collection('predictions').get();
-                predictions = {};
-                pSnap.forEach(doc => predictions[doc.id] = doc.data());
-
-                // Config puntos
-                const ptDoc = await db.collection('config').doc('points').get();
-                if (ptDoc.exists) pointsConfig = ptDoc.data();
-
-                // Ganadores reales
-                const wDoc = await db.collection('config').doc('winners').get();
-                if (wDoc.exists) actualWinners = wDoc.data();
-
-                // Códigos de acceso
-                const cSnap = await db.collection('accessCodes').get();
-                accessCodes = [];
-                cSnap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
-
-                renderAllTabs();
-                updateGenerateKOButton();
-                updateBotaBalonSuggestions();
-                if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
-                showToast('Datos actualizados correctamente');
-            } catch (err) {
-                console.error('Error al refrescar datos:', err);
-                showToast('Error al actualizar: ' + err.message);
+            } else {
+                matches = [...DEFAULT_MATCHES];
             }
+            // Predicciones
+            const predsDocs = await getDocs('predictions');
+            predictions = {};
+            for (const doc of predsDocs) {
+                predictions[doc.id] = doc;
+            }
+            // Config puntos
+            try {
+                const ptDoc = await getDoc('config/points');
+                if (ptDoc && ptDoc.sign) pointsConfig = ptDoc;
+            } catch(e) {}
+            // Ganadores reales
+            try {
+                const wDoc = await getDoc('config/winners');
+                if (wDoc && (wDoc.goldenBoot || wDoc.goldenBall || wDoc.champion)) actualWinners = wDoc;
+            } catch(e) {}
+            // Códigos de acceso
+            const codesDocs = await getDocs('accessCodes');
+            accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
+
+            renderAllTabs();
+            updateGenerateKOButton();
+            updateBotaBalonSuggestions();
+            if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
+        } catch (err) {
+            console.error('Error al cargar datos:', err);
+            document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">Error al cargar datos. Revisa la consola.</p>';
         }
+    }
 
-        // Hacer accesible globalmente para el botón Refrescar
-        window.refreshAllData = refreshAllData;
+    async function initDB() {
+        // Escribir todos los partidos por defecto
+        for (const m of DEFAULT_MATCHES) {
+            await setDoc(`matches/${m.id}`, {
+                group: m.group, home: m.home, away: m.away, date: m.date,
+                venue: m.venue, round: m.round, homeScore: null, awayScore: null
+            });
+        }
+        await setDoc('config/points', pointsConfig);
+        await setDoc('config/winners', actualWinners);
+    }
 
-        // ========== ESCRITURA ==========
-        function initDB() {
-            if (!firebaseReady) return Promise.reject('Firebase no disponible');
-            const batch = db.batch();
-            matches.forEach(m => batch.set(db.collection('matches').doc(m.id.toString()), {
+    async function saveResults() {
+        for (const m of matches) {
+            await setDoc(`matches/${m.id}`, {
                 group: m.group, home: m.home, away: m.away, date: m.date,
                 venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
-            }));
-            batch.set(db.collection('config').doc('points'), pointsConfig);
-            batch.set(db.collection('config').doc('winners'), actualWinners);
-            return batch.commit();
+            });
         }
+        await refreshAllData();
+        showToast('Resultados guardados');
+    }
 
-        async function saveResults() {
-            if (!firebaseReady) return;
-            const batch = db.batch();
-            matches.forEach(m => batch.update(db.collection('matches').doc(m.id.toString()), { homeScore: m.homeScore, awayScore: m.awayScore }));
-            try {
-                await batch.commit();
-                showToast('Resultados guardados');
-                await refreshAllData(); // Recargar datos inmediatamente
-            } catch (err) {
-                console.error('Error al guardar resultados:', err);
-                showToast('Error al guardar');
-            }
-        }
+    async function guardarPrediccion(player, predData) {
+        await setDoc(`predictions/${player}`, predData);
+    }
 
-        async function guardarPrediccion(player, predData) {
-            if (!firebaseReady) return Promise.resolve();
-            return db.collection('predictions').doc(player).set(predData);
-        }
-
-        // ========== INICIALIZACIÓN ==========
+    // ========== INICIALIZACIÓN ==========
+    document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
         
         // ========== CÓDIGOS Y PARTICIPANTES ==========
