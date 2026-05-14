@@ -93,7 +93,6 @@
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
         #connection-detail { color: var(--rose); font-size:0.7rem; margin-top:4px; display:block; }
         .locked-input { opacity: 0.5; background: rgba(255,255,255,0.02); }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 999; }
     </style>
 </head>
 <body>
@@ -117,8 +116,6 @@
         <div id="connection-detail"></div>
     </div>
 </aside>
-
-<div class="main">
 
 <div class="main">
     <div id="tab-dashboard" class="tab-content active">
@@ -177,7 +174,6 @@
             </div>
             <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;">
                 <button class="btn btn-accent" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
-                <button class="btn btn-outline btn-sm" id="lock-ko-btn">🔒 Bloquear KO manual</button>
                 <button class="btn btn-outline btn-sm" id="generate-ko-btn" disabled title="Disponible cuando todos los partidos de grupo tengan resultado oficial">🏟️ Generar eliminatorias oficiales</button>
             </div>
         </div>
@@ -301,7 +297,8 @@
         </div>
     </div>
 </div>
-
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
     // ==================== API REST DE FIRESTORE ====================
     const API_KEY = "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU";
@@ -777,6 +774,7 @@
         return predictions[currentPlayer]._picksLocked === true;
     }
 
+    // ========== BLOQUEO DE PREMIOS ==========
     function renderSpecialPicks() {
         const panel = document.getElementById('special-picks-panel');
         if (!currentPlayer) {
@@ -785,7 +783,7 @@
         }
         panel.style.display = 'block';
         const preds = predictions[currentPlayer] || {};
-        const locked = checkPicksLocked();
+        const locked = preds._picksLocked === true;
         document.getElementById('golden-boot-pick').disabled = locked;
         document.getElementById('golden-ball-pick').disabled = locked;
         document.getElementById('champion-pick').disabled = locked;
@@ -797,10 +795,26 @@
         document.getElementById('champion-pick').value = preds.champion || '';
 
         if (!locked) {
-            const hasValue = document.getElementById('golden-boot-pick').value || document.getElementById('golden-ball-pick').value || document.getElementById('champion-pick').value;
+            const hasValue = document.getElementById('golden-boot-pick').value.trim() !== '' ||
+                             document.getElementById('golden-ball-pick').value.trim() !== '' ||
+                             document.getElementById('champion-pick').value !== '';
             document.getElementById('save-special-picks-btn').disabled = !hasValue;
         }
     }
+
+    // Evento para guardar y bloquear premios (sin cambios)
+    document.getElementById('save-special-picks-btn').addEventListener('click', async () => {
+        if (!currentPlayer) return;
+        if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+        predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
+        predictions[currentPlayer].goldenBall = document.getElementById('golden-ball-pick').value;
+        predictions[currentPlayer].champion = document.getElementById('champion-pick').value;
+        predictions[currentPlayer]._picksLocked = true;
+        await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+        renderSpecialPicks();
+        showToast('Premios bloqueados correctamente.');
+    });
+
 
     // ========== RENDERIZADO ==========
     function renderDashboard() {
@@ -834,15 +848,41 @@
         document.getElementById('upcoming-matches').innerHTML = html+'</table>';
     }
     function renderMatchesFull() {
-        let html = ''; const done = {};
-        matches.forEach(m => {
-            if (m.group !== 'KO' && !done[m.group]) { done[m.group]=true; html+=`<div class="group-header">🔹 Grupo ${m.group}</div>`; }
-            if (m.group === 'KO' && !done['KO']) { done['KO']=true; html+=`<div class="group-header" style="border-left:3px solid var(--rose);">🏟️ Eliminatorias</div>`; }
+        let html = '';
+        // Agrupar por grupo y dentro por jornada
+        const groups = Object.keys(GROUPS);
+        groups.forEach(g => {
+            html += `<div class="group-header">🔹 Grupo ${g}</div>`;
+            for (let r = 1; r <= 3; r++) {
+                const roundMatches = matches.filter(m => m.group === g && m.round === r);
+                if (roundMatches.length === 0) continue;
+                html += `<div style="font-weight:600;color:var(--gold-light);margin-top:4px;">Jornada ${r}</div>`;
+                roundMatches.forEach(m => {
+                    const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
+                    html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;">
+                        <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+                        <span>${m.home} vs ${m.away}</span>
+                        <span class="score-display">${sc}</span>
+                        <span class="venue-info">${m.venue||''}</span>
+                    </div>`;
+                });
+            }
+        });
+        // Eliminatorias
+        html += `<div class="group-header" style="border-left:3px solid var(--rose);">🏟️ Eliminatorias</div>`;
+        const koMatches = matches.filter(m => m.group === 'KO');
+        koMatches.forEach(m => {
             const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
-            html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${m.home} vs ${m.away}</span><span class="score-display">${sc}</span><span class="venue-info">${m.venue||''}</span></div>`;
+            html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;">
+                <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+                <span>${m.home} vs ${m.away}</span>
+                <span class="score-display">${sc}</span>
+                <span class="venue-info">${m.venue||''}</span>
+            </div>`;
         });
         document.getElementById('matches-full-list').innerHTML = html;
     }
+
     function renderGroups() {
         let html = '';
         for (const [g, teams] of Object.entries(GROUPS)) {
@@ -893,21 +933,21 @@
         container.innerHTML = html;
     }
     function renderMyPool() {
+        // Bloquear acceso si no hay sesión
         if (!currentPlayer) {
-            document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Introduce tu nombre y un código de acceso válido.</p>';
+            document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Introduce tu nombre y un código de acceso válido para empezar.</p>';
             document.getElementById('pool-actions').style.display = 'none';
+            document.getElementById('special-picks-panel').style.display = 'none';
             return;
         }
+        document.getElementById('pool-actions').style.display = 'flex';
+        document.getElementById('special-picks-panel').style.display = 'block';
+
         const groupsComplete = allGroupMatchesPlayed(matches);
         const preds = predictions[currentPlayer] || {};
-        // Solo autocompletar KO si es fase de grupos y no está bloqueado
-        if (!groupsComplete && !preds._koLocked) {
-            autoFillKO(preds, false); // proyección
-        }
 
-        let html = '';
-        // Fase de grupos (siempre visible)
-        html += '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
+        // Fase de grupos (siempre editable)
+        let html = '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
         matches.filter(m => m.group !== 'KO').forEach(m => {
             const p = preds[m.id] || {};
             const dis = (m.homeScore !== null) ? 'disabled' : '';
@@ -916,7 +956,7 @@
         });
         html += '</table>';
 
-        // Proyección de eliminatorias (solo visual, sin inputs)
+        // Proyección de eliminatorias (solo visual hasta que se activen)
         html += '<h3 class="mt-3">Proyección de eliminatorias</h3>';
         const koMatches = matches.filter(m => m.group === 'KO');
         const rounds = ['Dieciseisavos', 'Octavos', 'Cuartos', 'Semifinales', '3er Puesto', 'Final'];
@@ -929,9 +969,10 @@
                 const homeTeam = p.homeTeam || m.home;
                 const awayTeam = p.awayTeam || m.away;
                 const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
-                html += `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${homeTeam} ${score} ${awayTeam}</span>`;
+                html += `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;">
+                    <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+                    <span>${homeTeam} ${score} ${awayTeam}</span>`;
                 if (groupsComplete && p.homeTeam && p.homeTeam !== 'Por definir') {
-                    // Si los grupos están completos y el usuario ya generó las eliminatorias oficiales, mostramos inputs
                     const dis = (m.homeScore !== null) ? 'disabled' : '';
                     html += `<td><input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis}></td>`;
                 }
@@ -940,13 +981,12 @@
         });
 
         document.getElementById('prediction-form').innerHTML = html;
-        document.getElementById('pool-actions').style.display = 'flex';
-        // Mostrar/ocultar botones según fase
-        document.getElementById('generate-ko-btn').style.display = groupsComplete ? 'inline-flex' : 'none';
-        document.getElementById('lock-ko-btn').style.display = groupsComplete ? 'none' : 'inline-flex';
-
         renderSpecialPicks();
+
+        // Ocultar botón de generar KO si los grupos no están completos
+        document.getElementById('generate-ko-btn').style.display = groupsComplete ? 'inline-flex' : 'none';
     }
+
 
     function renderStandings() {
         const scores = {}; 
