@@ -313,22 +313,20 @@
         if (!response.ok) throw new Error(`Error ${response.status}: ${await response.text()}`);
         return response.json();
     }
-
-    async function getDocs(collection) {
-        const data = await firestoreRequest('GET', collection);
-        const docs = [];
-        if (data.documents) {
-            for (const doc of data.documents) {
-                const id = doc.name.split('/').pop();
-                const fields = doc.fields || {};
-                const obj = { id };
-                for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
-                docs.push(obj);
-            }
+async function getDocs(collection, pageSize = 200) {
+    const data = await firestoreRequest('GET', collection + `?pageSize=${pageSize}`);
+    const docs = [];
+    if (data.documents) {
+        for (const doc of data.documents) {
+            const id = doc.name.split('/').pop();
+            const fields = doc.fields || {};
+            const obj = { id };
+            for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
+            docs.push(obj);
         }
-        return docs;
     }
-
+    return docs;
+}
     async function getDoc(path) {
         const data = await firestoreRequest('GET', path);
         const fields = data.fields || {};
@@ -461,7 +459,7 @@
     // ========== FUNCIONES REST ==========
     async function refreshAllData() {
         try {
-            const matchesDocs = await getDocs('matches');
+            const matchesDocs = await getDocs('matches', 200);
             if (matchesDocs.length > 0) {
                 matches = matchesDocs.map(doc => ({
                     id: parseInt(doc.id),
