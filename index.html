@@ -118,6 +118,7 @@
 </aside>
 
 <div class="main">
+    <!-- Todas las pestañas se mantienen exactamente igual que en tu código -->
     <div id="tab-dashboard" class="tab-content active">
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
@@ -153,25 +154,25 @@
                 <div class="flex-row">
                     <div class="flex-col pick-section">
                         <label><i class="fa-solid fa-futbol text-gold"></i> Bota de Oro</label>
-                        <input type="text" id="golden-boot-pick" placeholder="Escribe un nombre" list="bota-suggestions" disabled>
+                        <input type="text" id="golden-boot-pick" placeholder="Escribe un nombre" list="bota-suggestions">
                         <datalist id="bota-suggestions"></datalist>
                     </div>
                     <div class="flex-col pick-section">
                         <label><i class="fa-solid fa-trophy text-gold"></i> Balón de Oro</label>
-                        <input type="text" id="golden-ball-pick" placeholder="Escribe un nombre" list="balon-suggestions" disabled>
+                        <input type="text" id="golden-ball-pick" placeholder="Escribe un nombre" list="balon-suggestions">
                         <datalist id="balon-suggestions"></datalist>
                     </div>
                 </div>
                 <div class="flex-row mt-2">
                     <div class="flex-col pick-section">
                         <label><i class="fa-solid fa-crown text-gold"></i> Campeón del Mundo</label>
-                        <select id="champion-pick" disabled>
+                        <select id="champion-pick">
                             <option value="">-- Selecciona --</option>
                         </select>
                     </div>
                 </div>
                 <p class="text-muted mt-2" id="picks-locked-msg" style="display:none;">Tus premios ya están bloqueados.</p>
-                <button class="btn btn-outline btn-sm mt-2" id="save-special-picks-btn" disabled>🔒 Guardar y bloquear premios</button>
+                <button class="btn btn-outline btn-sm mt-2" id="save-special-picks-btn">🔒 Guardar y bloquear premios</button>
             </div>
             <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;">
                 <button class="btn btn-accent" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
@@ -285,6 +286,8 @@
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        // ⚠️ CORRECCIÓN: Forzar long polling para evitar errores CORS en hosting estático
+        db.settings({ experimentalForceLongPolling: true, merge: true });
         connectionError = '';
         firebaseReady = true;
         console.log('Firebase inicializado correctamente');
@@ -344,6 +347,9 @@
             document.getElementById('dashboard-subtitle').textContent = 'No se pudo conectar a la base de datos. Revisa el mensaje en la barra lateral.';
             updateConnectionUI();
         }
+
+        // ⚠️ CORRECCIÓN: Declarar las variables de unsubscribe
+        let unsubscribeMatches, unsubscribePredictions, unsubscribeCodes;
 
         // ========== DATOS FIJOS ==========
         const GROUPS = {
@@ -435,60 +441,64 @@
             batch.set(db.collection('config').doc('winners'), actualWinners);
             return batch.commit();
         }
-function syncData() {
-    if (!firebaseReady) return loadLocal();
-    // Desuscribir listeners anteriores si existen
-    if (typeof unsubscribeMatches === 'function') unsubscribeMatches();
-    if (typeof unsubscribePredictions === 'function') unsubscribePredictions();
-    if (typeof unsubscribeCodes === 'function') unsubscribeCodes();
 
-    unsubscribeMatches = db.collection('matches').onSnapshot(snap => {
-        matches = [];
-        snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
-        matches.sort((a,b)=>a.id-b.id);
-        if (matches.length === 0) {
-            document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
+        function syncData() {
+            if (!firebaseReady) return loadLocal();
+            // Desuscribir listeners anteriores si existen
+            if (typeof unsubscribeMatches === 'function') unsubscribeMatches();
+            if (typeof unsubscribePredictions === 'function') unsubscribePredictions();
+            if (typeof unsubscribeCodes === 'function') unsubscribeCodes();
+
+            unsubscribeMatches = db.collection('matches').onSnapshot(snap => {
+                matches = [];
+                snap.forEach(doc => { const d = doc.data(); matches.push({id:parseInt(doc.id), ...d}); });
+                matches.sort((a,b)=>a.id-b.id);
+                if (matches.length === 0) {
+                    document.getElementById('matches-full-list').innerHTML = '<p class="text-muted">No hay partidos cargados. ¿Inicializaste la base de datos?</p>';
+                }
+                renderAllTabs();
+                updateGenerateKOButton();
+            });
+
+            unsubscribePredictions = db.collection('predictions').onSnapshot(snap => {
+                predictions = {};
+                snap.forEach(doc => predictions[doc.id] = doc.data());
+                renderAllTabs();
+                updateBotaBalonSuggestions();
+                if (adminLogged) renderPlayersList();
+            });
+
+            db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
+            db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
+
+            unsubscribeCodes = db.collection('accessCodes').onSnapshot(snap => {
+                accessCodes = [];
+                snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
+                if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
+            });
         }
-        renderAllTabs();
-        updateGenerateKOButton();
-    });
 
-    unsubscribePredictions = db.collection('predictions').onSnapshot(snap => {
-        predictions = {};
-        snap.forEach(doc => predictions[doc.id] = doc.data());
-        renderAllTabs();
-        updateBotaBalonSuggestions();
-        if (adminLogged) renderPlayersList();
-    });
+        function loadLocal() {
+            const lm = localStorage.getItem('matches_wc26_v3');
+            if (lm) {
+                matches = JSON.parse(lm);
+            } else {
+                matches = [...DEFAULT_MATCHES];
+            }
+            const lp = localStorage.getItem('predictions_wc26_v3');
+            predictions = lp ? JSON.parse(lp) : {};
+            renderAllTabs();
+            updateGenerateKOButton();
+            updateBotaBalonSuggestions();
+        }
 
-    db.collection('config').doc('points').onSnapshot(doc => { if(doc.exists) pointsConfig = doc.data(); });
-    db.collection('config').doc('winners').onSnapshot(doc => { if(doc.exists) actualWinners = doc.data(); });
-
-    unsubscribeCodes = db.collection('accessCodes').onSnapshot(snap => {
-        accessCodes = [];
-        snap.forEach(doc => accessCodes.push({code: doc.id, ...doc.data()}));
-        if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
-    });
-}
-function loadLocal() {
-    const lm = localStorage.getItem('matches_wc26_v3');
-    if (lm) {
-        matches = JSON.parse(lm);
-    } else {
-        matches = [...DEFAULT_MATCHES]; // Cargar partidos por defecto
-    }
-    const lp = localStorage.getItem('predictions_wc26_v3');
-    predictions = lp ? JSON.parse(lp) : {};
-    renderAllTabs();
-    updateGenerateKOButton();
-    updateBotaBalonSuggestions();
-}
         function saveResults() {
             if (!firebaseReady) { localStorage.setItem('matches_wc26_v3', JSON.stringify(matches)); showToast('Guardado local'); return; }
             const batch = db.batch();
             matches.forEach(m => batch.update(db.collection('matches').doc(m.id.toString()), { homeScore: m.homeScore, awayScore: m.awayScore }));
             batch.commit().then(() => showToast('Resultados guardados'));
         }
+
         function guardarPrediccion(player, predData) {
             if (!firebaseReady) {
                 predictions[player] = predData;
@@ -715,6 +725,7 @@ function loadLocal() {
             }
             return { total, details };
         }
+
         // ========== BLOQUEO DE PREMIOS ==========
         function checkPicksLocked() {
             if (!currentPlayer || !predictions[currentPlayer]) return false;
@@ -736,20 +747,18 @@ function loadLocal() {
             document.getElementById('save-special-picks-btn').disabled = locked;
             document.getElementById('picks-locked-msg').style.display = locked ? 'block' : 'none';
 
-            // Rellenar valores actuales
             document.getElementById('golden-boot-pick').value = preds.goldenBoot || '';
             document.getElementById('golden-ball-pick').value = preds.goldenBall || '';
             document.getElementById('champion-pick').value = preds.champion || '';
 
-            // Si ya está bloqueado, mostrar mensaje y deshabilitar
             if (!locked) {
-                // Habilitar el botón de guardar solo si hay al menos un valor
                 const hasValue = document.getElementById('golden-boot-pick').value || document.getElementById('golden-ball-pick').value || document.getElementById('champion-pick').value;
                 document.getElementById('save-special-picks-btn').disabled = !hasValue;
             }
         }
 
-        // Evento para guardar y bloquear premios
+        // ⚠️ CORRECCIÓN: Eliminados los eventos antiguos de golden-boot-pick, golden-ball-pick y champion-pick
+        // Ahora solo se guardan al pulsar el botón de bloqueo.
         document.getElementById('save-special-picks-btn').addEventListener('click', () => {
             if (!currentPlayer) return;
             if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
@@ -762,13 +771,6 @@ function loadLocal() {
                 showToast('Premios bloqueados correctamente.');
             });
         });
-
-        // Modificar renderMyPool para que llame a renderSpecialPicks al final
-        const originalRenderMyPool = renderMyPool;
-        renderMyPool = function() {
-            originalRenderMyPool();
-            renderSpecialPicks();
-        };
 
         // ========== RENDERIZADO ==========
         function renderDashboard() {
@@ -890,6 +892,8 @@ function loadLocal() {
                          <td><input class="small-input" id="ph-${m.id}" value="${homeVal}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${awayVal}" ${dis}></td></tr>`;
             });
             document.getElementById('prediction-form').innerHTML = html+'</table>';
+            // ⚠️ CORRECCIÓN: Llamar a renderSpecialPicks DESPUÉS de haber declarado renderMyPool
+            renderSpecialPicks();
         }
         function renderStandings() {
             const scores = {}; 
@@ -933,15 +937,7 @@ function loadLocal() {
             botaList.innerHTML = [...allBota].map(n => `<option value="${n}">`).join('');
             balonList.innerHTML = [...allBalon].map(n => `<option value="${n}">`).join('');
         }
-        function renderPicks() {
-            const sp = (currentPlayer && predictions[currentPlayer]) ? predictions[currentPlayer] : {};
-            document.getElementById('golden-boot-pick').value = sp.goldenBoot || '';
-            document.getElementById('golden-ball-pick').value = sp.goldenBall || '';
-            document.getElementById('champion-pick').value = sp.champion || '';
-            let summary = '<table><tr><th>Jugador</th><th>Bota</th><th>Balón</th><th>Campeón</th></tr>';
-            for (const [player, data] of Object.entries(predictions)) summary += `<tr><td>${player}</td><td>${data.goldenBoot||'-'}</td><td>${data.goldenBall||'-'}</td><td>${data.champion||'-'}</td></tr>`;
-            document.getElementById('picks-summary').innerHTML = summary+'</table>';
-        }
+        // ⚠️ CORRECCIÓN: Eliminada renderPicks porque la pestaña Premios ya no existe
         function renderRules() {
             document.getElementById('rule-sign').textContent = pointsConfig.sign;
             document.getElementById('rule-exact').textContent = pointsConfig.exact;
@@ -975,7 +971,7 @@ function loadLocal() {
             const fns = {
                 dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups,
                 bracket: renderBracket, mypool: renderMyPool, standings: renderStandings,
-                mypoints: renderPointsDetail, picks: renderPicks, rules: renderRules, instructions:()=>{}, admin: renderAdmin
+                mypoints: renderPointsDetail, rules: renderRules, instructions:()=>{}, admin: renderAdmin
             };
             if (fns[id]) fns[id]();
         }
@@ -1059,24 +1055,7 @@ function loadLocal() {
             });
         });
 
-        document.getElementById('golden-boot-pick').addEventListener('input', function() {
-            if (!currentPlayer) return;
-            if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
-            predictions[currentPlayer].goldenBoot = this.value;
-            guardarPrediccion(currentPlayer, predictions[currentPlayer]);
-        });
-        document.getElementById('golden-ball-pick').addEventListener('input', function() {
-            if (!currentPlayer) return;
-            if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
-            predictions[currentPlayer].goldenBall = this.value;
-            guardarPrediccion(currentPlayer, predictions[currentPlayer]);
-        });
-        document.getElementById('champion-pick').addEventListener('change', function() {
-            if (!currentPlayer) return;
-            if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
-            predictions[currentPlayer].champion = this.value;
-            guardarPrediccion(currentPlayer, predictions[currentPlayer]);
-        });
+        // ⚠️ CORRECCIÓN: Eliminados los listeners antiguos de golden-boot-pick, golden-ball-pick y champion-pick.
 
         // Admin
         document.getElementById('login-btn').addEventListener('click', () => {
@@ -1130,51 +1109,51 @@ function loadLocal() {
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'porra_backup.json'; a.click();
         });
-document.getElementById('init-db-btn').addEventListener('click', () => {
-    if (!firebaseReady) return alert('Firebase no disponible. Revisa las reglas en la consola de Firebase.');
-    const btn = document.getElementById('init-db-btn');
-    btn.disabled = true; btn.textContent = '⏳ Subiendo...';
-    initDB().then(() => {
-        showToast('¡Base de datos inicializada! Recargando...');
-        // Limpiar localStorage por si acaso
-        localStorage.removeItem('matches_wc26_v3');
-        setTimeout(() => location.reload(), 1500);
-    }).catch(err => {
-        console.error(err);
-        alert('Error: ' + err.message);
-        btn.disabled = false; btn.textContent = '☁️ Inicializar BD';
-    });
-});
-document.getElementById('reset-btn').addEventListener('click', () => {
-    if (!firebaseReady || !confirm('¿Eliminar TODOS los datos de la nube?')) return;
-    // Desuscribir listeners para que no reciban datos durante el borrado
-    if (typeof unsubscribeMatches === 'function') unsubscribeMatches();
-    if (typeof unsubscribePredictions === 'function') unsubscribePredictions();
-    if (typeof unsubscribeCodes === 'function') unsubscribeCodes();
 
-    const batch = db.batch();
-    Promise.all([
-        db.collection('matches').get(),
-        db.collection('predictions').get(),
-        db.collection('accessCodes').get()
-    ]).then(([mSnap, pSnap, aSnap]) => {
-        mSnap.forEach(doc => batch.delete(doc.ref));
-        pSnap.forEach(doc => batch.delete(doc.ref));
-        aSnap.forEach(doc => batch.delete(doc.ref));
-        batch.delete(db.collection('config').doc('points'));
-        batch.delete(db.collection('config').doc('winners'));
-        return batch.commit();
-    }).then(() => {
-        // Limpiar localStorage por completo
-        localStorage.removeItem('matches_wc26_v3');
-        localStorage.removeItem('predictions_wc26_v3');
-        localStorage.removeItem('pointsConfig_wc26_v3');
-        localStorage.removeItem('actualWinners');
-        localStorage.removeItem('currentPlayer_wc26_v3');
-        showToast('BD reiniciada. Recargando...');
-        setTimeout(() => location.reload(), 1500);
-    }).catch(err => alert('Error: ' + err.message));
-});
+        document.getElementById('init-db-btn').addEventListener('click', () => {
+            if (!firebaseReady) return alert('Firebase no disponible. Revisa las reglas en la consola de Firebase.');
+            const btn = document.getElementById('init-db-btn');
+            btn.disabled = true; btn.textContent = '⏳ Subiendo...';
+            initDB().then(() => {
+                showToast('¡Base de datos inicializada! Recargando...');
+                localStorage.removeItem('matches_wc26_v3');
+                setTimeout(() => location.reload(), 1500);
+            }).catch(err => {
+                console.error(err);
+                alert('Error: ' + err.message);
+                btn.disabled = false; btn.textContent = '☁️ Inicializar BD';
+            });
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            if (!firebaseReady || !confirm('¿Eliminar TODOS los datos de la nube?')) return;
+            if (typeof unsubscribeMatches === 'function') unsubscribeMatches();
+            if (typeof unsubscribePredictions === 'function') unsubscribePredictions();
+            if (typeof unsubscribeCodes === 'function') unsubscribeCodes();
+
+            const batch = db.batch();
+            Promise.all([
+                db.collection('matches').get(),
+                db.collection('predictions').get(),
+                db.collection('accessCodes').get()
+            ]).then(([mSnap, pSnap, aSnap]) => {
+                mSnap.forEach(doc => batch.delete(doc.ref));
+                pSnap.forEach(doc => batch.delete(doc.ref));
+                aSnap.forEach(doc => batch.delete(doc.ref));
+                batch.delete(db.collection('config').doc('points'));
+                batch.delete(db.collection('config').doc('winners'));
+                return batch.commit();
+            }).then(() => {
+                localStorage.removeItem('matches_wc26_v3');
+                localStorage.removeItem('predictions_wc26_v3');
+                localStorage.removeItem('pointsConfig_wc26_v3');
+                localStorage.removeItem('actualWinners');
+                localStorage.removeItem('currentPlayer_wc26_v3');
+                showToast('BD reiniciada. Recargando...');
+                setTimeout(() => location.reload(), 1500);
+            }).catch(err => alert('Error: ' + err.message));
+        });
+
         function showToast(msg) {
             const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = msg;
             document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
@@ -1188,14 +1167,12 @@ document.getElementById('reset-btn').addEventListener('click', () => {
             realChamp.innerHTML += `<option value="${t}">${t}</option>`;
         });
 
-        // Llamar a syncData si hay conexión, si no, se queda en modo local (ya se llamó loadLocal si no hay conexión)
         if (firebaseReady) {
             syncData();
         } else {
             loadLocal();
         }
 
-        // Actualizar UI de botones nuevamente por si acaso
         updateConnectionUI();
     });
 </script>
