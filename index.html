@@ -327,14 +327,19 @@ async function getDocs(collection, pageSize = 200) {
     }
     return docs;
 }
-    async function getDoc(path) {
+async function getDoc(path) {
+    try {
         const data = await firestoreRequest('GET', path);
         const fields = data.fields || {};
         const obj = {};
         for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
         return obj;
+    } catch (err) {
+        // Si es 404, devolvemos null sin mostrar error
+        if (err.message.includes('404')) return null;
+        throw err; // otros errores sí los lanzamos
     }
-
+}
     async function setDoc(path, data) {
         const fields = {};
         for (const [key, value] of Object.entries(data)) {
@@ -352,6 +357,14 @@ async function getDocs(collection, pageSize = 200) {
     async function deleteDoc(path) {
         await firestoreRequest('DELETE', path);
     }
+   
+    function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
 
     // ========== ESTADO GLOBAL ==========
     let matches = [];
