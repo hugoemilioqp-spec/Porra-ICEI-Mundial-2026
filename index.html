@@ -96,600 +96,748 @@
     </style>
 </head>
 <body>
-    <!-- Aquí va todo el HTML de pestañas idéntico al tuyo -->
-    <!-- Por brevedad no lo repito, pero debes incluir todo desde <aside class="sidebar"> hasta el último </div> antes de <script> -->
+<aside class="sidebar">
+    <div class="sidebar-logo"><div class="trophy-icon">🏆</div><span>Mundial 2026</span></div>
+    <nav class="sidebar-nav">
+        <button class="active" data-tab="dashboard"><i class="fa-solid fa-table-columns"></i> <span>Dashboard</span></button>
+        <button data-tab="matches"><i class="fa-solid fa-calendar"></i> <span>Partidos</span></button>
+        <button data-tab="groups"><i class="fa-solid fa-layer-group"></i> <span>Grupos</span></button>
+        <button data-tab="bracket"><i class="fa-solid fa-diagram-project"></i> <span>Eliminatorias</span></button>
+        <button data-tab="mypool"><i class="fa-solid fa-pen-to-square"></i> <span>Mi Porra</span></button>
+        <button data-tab="standings"><i class="fa-solid fa-trophy"></i> <span>Clasificación</span></button>
+        <button data-tab="mypoints"><i class="fa-solid fa-magnifying-glass-chart"></i> <span>Mi Puntuación</span></button>
+        <button data-tab="rules"><i class="fa-solid fa-book"></i> <span>Reglas</span></button>
+        <button data-tab="instructions"><i class="fa-solid fa-circle-info"></i> <span>Instrucciones</span></button>
+        <button data-tab="admin"><i class="fa-solid fa-lock"></i> <span>Admin</span></button>
+    </nav>
+    <div class="sidebar-footer" id="connection-status">
+        <span class="connection-dot connected" id="status-dot"></span>
+        <span id="connection-text">En línea (REST)</span>
+        <div id="connection-detail"></div>
+    </div>
+</aside>
 
-    <script>
-        // ==================== API REST DE FIRESTORE ====================
-        const API_KEY = "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU";
-        const PROJECT_ID = "porra-mundial-2026-7fb4c";
-        const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+<div class="main">
+    <!-- PESTAÑAS COMPLETAS -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
+        <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
+        <div class="flex-row" id="stats-row"></div>
+        <div class="panel"><h2>Top 5 Clasificación</h2><div id="top5-table"></div></div>
+        <div class="panel"><h2>Próximos Partidos</h2><div id="upcoming-matches"></div></div>
+    </div>
+    <div id="tab-matches" class="tab-content">
+        <h1>📅 Calendario Completo</h1>
+        <p class="subtitle">104 partidos · sedes oficiales</p>
+        <div class="panel" id="matches-full-list"><p class="text-muted">Cargando partidos...</p></div>
+    </div>
+    <div id="tab-groups" class="tab-content">
+        <h1>📊 Grupos</h1>
+        <div class="grid-3" id="groups-container"></div>
+    </div>
+    <div id="tab-bracket" class="tab-content">
+        <h1>🏟️ Cuadro de Eliminatorias</h1>
+        <div class="panel" id="bracket-tree"></div>
+    </div>
+    <div id="tab-mypool" class="tab-content">
+        <h1>📝 Mi Porra</h1>
+        <div class="panel">
+            <div class="flex-row" style="align-items:center;margin-bottom:10px;">
+                <input type="text" id="player-name" placeholder="Nombre único" style="max-width:200px;">
+                <input type="text" id="access-code" placeholder="Código de acceso" style="max-width:150px;">
+                <button class="btn btn-gold" id="save-name-btn"><i class="fa-solid fa-user"></i> Guardar</button>
+            </div>
+            <div id="prediction-form"></div>
+            <div class="panel mt-3" id="special-picks-panel" style="display:none;">
+                <h2>⭐ Premios del Mundial</h2>
+                <div class="flex-row">
+                    <div class="flex-col pick-section">
+                        <label><i class="fa-solid fa-futbol text-gold"></i> Bota de Oro</label>
+                        <input type="text" id="golden-boot-pick" placeholder="Escribe un nombre" list="bota-suggestions">
+                        <datalist id="bota-suggestions"></datalist>
+                    </div>
+                    <div class="flex-col pick-section">
+                        <label><i class="fa-solid fa-trophy text-gold"></i> Balón de Oro</label>
+                        <input type="text" id="golden-ball-pick" placeholder="Escribe un nombre" list="balon-suggestions">
+                        <datalist id="balon-suggestions"></datalist>
+                    </div>
+                </div>
+                <div class="flex-row mt-2">
+                    <div class="flex-col pick-section">
+                        <label><i class="fa-solid fa-crown text-gold"></i> Campeón del Mundo</label>
+                        <select id="champion-pick">
+                            <option value="">-- Selecciona --</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-muted mt-2" id="picks-locked-msg" style="display:none;">Tus premios ya están bloqueados.</p>
+                <button class="btn btn-outline btn-sm mt-2" id="save-special-picks-btn">🔒 Guardar y bloquear premios</button>
+            </div>
+            <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;">
+                <button class="btn btn-accent" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
+                <button class="btn btn-outline btn-sm" id="generate-ko-btn" disabled title="Disponible cuando todos los partidos de grupo tengan resultado oficial">🏟️ Generar eliminatorias oficiales</button>
+            </div>
+        </div>
+    </div>
+    <div id="tab-standings" class="tab-content">
+        <h1>🏅 Clasificación General</h1>
+        <p class="subtitle">Haz clic en un jugador para ver el detalle de sus puntos</p>
+        <div class="panel" id="standings-table"></div>
+    </div>
+    <div id="tab-mypoints" class="tab-content">
+        <h1>🔍 Mi Puntuación</h1>
+        <div class="flex-row" style="align-items:center;margin-bottom:10px;">
+            <label>Jugador: </label>
+            <select id="points-player-select" style="max-width:250px;"></select>
+        </div>
+        <div class="panel" id="points-detail"></div>
+    </div>
+    <div id="tab-rules" class="tab-content">
+        <h1>📖 Reglas</h1>
+        <div class="rules-box">
+            <h3>⚽ Puntuación</h3>
+            <ul>
+                <li><i class="fa-solid fa-check-circle"></i> Signo (1X2): <span id="rule-sign">10</span> pts</li>
+                <li><i class="fa-solid fa-bullseye"></i> Resultado exacto: <span id="rule-exact">25</span> pts</li>
+                <li><i class="fa-solid fa-users"></i> Clasificado a dieciseisavos (por equipo): <span id="rule-qualify">5</span> pts</li>
+                <li><i class="fa-solid fa-futbol"></i> Bota de Oro: <span id="rule-goldenboot">30</span> pts</li>
+                <li><i class="fa-solid fa-trophy"></i> Balón de Oro: <span id="rule-goldenball">30</span> pts</li>
+                <li><i class="fa-solid fa-crown"></i> Campeón del Mundo: <span id="rule-champion">50</span> pts</li>
+            </ul>
+            <p class="text-muted mt-2">No se otorgan puntos por diferencia de goles.</p>
+        </div>
+    </div>
+    <div id="tab-instructions" class="tab-content instructions">
+        <h1>📘 Instrucciones completas</h1>
+        <div class="panel">
+            <h2>1. Cómo participar</h2>
+            <p>Para unirte a la porra necesitas un <strong>código de acceso</strong> que te facilitará el administrador. Ve a <strong>Mi Porra</strong>, escribe un <strong>nombre único</strong> (sin espacios raros), introduce el código y pulsa <strong>Guardar</strong>. A partir de ese momento podrás hacer tus pronósticos. El código es personal e intransferible y solo se puede usar una vez.</p>
+            <h2>2. Hacer pronósticos de partidos</h2>
+            <p>Dentro de <strong>Mi Porra</strong> verás los <strong>104 partidos</strong> del Mundial ordenados por fecha. Para cada partido de la fase de grupos debes escribir el <strong>marcador exacto</strong> (goles del equipo local y visitante) que crees que ocurrirá.</p>
+            <p>Los partidos de eliminatorias se mostrarán automáticamente según tus propios pronósticos. Cuando el administrador introduzca los resultados oficiales, podrás generar los cruces reales y añadir tus marcadores.</p>
+            <h2>3. Premios especiales</h2>
+            <p>En la misma pestaña <strong>Mi Porra</strong>, debajo de la tabla de partidos, encontrarás la sección <strong>⭐ Premios del Mundial</strong>. Ahí puedes escribir el nombre del jugador que crees que ganará la <strong>Bota de Oro</strong> y el <strong>Balón de Oro</strong>, y seleccionar el <strong>Campeón del Mundo</strong>. <strong>Una vez que pulses "Guardar y bloquear premios" no podrás cambiarlos.</strong></p>
+            <h2>4. Pestañas de información</h2>
+            <ul>
+                <li><strong>Dashboard:</strong> resumen con estadísticas.</li>
+                <li><strong>Partidos:</strong> calendario completo con fechas y sedes.</li>
+                <li><strong>Grupos:</strong> clasificación actualizada.</li>
+                <li><strong>Eliminatorias:</strong> cuadro visual cuando esté disponible.</li>
+                <li><strong>Clasificación:</strong> puntos de todos los participantes.</li>
+                <li><strong>Mi Puntuación:</strong> desglose detallado de puntos.</li>
+            </ul>
+        </div>
+    </div>
+    <div id="tab-admin" class="tab-content">
+        <h1>🔐 Admin</h1>
+        <div class="panel">
+            <input type="password" id="admin-pass" placeholder="Contraseña"><button class="btn btn-accent" id="login-btn">Acceder</button>
+            <div id="admin-panel" style="display:none;">
+                <h3>Resultados</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
+                <button class="btn btn-gold mt-2" id="save-results-btn">Guardar Resultados</button>
+                <hr>
+                <div class="flex-row">
+                    <div><label>Signo</label><input type="number" id="pts-sign" value="10" style="width:50px;"></div>
+                    <div><label>Exacto</label><input type="number" id="pts-exact" value="25" style="width:50px;"></div>
+                    <div><label>Clasif.</label><input type="number" id="pts-qualify" value="5" style="width:50px;"></div>
+                    <div><label>Bota</label><input type="number" id="pts-goldenboot" value="30" style="width:50px;"></div>
+                    <div><label>Balón</label><input type="number" id="pts-goldenball" value="30" style="width:50px;"></div>
+                    <div><label>Campeón</label><input type="number" id="pts-champion" value="50" style="width:50px;"></div>
+                </div>
+                <button class="btn btn-outline btn-sm mt-2" id="save-config-btn">Guardar Config</button>
+                <div class="flex-row mt-2">
+                    <div><label>Bota real</label><input type="text" id="real-golden-boot" placeholder="Nombre"></div>
+                    <div><label>Balón real</label><input type="text" id="real-golden-ball" placeholder="Nombre"></div>
+                    <div><label>Campeón real</label><select id="real-champion"><option value="">--</option></select></div>
+                    <button class="btn btn-outline btn-sm" id="save-winners-btn">Guardar Ganadores</button>
+                </div>
+                <hr>
+                <h3>Códigos de acceso</h3>
+                <div class="flex-row" style="align-items:center;">
+                    <input type="text" id="code-to-generate" placeholder="Nuevo código (opcional)" style="max-width:200px;">
+                    <button class="btn btn-outline btn-sm" id="generate-code-btn">Generar código</button>
+                </div>
+                <div id="codes-list" style="margin-top:8px;"></div>
+                <hr>
+                <h3>Participantes</h3>
+                <div id="players-list"></div>
+                <div class="flex-row mt-2">
+                    <button class="btn btn-outline btn-sm" id="export-btn">📤 Exportar</button>
+                    <button class="btn btn-outline btn-sm" id="init-db-btn">☁️ Inicializar BD</button>
+                </div>
+                <div class="mt-3"><button class="btn btn-danger btn-sm" id="reset-btn">Reiniciar BD</button></div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        async function firestoreRequest(method, path, body = null) {
-            const url = `${BASE_URL}/${path}`;
-            const options = { method, headers: { 'Content-Type': 'application/json' } };
-            if (body) options.body = JSON.stringify(body);
-            const response = await fetch(url, options);
-            if (!response.ok) throw new Error(`Error ${response.status}: ${await response.text()}`);
-            return response.json();
-        }
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+    // ==================== API REST DE FIRESTORE ====================
+    const API_KEY = "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU";
+    const PROJECT_ID = "porra-mundial-2026-7fb4c";
+    const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-        async function getDocs(collection, pageSize = 200) {
-            const data = await firestoreRequest('GET', collection + `?pageSize=${pageSize}`);
-            const docs = [];
-            if (data.documents) {
-                for (const doc of data.documents) {
-                    const id = doc.name.split('/').pop();
-                    const fields = doc.fields || {};
-                    const obj = { id };
-                    for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
-                    docs.push(obj);
-                }
-            }
-            return docs;
-        }
+    async function firestoreRequest(method, path, body = null) {
+        const url = `${BASE_URL}/${path}`;
+        const options = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(url, options);
+        if (!response.ok) throw new Error(`Error ${response.status}: ${await response.text()}`);
+        return response.json();
+    }
 
-        async function getDoc(path) {
-            try {
-                const data = await firestoreRequest('GET', path);
-                const fields = data.fields || {};
-                const obj = {};
+    async function getDocs(collection, pageSize = 200) {
+        const data = await firestoreRequest('GET', collection + `?pageSize=${pageSize}`);
+        const docs = [];
+        if (data.documents) {
+            for (const doc of data.documents) {
+                const id = doc.name.split('/').pop();
+                const fields = doc.fields || {};
+                const obj = { id };
                 for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
-                return obj;
-            } catch (err) {
-                if (err.message.includes('404')) return null;
-                throw err;
+                docs.push(obj);
             }
         }
+        return docs;
+    }
 
-        async function setDoc(path, data) {
-            const fields = {};
-            for (const [key, value] of Object.entries(data)) {
-                let firestoreValue;
-                if (value === null || value === undefined) firestoreValue = { nullValue: null };
-                else if (typeof value === 'string') firestoreValue = { stringValue: value };
-                else if (typeof value === 'number') firestoreValue = { integerValue: value };
-                else if (typeof value === 'boolean') firestoreValue = { booleanValue: value };
-                else firestoreValue = { stringValue: String(value) };
-                fields[key] = firestoreValue;
-            }
-            await firestoreRequest('PATCH', path, { fields });
+    async function getDoc(path) {
+        try {
+            const data = await firestoreRequest('GET', path);
+            const fields = data.fields || {};
+            const obj = {};
+            for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
+            return obj;
+        } catch (err) {
+            if (err.message.includes('404')) return null;
+            throw err;
         }
+    }
 
-        async function deleteDoc(path) {
-            await firestoreRequest('DELETE', path);
+    async function setDoc(path, data) {
+        const fields = {};
+        for (const [key, value] of Object.entries(data)) {
+            let firestoreValue;
+            if (value === null || value === undefined) firestoreValue = { nullValue: null };
+            else if (typeof value === 'string') firestoreValue = { stringValue: value };
+            else if (typeof value === 'number') firestoreValue = { integerValue: value };
+            else if (typeof value === 'boolean') firestoreValue = { booleanValue: value };
+            else firestoreValue = { stringValue: String(value) };
+            fields[key] = firestoreValue;
         }
+        await firestoreRequest('PATCH', path, { fields });
+    }
 
-        // Única definición de showToast (global)
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
+    async function deleteDoc(path) {
+        await firestoreRequest('DELETE', path);
+    }
 
-        // ========== ESTADO GLOBAL ==========
-        let matches = [];
-        let predictions = {};
-        let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
-        let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
-        let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
-        let adminLogged = false;
-        let selectedPointsPlayer = currentPlayer;
-        let accessCodes = [];
-        let dataLoaded = false;
-        let sessionValid = false;   // Solo true tras validar código
-        const GROUPS = {
-            A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
-            B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
-            C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
-            D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
-            E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
-            F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
-            G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
-            H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
-            I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
-            J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
-            K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
-            L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
-        };
-        const ALL_TEAMS = Object.values(GROUPS).flat();
-        const VENUES = [
-            { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
-            { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
-            { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
-            { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
-            { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
-            { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
-            { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
-            { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+    // Única definición de showToast (global)
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ========== ESTADO GLOBAL ==========
+    let matches = [];
+    let predictions = {};
+    let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
+    let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
+    let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
+    let adminLogged = false;
+    let selectedPointsPlayer = currentPlayer;
+    let accessCodes = [];
+    let dataLoaded = false;
+    let sessionValid = false;   // Solo true tras validar código
+    const GROUPS = {
+        A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
+        B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
+        C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
+        D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
+        E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
+        F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
+        G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
+        H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
+        I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
+        J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
+        K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
+        L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
+    };
+    const ALL_TEAMS = Object.values(GROUPS).flat();
+    const VENUES = [
+        { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
+        { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
+        { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
+        { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
+        { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
+        { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
+        { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
+        { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+    ];
+
+    function buildMatchDates() {
+        const matches = [];
+        let id = 1;
+        const groups = Object.keys(GROUPS);
+        // Fase de grupos con horarios oficiales (hora local de la sede)
+        const j1Hours = [
+            '13:00','22:00', '15:00','18:00', '15:00','21:00', '21:00','12:00',
+            '13:00','16:00', '16:00','22:00', '12:00','15:00', '12:00','15:00',
+            '15:00','18:00', '15:00','18:00', '13:00','22:00', '16:00','19:00'
         ];
-
-        function buildMatchDates() {
-            const matches = [];
-            let id = 1;
-            const groups = Object.keys(GROUPS);
-            // Fase de grupos con horarios oficiales (hora local de la sede)
-            // Jornada 1: 11-13 junio
-            const j1Hours = [
-                '13:00','22:00', '15:00','18:00', '15:00','21:00', '21:00','12:00',
-                '13:00','16:00', '16:00','22:00', '12:00','15:00', '12:00','15:00',
-                '15:00','18:00', '15:00','18:00', '13:00','22:00', '16:00','19:00'
-            ];
-            groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 11 + Math.floor(gi/4);
-                const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
-                const h1 = j1Hours[gi*2] || '18:00';
-                const h2 = j1Hours[gi*2+1] || '21:00';
-                matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T${h1}:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
-                matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T${h2}:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g];
+            const baseDay = 11 + Math.floor(gi/4);
+            const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
+            const h1 = j1Hours[gi*2] || '18:00';
+            const h2 = j1Hours[gi*2+1] || '21:00';
+            matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T${h1}:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T${h2}:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
+        });
+        // Jornada 2
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g];
+            const baseDay = 18 + Math.floor(gi/4);
+            const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
+            matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
+        });
+        // Jornada 3
+        groups.forEach((g, gi) => {
+            const t = GROUPS[g];
+            const baseDay = 24 + Math.floor(gi/4);
+            const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
+            matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
+            matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
+        });
+        // Eliminatorias
+        const koDates = [
+            '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
+            '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
+            '2026-07-03','2026-07-03','2026-07-03','2026-07-03',
+            '2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06',
+            '2026-07-07','2026-07-07',
+            '2026-07-09','2026-07-09','2026-07-10','2026-07-10',
+            '2026-07-14','2026-07-15',
+            '2026-07-18',
+            '2026-07-19'
+        ];
+        const koHours = [
+            '16:00','19:00','13:00','16:00','13:00','16:00',
+            '13:00','16:00','13:00','16:00','13:00','16:00',
+            '16:00','16:00','19:00','19:00',
+            '13:00','16:00','13:00','16:00','13:00','16:00',
+            '13:00','16:00',
+            '16:00','19:00','16:00','19:00',
+            '16:00','16:00',
+            '16:00',
+            '15:00'
+        ];
+        const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
+        const roundNames = [
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+            'Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos',
+            'Cuartos','Cuartos','Cuartos','Cuartos',
+            'Semifinales','Semifinales',
+            '3er Puesto',
+            'Final'
+        ];
+        for (let i = 0; i < koDates.length; i++) {
+            const v = VENUES[koVenues[i]];
+            const time = koHours[i] || '20:00';
+            matches.push({
+                id: id++,
+                group: 'KO',
+                round: roundNames[i],
+                home: 'Por definir',
+                away: 'Por definir',
+                date: koDates[i] + `T${time}:00`,
+                venue: `${v.stadium}, ${v.city}`,
+                homeScore: null,
+                awayScore: null
             });
-
-            // Jornada 2: 18-20 junio (horario simplificado, se mantiene similar al original)
-            groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 18 + Math.floor(gi/4);
-                const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
-                matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
-                matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
-            });
-
-            // Jornada 3: 24-26 junio
-            groups.forEach((g, gi) => {
-                const t = GROUPS[g];
-                const baseDay = 24 + Math.floor(gi/4);
-                const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
-                matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
-                matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
-            });
-
-            // Eliminatorias (32 fechas con horas oficiales)
-            const koDates = [
-                '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
-                '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
-                '2026-07-03','2026-07-03','2026-07-03','2026-07-03',
-                '2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06',
-                '2026-07-07','2026-07-07',
-                '2026-07-09','2026-07-09','2026-07-10','2026-07-10',
-                '2026-07-14','2026-07-15',
-                '2026-07-18',
-                '2026-07-19'
-            ];
-            const koHours = [
-                '16:00','19:00','13:00','16:00','13:00','16:00',
-                '13:00','16:00','13:00','16:00','13:00','16:00',
-                '16:00','16:00','19:00','19:00',
-                '13:00','16:00','13:00','16:00','13:00','16:00',
-                '13:00','16:00',
-                '16:00','19:00','16:00','19:00',
-                '16:00','16:00',
-                '16:00',
-                '15:00'
-            ];
-            const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
-            const roundNames = [
-                'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-                'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-                'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-                'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-                'Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos',
-                'Cuartos','Cuartos','Cuartos','Cuartos',
-                'Semifinales','Semifinales',
-                '3er Puesto',
-                'Final'
-            ];
-            for (let i = 0; i < koDates.length; i++) {
-                const v = VENUES[koVenues[i]];
-                const time = koHours[i] || '20:00';
-                matches.push({
-                    id: id++,
-                    group: 'KO',
-                    round: roundNames[i],
-                    home: 'Por definir',
-                    away: 'Por definir',
-                    date: koDates[i] + `T${time}:00`,
-                    venue: `${v.stadium}, ${v.city}`,
-                    homeScore: null,
-                    awayScore: null
-                });
-            }
-
-            return matches;
         }
-        const DEFAULT_MATCHES = buildMatchDates();
+        return matches;
+    }
+    const DEFAULT_MATCHES = buildMatchDates();
 
-        // 🔁 CAMBIO: refreshAllData ahora mapea correctamente los campos de predicciones
-        async function refreshAllData() {
-            try {
-                const matchesDocs = await getDocs('matches', 200);
-                if (matchesDocs.length > 0) {
-                    matches = matchesDocs.map(doc => ({
-                        id: parseInt(doc.id),
-                        group: doc.group,
-                        home: doc.home,
-                        away: doc.away,
-                        date: doc.date,
-                        venue: doc.venue,
-                        round: doc.round,
-                        homeScore: doc.homeScore != null ? parseInt(doc.homeScore) : null,
-                        awayScore: doc.awayScore != null ? parseInt(doc.awayScore) : null
-                    }));
-                    matches.sort((a,b)=>a.id-b.id);
-                } else {
-                    matches = [...DEFAULT_MATCHES];
-                }
-
-                const predsDocs = await getDocs('predictions', 200);
-                predictions = {};
-                for (const doc of predsDocs) {
-                    const player = doc.id;
-                    predictions[player] = {};
-                    // Procesar todos los campos del documento
-                    for (const [key, value] of Object.entries(doc)) {
-                        if (key === 'id') continue;
-                        // Para los campos de partidos (id numérico)
-                        if (!isNaN(parseInt(key))) {
-                            const matchId = parseInt(key);
-                            if (typeof value === 'object' && value !== null) {
-                                // Es un objeto { home, away } o { homeTeam, awayTeam, homeScore, awayScore }
-                                predictions[player][matchId] = {};
-                                if (value.home !== undefined) predictions[player][matchId].home = String(value.home);
-                                if (value.away !== undefined) predictions[player][matchId].away = String(value.away);
-                                if (value.homeTeam !== undefined) predictions[player][matchId].homeTeam = String(value.homeTeam);
-                                if (value.awayTeam !== undefined) predictions[player][matchId].awayTeam = String(value.awayTeam);
-                                if (value.homeScore !== undefined) predictions[player][matchId].homeScore = String(value.homeScore);
-                                if (value.awayScore !== undefined) predictions[player][matchId].awayScore = String(value.awayScore);
-                            }
-                        } else {
-                            // Otros campos (goldenBoot, goldenBall, champion, _picksLocked, _koLocked)
-                            predictions[player][key] = value;
+    // Mapeo de predicciones corregido
+    async function refreshAllData() {
+        try {
+            const matchesDocs = await getDocs('matches', 200);
+            if (matchesDocs.length > 0) {
+                matches = matchesDocs.map(doc => ({
+                    id: parseInt(doc.id),
+                    group: doc.group,
+                    home: doc.home,
+                    away: doc.away,
+                    date: doc.date,
+                    venue: doc.venue,
+                    round: doc.round,
+                    homeScore: doc.homeScore != null ? parseInt(doc.homeScore) : null,
+                    awayScore: doc.awayScore != null ? parseInt(doc.awayScore) : null
+                }));
+                matches.sort((a,b)=>a.id-b.id);
+            } else {
+                matches = [...DEFAULT_MATCHES];
+            }
+            const predsDocs = await getDocs('predictions', 200);
+            predictions = {};
+            for (const doc of predsDocs) {
+                const player = doc.id;
+                predictions[player] = {};
+                for (const [key, value] of Object.entries(doc)) {
+                    if (key === 'id') continue;
+                    if (!isNaN(parseInt(key))) {
+                        const matchId = parseInt(key);
+                        if (typeof value === 'object' && value !== null) {
+                            predictions[player][matchId] = {};
+                            if (value.home !== undefined) predictions[player][matchId].home = String(value.home);
+                            if (value.away !== undefined) predictions[player][matchId].away = String(value.away);
+                            if (value.homeTeam !== undefined) predictions[player][matchId].homeTeam = String(value.homeTeam);
+                            if (value.awayTeam !== undefined) predictions[player][matchId].awayTeam = String(value.awayTeam);
+                            if (value.homeScore !== undefined) predictions[player][matchId].homeScore = String(value.homeScore);
+                            if (value.awayScore !== undefined) predictions[player][matchId].awayScore = String(value.awayScore);
                         }
+                    } else {
+                        predictions[player][key] = value;
                     }
                 }
-
-                pointsConfig = (await getDoc('config/points')) || pointsConfig;
-                actualWinners = (await getDoc('config/winners')) || actualWinners;
-                const codesDocs = await getDocs('accessCodes', 200);
-                accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
-                dataLoaded = true;
-                renderAllTabs();
-                updateGenerateKOButton();
-                updateBotaBalonSuggestions();
-                if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
-                const saveNameBtn = document.getElementById('save-name-btn');
-                if (saveNameBtn) saveNameBtn.disabled = false;
-            } catch (err) {
-                console.error(err);
-                document.getElementById('matches-full-list').innerHTML = `<p class="text-muted">Error al cargar datos: ${err.message}</p>`;
             }
+            pointsConfig = (await getDoc('config/points')) || pointsConfig;
+            actualWinners = (await getDoc('config/winners')) || actualWinners;
+            const codesDocs = await getDocs('accessCodes', 200);
+            accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
+            dataLoaded = true;
+            renderAllTabs();
+            updateGenerateKOButton();
+            updateBotaBalonSuggestions();
+            if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
+            const saveNameBtn = document.getElementById('save-name-btn');
+            if (saveNameBtn) saveNameBtn.disabled = false;
+        } catch (err) {
+            console.error(err);
+            const el = document.getElementById('matches-full-list');
+            if (el) el.innerHTML = `<p class="text-muted">Error al cargar datos: ${err.message}</p>`;
         }
+    }
 
-        async function initDB() {
-            for (const m of DEFAULT_MATCHES) {
-                await setDoc(`matches/${m.id}`, {
-                    group: m.group, home: m.home, away: m.away, date: m.date,
-                    venue: m.venue, round: m.round, homeScore: null, awayScore: null
-                });
-            }
-            await setDoc('config/points', pointsConfig);
-            await setDoc('config/winners', actualWinners);
-        }
-
-        async function saveResults() {
-            for (const m of matches) {
-                await setDoc(`matches/${m.id}`, {
-                    group: m.group, home: m.home, away: m.away, date: m.date,
-                    venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
-                });
-            }
-            await refreshAllData();
-            showToast('Resultados guardados');
-        }
-
-        async function guardarPrediccion(player, predData) {
-            await setDoc(`predictions/${player}`, predData);
-        }
-
-        async function generateCode(custom='') {
-            const code = custom || Math.random().toString(36).substring(2, 8).toUpperCase();
-            await setDoc(`accessCodes/${code}`, { usedBy: null });
-            showToast('Código generado: ' + code);
-            document.getElementById('code-to-generate').value = '';
-            await refreshAllData();
-            renderAccessCodes();
-        }
-
-        async function deleteCode(code) {
-            if (!confirm('¿Eliminar código?')) return;
-            await deleteDoc(`accessCodes/${code}`);
-            showToast('Código eliminado');
-            await refreshAllData();
-            renderAccessCodes();
-        }
-
-        async function deletePlayer(player) {
-            if (!confirm(`¿Eliminar a ${player}?`)) return;
-            await deleteDoc(`predictions/${player}`);
-            const codeUsed = accessCodes.find(c => c.usedBy === player);
-            if (codeUsed) await setDoc(`accessCodes/${codeUsed.code}`, { usedBy: null });
-            showToast('Participante eliminado');
-            await refreshAllData();
-            renderAccessCodes();
-            renderPlayersList();
-        }
-
-        function renderAccessCodes() {
-            const div = document.getElementById('codes-list');
-            if (!div) return;
-            let html = '<table><tr><th>Código</th><th>Usado por</th><th>Acción</th></tr>';
-            accessCodes.forEach(c => {
-                html += `<tr><td>${c.code}</td><td>${c.usedBy || 'Disponible'}</td>
-                         <td><button class="btn btn-sm btn-danger" onclick="deleteCode('${c.code}')">🗑️</button></td></tr>`;
+    async function initDB() {
+        for (const m of DEFAULT_MATCHES) {
+            await setDoc(`matches/${m.id}`, {
+                group: m.group, home: m.home, away: m.away, date: m.date,
+                venue: m.venue, round: m.round, homeScore: null, awayScore: null
             });
-            div.innerHTML = html + '</table>';
         }
+        await setDoc('config/points', pointsConfig);
+        await setDoc('config/winners', actualWinners);
+    }
 
-        function renderPlayersList() {
-            const div = document.getElementById('players-list');
-            if (!div) return;
-            let html = '<table><tr><th>Jugador</th><th>Acción</th></tr>';
-            Object.keys(predictions).forEach(p => {
-                html += `<tr><td>${p}</td><td><button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button></td></tr>`;
+    async function saveResults() {
+        for (const m of matches) {
+            await setDoc(`matches/${m.id}`, {
+                group: m.group, home: m.home, away: m.away, date: m.date,
+                venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
             });
-            div.innerHTML = html + '</table>';
         }
+        await refreshAllData();
+        showToast('Resultados guardados');
+    }
 
-        window.deleteCode = deleteCode;
-        window.deletePlayer = deletePlayer;
-        window.selectPointsPlayer = function(name) {
-            selectedPointsPlayer = name;
-            document.getElementById('points-player-select').value = name;
-            renderPointsDetail();
-            document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
-            document.querySelector('[data-tab="mypoints"]').classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-mypoints').classList.add('active');
+    async function guardarPrediccion(player, predData) {
+        await setDoc(`predictions/${player}`, predData);
+    }
+
+    async function generateCode(custom='') {
+        const code = custom || Math.random().toString(36).substring(2, 8).toUpperCase();
+        await setDoc(`accessCodes/${code}`, { usedBy: null });
+        showToast('Código generado: ' + code);
+        document.getElementById('code-to-generate').value = '';
+        await refreshAllData();
+        renderAccessCodes();
+    }
+
+    async function deleteCode(code) {
+        if (!confirm('¿Eliminar código?')) return;
+        await deleteDoc(`accessCodes/${code}`);
+        showToast('Código eliminado');
+        await refreshAllData();
+        renderAccessCodes();
+    }
+
+    async function deletePlayer(player) {
+        if (!confirm(`¿Eliminar a ${player}?`)) return;
+        await deleteDoc(`predictions/${player}`);
+        const codeUsed = accessCodes.find(c => c.usedBy === player);
+        if (codeUsed) await setDoc(`accessCodes/${codeUsed.code}`, { usedBy: null });
+        showToast('Participante eliminado');
+        await refreshAllData();
+        renderAccessCodes();
+        renderPlayersList();
+    }
+
+    function renderAccessCodes() {
+        const div = document.getElementById('codes-list');
+        if (!div) return;
+        let html = '<table><tr><th>Código</th><th>Usado por</th><th>Acción</th></tr>';
+        accessCodes.forEach(c => {
+            html += `<tr><td>${c.code}</td><td>${c.usedBy || 'Disponible'}</td>
+                     <td><button class="btn btn-sm btn-danger" onclick="deleteCode('${c.code}')">🗑️</button></td></tr>`;
+        });
+        div.innerHTML = html + '</table>';
+    }
+
+    function renderPlayersList() {
+        const div = document.getElementById('players-list');
+        if (!div) return;
+        let html = '<table><tr><th>Jugador</th><th>Acción</th></tr>';
+        Object.keys(predictions).forEach(p => {
+            html += `<tr><td>${p}</td><td><button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button></td></tr>`;
+        });
+        div.innerHTML = html + '</table>';
+    }
+
+    window.deleteCode = deleteCode;
+    window.deletePlayer = deletePlayer;
+    window.selectPointsPlayer = function(name) {
+        selectedPointsPlayer = name;
+        document.getElementById('points-player-select').value = name;
+        renderPointsDetail();
+        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+        document.querySelector('[data-tab="mypoints"]').classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-mypoints').classList.add('active');
+    };
+
+    function getGroupStandings(mArr, group) {
+        const teams = GROUPS[group];
+        const stats = {};
+        teams.forEach(t => stats[t] = {team:t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0});
+        mArr.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+            const h = stats[m.home], a = stats[m.away];
+            if (!h || !a) return;
+            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+            else { h.d++; a.d++; h.pts++; a.pts++; }
+        });
+        return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+    }
+    function getQualifiedTeams(mArr) {
+        const qual = [];
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(mArr, g);
+            if (st.length >= 2 && st[0].pj > 0) { qual.push(st[0].team, st[1].team); }
+        }
+        return qual;
+    }
+    function allGroupMatchesPlayed(mArr) {
+        return mArr.filter(m => m.group !== 'KO').every(m => m.homeScore !== null);
+    }
+    function getBestThirds(mArr) {
+        const thirds = [];
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(mArr, g);
+            if (st[2] && st[2].pj > 0) thirds.push({team: st[2].team, group: g, pts: st[2].pts, gd: st[2].gf - st[2].ga, gf: st[2].gf});
+        }
+        thirds.sort((a,b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
+        return thirds.slice(0, 8);
+    }
+    function getOfficialR32Mapping(bestThirds) {
+        const groups = bestThirds.map(t => t.group).sort().join('');
+        const comboMap = {
+            'ABCDEFGH': {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'},
+            'ABCDEFGI': {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'},
         };
+        return comboMap[groups] || {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'};
+    }
 
-        function getGroupStandings(mArr, group) {
-            const teams = GROUPS[group];
-            const stats = {};
-            teams.forEach(t => stats[t] = {team:t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0});
-            mArr.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-                const h = stats[m.home], a = stats[m.away];
-                if (!h || !a) return;
-                h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-                if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
-                else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
-                else { h.d++; a.d++; h.pts++; a.pts++; }
-            });
-            return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+    function autoFillKO(preds, useOfficial = false) {
+        if (preds._koLocked && !useOfficial) return preds;
+        const simMatches = useOfficial ? matches : getSimMatches(preds);
+        if (useOfficial && !allGroupMatchesPlayed(matches)) return preds;
+        const qual = {};
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(simMatches, g);
+            qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
         }
-        function getQualifiedTeams(mArr) {
-            const qual = [];
-            for (const g of Object.keys(GROUPS)) {
-                const st = getGroupStandings(mArr, g);
-                if (st.length >= 2 && st[0].pj > 0) { qual.push(st[0].team, st[1].team); }
+        const bestThirds = getBestThirds(simMatches);
+        if (useOfficial && bestThirds.length < 8) return preds;
+        const thirdMap = getOfficialR32Mapping(bestThirds);
+        function getThird(keys) {
+            for (const k of keys) {
+                const found = bestThirds.find(t => t.group === k);
+                if (found) return found.team;
             }
-            return qual;
+            return 'Por definir';
         }
-        function allGroupMatchesPlayed(mArr) {
-            return mArr.filter(m => m.group !== 'KO').every(m => m.homeScore !== null);
-        }
-        function getBestThirds(mArr) {
-            const thirds = [];
-            for (const g of Object.keys(GROUPS)) {
-                const st = getGroupStandings(mArr, g);
-                if (st[2] && st[2].pj > 0) thirds.push({team: st[2].team, group: g, pts: st[2].pts, gd: st[2].gf - st[2].ga, gf: st[2].gf});
+        const r32 = {
+            73: [qual.A[1], qual.B[1]], 74: [qual.E[0], getThird(thirdMap[74].split(''))],
+            75: [qual.F[0], qual.C[1]], 76: [qual.C[0], qual.F[1]],
+            77: [qual.I[0], getThird(thirdMap[77].split(''))], 78: [qual.E[1], qual.I[1]],
+            79: [qual.A[0], getThird(thirdMap[79].split(''))], 80: [qual.L[0], getThird(thirdMap[80].split(''))],
+            81: [qual.D[0], getThird(thirdMap[81].split(''))], 82: [qual.G[0], getThird(thirdMap[82].split(''))],
+            83: [qual.K[1], qual.L[1]], 84: [qual.H[0], qual.J[1]],
+            85: [qual.B[0], getThird(thirdMap[85].split(''))], 86: [qual.J[0], qual.H[1]],
+            87: [qual.K[0], getThird(thirdMap[87].split(''))], 88: [qual.D[1], qual.G[1]]
+        };
+        const koMatches = matches.filter(m => m.group === 'KO');
+        koMatches.forEach(km => {
+            if (r32[km.id] && r32[km.id][0] && r32[km.id][1]) {
+                if (!preds[km.id]) preds[km.id] = {};
+                preds[km.id].homeTeam = r32[km.id][0];
+                preds[km.id].awayTeam = r32[km.id][1];
+                if (preds[km.id].homeScore === undefined) preds[km.id].homeScore = '';
+                if (preds[km.id].awayScore === undefined) preds[km.id].awayScore = '';
             }
-            thirds.sort((a,b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
-            return thirds.slice(0, 8);
-        }
-        function getOfficialR32Mapping(bestThirds) {
-            const groups = bestThirds.map(t => t.group).sort().join('');
-            const comboMap = {
-                'ABCDEFGH': {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'},
-                'ABCDEFGI': {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'},
-            };
-            return comboMap[groups] || {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'};
-        }
+        });
+        return preds;
+    }
 
-        function autoFillKO(preds, useOfficial = false) {
-            if (preds._koLocked && !useOfficial) return preds;
-            const simMatches = useOfficial ? matches : getSimMatches(preds);
-            if (useOfficial && !allGroupMatchesPlayed(matches)) return preds;
-            const qual = {};
-            for (const g of Object.keys(GROUPS)) {
-                const st = getGroupStandings(simMatches, g);
-                qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
-            }
-            const bestThirds = getBestThirds(simMatches);
-            if (useOfficial && bestThirds.length < 8) return preds;
-            const thirdMap = getOfficialR32Mapping(bestThirds);
-            function getThird(keys) {
-                for (const k of keys) {
-                    const found = bestThirds.find(t => t.group === k);
-                    if (found) return found.team;
-                }
-                return 'Por definir';
-            }
-            const r32 = {
-                73: [qual.A[1], qual.B[1]],
-                74: [qual.E[0], getThird(thirdMap[74].split(''))],
-                75: [qual.F[0], qual.C[1]],
-                76: [qual.C[0], qual.F[1]],
-                77: [qual.I[0], getThird(thirdMap[77].split(''))],
-                78: [qual.E[1], qual.I[1]],
-                79: [qual.A[0], getThird(thirdMap[79].split(''))],
-                80: [qual.L[0], getThird(thirdMap[80].split(''))],
-                81: [qual.D[0], getThird(thirdMap[81].split(''))],
-                82: [qual.G[0], getThird(thirdMap[82].split(''))],
-                83: [qual.K[1], qual.L[1]],
-                84: [qual.H[0], qual.J[1]],
-                85: [qual.B[0], getThird(thirdMap[85].split(''))],
-                86: [qual.J[0], qual.H[1]],
-                87: [qual.K[0], getThird(thirdMap[87].split(''))],
-                88: [qual.D[1], qual.G[1]]
-            };
-            const koMatches = matches.filter(m => m.group === 'KO');
-            koMatches.forEach(km => {
-                if (r32[km.id] && r32[km.id][0] && r32[km.id][1]) {
-                    if (!preds[km.id]) preds[km.id] = {};
-                    preds[km.id].homeTeam = r32[km.id][0];
-                    preds[km.id].awayTeam = r32[km.id][1];
-                    if (preds[km.id].homeScore === undefined) preds[km.id].homeScore = '';
-                    if (preds[km.id].awayScore === undefined) preds[km.id].awayScore = '';
-                }
-            });
-            return preds;
-        }
+    function getSimMatches(preds) {
+        return matches.map(m => {
+            if (m.group === 'KO') return m;
+            const p = preds[m.id];
+            if (p && p.home !== '' && p.away !== '') return { ...m, homeScore: parseInt(p.home), awayScore: parseInt(p.away) };
+            return m;
+        });
+    }
 
-        function getSimMatches(preds) {
-            return matches.map(m => {
-                if (m.group === 'KO') return m;
-                const p = preds[m.id];
-                if (p && p.home !== '' && p.away !== '') return { ...m, homeScore: parseInt(p.home), awayScore: parseInt(p.away) };
-                return m;
+    function calculatePointsDetail(playerName) {
+        const preds = predictions[playerName] || {};
+        const details = [];
+        let total = 0;
+        for (const m of matches) {
+            if (m.homeScore === null || m.awayScore === null) continue;
+            const p = preds[m.id];
+            if (!p) continue;
+            let ph, pa, homeTeam, awayTeam;
+            if (m.group === 'KO') {
+                homeTeam = p.homeTeam || m.home;
+                awayTeam = p.awayTeam || m.away;
+                ph = parseInt(p.homeScore);
+                pa = parseInt(p.awayScore);
+            } else {
+                if (p.home === '' || p.away === '') continue;
+                ph = parseInt(p.home);
+                pa = parseInt(p.away);
+                homeTeam = m.home;
+                awayTeam = m.away;
+            }
+            if (isNaN(ph) || isNaN(pa)) continue;
+            const [rh, ra] = [m.homeScore, m.awayScore];
+            const exact = (ph === rh && pa === ra);
+            const signOk = (rh > ra && ph > pa) || (rh < ra && ph < pa) || (rh === ra && ph === pa);
+            let points = 0;
+            if (exact) points = pointsConfig.exact;
+            else if (signOk) points = pointsConfig.sign;
+            if (points > 0) {
+                details.push({ type: 'Partido', match: `${homeTeam} vs ${awayTeam}`, realResult: `${rh}-${ra}`, userResult: `${ph}-${pa}`, points });
+                total += points;
+            }
+        }
+        if (allGroupMatchesPlayed(matches)) {
+            const realQual = getQualifiedTeams(matches);
+            const userQual = getQualifiedTeams(getSimMatches(preds));
+            const correct = userQual.filter(t => realQual.includes(t));
+            correct.forEach(team => {
+                details.push({type:'Clasificado', team, points: pointsConfig.qualify});
+                total += pointsConfig.qualify;
             });
         }
-
-        function calculatePointsDetail(playerName) {
-            const preds = predictions[playerName] || {};
-            const details = [];
-            let total = 0;
-            for (const m of matches) {
-                if (m.homeScore === null || m.awayScore === null) continue;
-                const p = preds[m.id];
-                if (!p) continue;
-                let ph, pa, homeTeam, awayTeam;
-                if (m.group === 'KO') {
-                    homeTeam = p.homeTeam || m.home;
-                    awayTeam = p.awayTeam || m.away;
-                    ph = parseInt(p.homeScore);
-                    pa = parseInt(p.awayScore);
-                } else {
-                    if (p.home === '' || p.away === '') continue;
-                    ph = parseInt(p.home);
-                    pa = parseInt(p.away);
-                    homeTeam = m.home;
-                    awayTeam = m.away;
-                }
-                if (isNaN(ph) || isNaN(pa)) continue;
-                const [rh, ra] = [m.homeScore, m.awayScore];
-                const exact = (ph === rh && pa === ra);
-                const signOk = (rh > ra && ph > pa) || (rh < ra && ph < pa) || (rh === ra && ph === pa);
-                let points = 0;
-                if (exact) points = pointsConfig.exact;
-                else if (signOk) points = pointsConfig.sign;
-                if (points > 0) {
-                    details.push({
-                        type: 'Partido',
-                        match: `${homeTeam} vs ${awayTeam}`,
-                        realResult: `${rh}-${ra}`,
-                        userResult: `${ph}-${pa}`,
-                        points
-                    });
-                    total += points;
-                }
-            }
-            if (allGroupMatchesPlayed(matches)) {
-                const realQual = getQualifiedTeams(matches);
-                const userQual = getQualifiedTeams(getSimMatches(preds));
-                const correct = userQual.filter(t => realQual.includes(t));
-                correct.forEach(team => {
-                    details.push({type:'Clasificado', team, points: pointsConfig.qualify});
-                    total += pointsConfig.qualify;
-                });
-            }
-            if (actualWinners.goldenBoot && preds.goldenBoot === actualWinners.goldenBoot) {
-                details.push({type:'Bota de Oro', name: actualWinners.goldenBoot, points: pointsConfig.goldenBoot});
-                total += pointsConfig.goldenBoot;
-            }
-            if (actualWinners.goldenBall && preds.goldenBall === actualWinners.goldenBall) {
-                details.push({type:'Balón de Oro', name: actualWinners.goldenBall, points: pointsConfig.goldenBall});
-                total += pointsConfig.goldenBall;
-            }
-            if (actualWinners.champion && preds.champion === actualWinners.champion) {
-                details.push({type:'Campeón', name: actualWinners.champion, points: pointsConfig.champion});
-                total += pointsConfig.champion;
-            }
-            return { total, details };
+        if (actualWinners.goldenBoot && preds.goldenBoot === actualWinners.goldenBoot) {
+            details.push({type:'Bota de Oro', name: actualWinners.goldenBoot, points: pointsConfig.goldenBoot});
+            total += pointsConfig.goldenBoot;
         }
+        if (actualWinners.goldenBall && preds.goldenBall === actualWinners.goldenBall) {
+            details.push({type:'Balón de Oro', name: actualWinners.goldenBall, points: pointsConfig.goldenBall});
+            total += pointsConfig.goldenBall;
+        }
+        if (actualWinners.champion && preds.champion === actualWinners.champion) {
+            details.push({type:'Campeón', name: actualWinners.champion, points: pointsConfig.champion});
+            total += pointsConfig.champion;
+        }
+        return { total, details };
+    }
 
-        // 🔁 CAMBIO: renderSpecialPicks ahora activa los listeners después de mostrarse
-        function renderSpecialPicks() {
-            const panel = document.getElementById('special-picks-panel');
-            if (!currentPlayer || !sessionValid) {
-                panel.style.display = 'none';
+    function renderSpecialPicks() {
+        const panel = document.getElementById('special-picks-panel');
+        if (!currentPlayer || !sessionValid) {
+            if (panel) panel.style.display = 'none';
+            return;
+        }
+        panel.style.display = 'block';
+        const preds = predictions[currentPlayer] || {};
+        const locked = preds._picksLocked === true;
+        document.getElementById('golden-boot-pick').disabled = locked;
+        document.getElementById('golden-ball-pick').disabled = locked;
+        document.getElementById('champion-pick').disabled = locked;
+        document.getElementById('save-special-picks-btn').disabled = locked;
+        document.getElementById('picks-locked-msg').style.display = locked ? 'block' : 'none';
+
+        document.getElementById('golden-boot-pick').value = preds.goldenBoot || '';
+        document.getElementById('golden-ball-pick').value = preds.goldenBall || '';
+        document.getElementById('champion-pick').value = preds.champion || '';
+
+        const updateBtn = () => {
+            if (locked) {
+                document.getElementById('save-special-picks-btn').disabled = true;
                 return;
             }
-            panel.style.display = 'block';
-            const preds = predictions[currentPlayer] || {};
-            const locked = preds._picksLocked === true;
-            document.getElementById('golden-boot-pick').disabled = locked;
-            document.getElementById('golden-ball-pick').disabled = locked;
-            document.getElementById('champion-pick').disabled = locked;
-            document.getElementById('save-special-picks-btn').disabled = locked;
-            document.getElementById('picks-locked-msg').style.display = locked ? 'block' : 'none';
+            const hasValue = document.getElementById('golden-boot-pick').value.trim() !== '' ||
+                             document.getElementById('golden-ball-pick').value.trim() !== '' ||
+                             document.getElementById('champion-pick').value !== '';
+            document.getElementById('save-special-picks-btn').disabled = !hasValue;
+        };
+        updateBtn();
+        document.getElementById('golden-boot-pick').oninput = updateBtn;
+        document.getElementById('golden-ball-pick').oninput = updateBtn;
+        document.getElementById('champion-pick').onchange = updateBtn;
+    }
 
-            document.getElementById('golden-boot-pick').value = preds.goldenBoot || '';
-            document.getElementById('golden-ball-pick').value = preds.goldenBall || '';
-            document.getElementById('champion-pick').value = preds.champion || '';
-
-            // Activar/desactivar botón según contenido
-            const updateBtn = () => {
-                if (locked) {
-                    document.getElementById('save-special-picks-btn').disabled = true;
-                    return;
-                }
-                const hasValue = document.getElementById('golden-boot-pick').value.trim() !== '' ||
-                                 document.getElementById('golden-ball-pick').value.trim() !== '' ||
-                                 document.getElementById('champion-pick').value !== '';
-                document.getElementById('save-special-picks-btn').disabled = !hasValue;
-            };
-            updateBtn();
-
-            // Añadir listeners ahora que el panel es visible
-            document.getElementById('golden-boot-pick').oninput = updateBtn;
-            document.getElementById('golden-ball-pick').oninput = updateBtn;
-            document.getElementById('champion-pick').onchange = updateBtn;
-        }
-
-        // 🔁 CAMBIO: Elimino los listeners globales de premios que estaban sueltos
-        // (ya no son necesarios porque se añaden dentro de renderSpecialPicks)
-
-        function renderDashboard() {
-            const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
-            document.getElementById('dashboard-subtitle').textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
-            document.getElementById('stats-row').innerHTML = `
-                <div class="panel flex-col"><strong style="font-size:1.5rem;">${total}</strong><br><small>Partidos</small></div>
-                <div class="panel flex-col"><strong style="font-size:1.5rem;">${played}</strong><br><small>Jugados</small></div>
-                <div class="panel flex-col"><strong style="font-size:1.5rem;">${players}</strong><br><small>Participantes</small></div>
-                <div class="panel flex-col"><strong style="font-size:1.5rem;">${total-played}</strong><br><small>Pendientes</small></div>`;
-            renderTop5(); renderUpcoming();
-        }
-        function renderTop5() {
-            const scores = {}; 
-            for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
-            const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
-            let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
-            sorted.forEach(([n,p], i) => {
-                const rc = i===0?'rank1':(i===1?'rank2':(i===2?'rank3':'rank-other'));
-                html += `<tr><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`;
-            });
-            document.getElementById('top5-table').innerHTML = html+'</table>';
-        }
-        function renderUpcoming() {
-            const upcoming = matches.filter(m => m.homeScore === null).sort((a,b) => new Date(a.date)-new Date(b.date)).slice(0,8);
-            let html = '<table><tr><th>Fecha</th><th>Ronda</th><th>Partido</th><th>Sede</th></tr>';
-            upcoming.forEach(m => {
-                const d = new Date(m.date); const ds = isNaN(d) ? '??' : d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
-                html += `<tr><td>${ds}</td><td>${m.group==='KO'?m.round:'J'+m.round}</td><td>${m.home} vs ${m.away}</td><td class="venue-info">${m.venue||''}</td></tr>`;
-            });
-            document.getElementById('upcoming-matches').innerHTML = html+'</table>';
-        }
+    // Funciones de renderizado (se mantienen igual que antes, pero con comprobaciones de elementos)
+    function renderDashboard() {
+        const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
+        const subtitle = document.getElementById('dashboard-subtitle');
+        if (subtitle) subtitle.textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
+        const statsRow = document.getElementById('stats-row');
+        if (statsRow) statsRow.innerHTML = `
+            <div class="panel flex-col"><strong style="font-size:1.5rem;">${total}</strong><br><small>Partidos</small></div>
+            <div class="panel flex-col"><strong style="font-size:1.5rem;">${played}</strong><br><small>Jugados</small></div>
+            <div class="panel flex-col"><strong style="font-size:1.5rem;">${players}</strong><br><small>Participantes</small></div>
+            <div class="panel flex-col"><strong style="font-size:1.5rem;">${total-played}</strong><br><small>Pendientes</small></div>`;
+        renderTop5(); renderUpcoming();
+    }
+    function renderTop5() {
+        const scores = {}; 
+        for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
+        const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
+        let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
+        sorted.forEach(([n,p], i) => {
+            const rc = i===0?'rank1':(i===1?'rank2':(i===2?'rank3':'rank-other'));
+            html += `<tr><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`;
+        });
+        const top5 = document.getElementById('top5-table');
+        if (top5) top5.innerHTML = html+'</table>';
+    }
+    function renderUpcoming() {
+        const upcoming = matches.filter(m => m.homeScore === null).sort((a,b) => new Date(a.date)-new Date(b.date)).slice(0,8);
+        let html = '<table><tr><th>Fecha</th><th>Ronda</th><th>Partido</th><th>Sede</th></tr>';
+        upcoming.forEach(m => {
+            const d = new Date(m.date); const ds = isNaN(d) ? '??' : d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+            html += `<tr><td>${ds}</td><td>${m.group==='KO'?m.round:'J'+m.round}</td><td>${m.home} vs ${m.away}</td><td class="venue-info">${m.venue||''}</td></tr>`;
+        });
+        const el = document.getElementById('upcoming-matches');
+        if (el) el.innerHTML = html+'</table>';
+    }
         function renderMatchesFull() {
             let html = '';
             const groups = Object.keys(GROUPS);
@@ -722,6 +870,7 @@
                 </div>`;
             });
             document.getElementById('matches-full-list').innerHTML = html;
+            if (el) el.innerHTML = html+'</table>';
         }
 
         function renderGroups() {
@@ -733,6 +882,7 @@
                 html += '</table></div>';
             }
             document.getElementById('groups-container').innerHTML = html;
+            if (el) el.innerHTML = html+'</table>';
         }
         function renderBracket() {
             const container = document.getElementById('bracket-tree');
@@ -772,6 +922,7 @@
             html += '<div class="bracket-round-title">Final</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
             html += '<div class="trophy-center">🏆</div></div>';
             container.innerHTML = html;
+            if (el) el.innerHTML = html+'</table>';
         }
         function renderMyPool() {
             if (!sessionValid) {
@@ -824,6 +975,7 @@
             });
 
             document.getElementById('prediction-form').innerHTML = html;
+            if (el) el.innerHTML = html+'</table>';
             renderSpecialPicks();
 
             document.getElementById('generate-ko-btn').style.display = groupsComplete ? 'inline-flex' : 'none';
@@ -839,6 +991,7 @@
                 html += `<tr style="cursor:pointer;" onclick="selectPointsPlayer('${n}')"><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`;
             });
             document.getElementById('standings-table').innerHTML = html+'</table>';
+            if (el) el.innerHTML = html+'</table>';
         }
         function renderPointsDetail() {
             const select = document.getElementById('points-player-select');
@@ -858,6 +1011,7 @@
                 html += '</table>';
             }
             document.getElementById('points-detail').innerHTML = html;
+            if (el) el.innerHTML = html+'</table>';
         }
         function updateBotaBalonSuggestions() {
             const botaList = document.getElementById('bota-suggestions');
@@ -918,27 +1072,33 @@
         }
 
         // ========== EVENTOS ==========
-        document.addEventListener('DOMContentLoaded', () => {
-            refreshAllData();
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshAllData();
 
-            document.getElementById('save-name-btn').disabled = true;
-            const savedName = localStorage.getItem('currentPlayer_wc26_v3');
-            if (savedName) document.getElementById('player-name').value = savedName;
-            
-            document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
-                document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-                document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
-                renderAllTabs();
-                if (btn.dataset.tab === 'mypoints') renderPointsDetail();
-                if (btn.dataset.tab === 'admin') renderAdmin();
-            }));
+        const saveNameBtn = document.getElementById('save-name-btn');
+        if (saveNameBtn) saveNameBtn.disabled = true;
+        const savedName = localStorage.getItem('currentPlayer_wc26_v3');
+        if (savedName) {
+            const playerNameInput = document.getElementById('player-name');
+            if (playerNameInput) playerNameInput.value = savedName;
+        }
+        
+        document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
+            document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            const tab = document.getElementById('tab-'+btn.dataset.tab);
+            if (tab) tab.classList.add('active');
+            renderAllTabs();
+            if (btn.dataset.tab === 'mypoints') renderPointsDetail();
+            if (btn.dataset.tab === 'admin') renderAdmin();
+        }));
 
-            // 🔁 Evento Guardar (sin cambios funcionales, solo se asegura de no machacar)
-            document.getElementById('save-name-btn').addEventListener('click', async () => {
-                const name = document.getElementById('player-name').value.trim();
-                const code = document.getElementById('access-code').value.trim();
+        // Evento Guardar nombre (código corregido)
+        if (saveNameBtn) {
+            saveNameBtn.addEventListener('click', async () => {
+                const name = document.getElementById('player-name')?.value.trim();
+                const code = document.getElementById('access-code')?.value.trim();
                 if (!name || !code) return alert('Debes introducir un nombre y un código de acceso.');
                 if (!dataLoaded) return alert('Los datos aún se están cargando. Espera unos segundos.');
 
@@ -966,6 +1126,7 @@
                     alert('Error al validar el código: ' + err.message);
                 }
             });
+        }
 
             document.getElementById('save-picks-btn').addEventListener('click', async () => {
                 if (!sessionValid) return alert('Debes iniciar sesión primero.');
