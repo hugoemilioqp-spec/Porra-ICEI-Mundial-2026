@@ -379,7 +379,7 @@
     let selectedPointsPlayer = currentPlayer;
     let accessCodes = [];
     let dataLoaded = false;
-
+    let sessionValid = false;   // Solo true tras validar código
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
         B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
@@ -902,11 +902,11 @@
         container.innerHTML = html;
     }
     function renderMyPool() {
-        if (!currentPlayer) {
-            document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Introduce tu nombre y un código de acceso válido para empezar.</p>';
-            document.getElementById('pool-actions').style.display = 'none';
-            document.getElementById('special-picks-panel').style.display = 'none';
-            return;
+    if (!sessionValid) {
+        document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Introduce tu nombre y un código de acceso válido para empezar.</p>';
+        document.getElementById('pool-actions').style.display = 'none';
+        document.getElementById('special-picks-panel').style.display = 'none';
+        return;
         }
         document.getElementById('pool-actions').style.display = 'flex';
         document.getElementById('special-picks-panel').style.display = 'block';
@@ -1070,11 +1070,13 @@
                 if (codeDoc.usedBy && codeDoc.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
 
                 if (!codeDoc.usedBy) await setDoc(`accessCodes/${code}`, { usedBy: name });
+                sessionValid = true;
 
                 currentPlayer = name;
                 localStorage.setItem('currentPlayer_wc26_v3', name);
                 if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
                 await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+                await refreshAllData();  // Recarga para obtener predicciones previas si las hay
                 renderMyPool();
                 updateGenerateKOButton();
                 showToast(`Bienvenid@ ${name}!`);
@@ -1084,6 +1086,7 @@
         });
 
         document.getElementById('save-picks-btn').addEventListener('click', async () => {
+            if (!sessionValid) return alert('Debes iniciar sesión primero.');
             if (!currentPlayer) return;
             const preds = predictions[currentPlayer] || {};
             matches.forEach(m => {
@@ -1106,6 +1109,7 @@
         // Eliminado el listener de lock-ko-btn
 
         document.getElementById('generate-ko-btn').addEventListener('click', async () => {
+            if (!sessionValid) return alert('Debes iniciar sesión primero.');
             if (!currentPlayer) return;
             let preds = predictions[currentPlayer] || {};
             preds = autoFillKO({...preds}, true);
@@ -1116,6 +1120,7 @@
         });
 
         document.getElementById('save-special-picks-btn').addEventListener('click', async () => {
+            if (!sessionValid) return alert('Debes iniciar sesión primero.');
             if (!currentPlayer) return;
             if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
             predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
