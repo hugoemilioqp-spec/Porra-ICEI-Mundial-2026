@@ -817,7 +817,24 @@ function buildMatchDates() {
             document.getElementById('save-special-picks-btn').disabled = !hasValue;
         }
     }
+// Activar/desactivar el botón de guardar premios al escribir
+function updateSpecialPicksBtn() {
+    if (checkPicksLocked()) {
+        document.getElementById('save-special-picks-btn').disabled = true;
+        return;
+    }
+    const goldenBoot = document.getElementById('golden-boot-pick').value.trim();
+    const goldenBall = document.getElementById('golden-ball-pick').value.trim();
+    const champion = document.getElementById('champion-pick').value;
+    const hasValue = goldenBoot !== '' || goldenBall !== '' || champion !== '';
+    document.getElementById('save-special-picks-btn').disabled = !hasValue;
+}
 
+// Escuchar cambios en los campos de premios
+document.getElementById('golden-boot-pick').addEventListener('input', updateSpecialPicksBtn);
+document.getElementById('golden-ball-pick').addEventListener('input', updateSpecialPicksBtn);
+document.getElementById('champion-pick').addEventListener('change', updateSpecialPicksBtn);
+    
     function renderDashboard() {
         const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
         document.getElementById('dashboard-subtitle').textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
@@ -1101,25 +1118,33 @@ document.getElementById('save-name-btn').addEventListener('click', async () => {
     if (!dataLoaded) return alert('Los datos aún se están cargando. Espera unos segundos.');
 
     try {
+        // 1. Validar código
         const codeDoc = await getDoc(`accessCodes/${code}`);
         if (!codeDoc || codeDoc.usedBy === undefined) return alert('Código de acceso inválido.');
         if (codeDoc.usedBy && codeDoc.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
 
+        // 2. Marcar código como usado si es necesario
         if (!codeDoc.usedBy) await setDoc(`accessCodes/${code}`, { usedBy: name });
 
+        // 3. Establecer sesión
         currentPlayer = name;
         sessionValid = true;
         localStorage.setItem('currentPlayer_wc26_v3', name);
 
-        // Solo crear el documento si no existe en Firestore, pero sin sobrescribir datos previos
-        if (!predictions[currentPlayer]) {
-            predictions[currentPlayer] = {};
-            await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+        // 4. Solo crear el documento si NO EXISTE en Firestore (evitar sobrescribir datos previos)
+        const existingPreds = await getDoc(`predictions/${name}`);
+        if (!existingPreds) {
+            // Usuario realmente nuevo: creamos un documento vacío
+            await guardarPrediccion(name, {});
+        } else {
+            // El usuario ya existía: no tocamos nada, solo recargamos sus datos
+            console.log('Usuario existente, cargando predicciones previas...');
         }
 
-        // Recargar todos los datos para obtener la versión más actualizada (incluye predicciones previas si las había)
+        // 5. Recargar todos los datos (ahora predictions[currentPlayer] tendrá los datos reales)
         await refreshAllData();
 
+        // 6. Renderizar
         renderMyPool();
         updateGenerateKOButton();
         showToast(`Bienvenid@ ${name}!`);
