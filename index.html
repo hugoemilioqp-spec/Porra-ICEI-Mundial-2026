@@ -406,68 +406,98 @@
         { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
     ];
 
-    function buildMatchDates() {
-        const matches = [];
-        let id = 1;
-        const groups = Object.keys(GROUPS);
-        groups.forEach((g, gi) => {
-            const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
-            const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
-            matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
-            matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
-        });
-        groups.forEach((g, gi) => {
-            const t = GROUPS[g]; const baseDay = 18 + Math.floor(gi/4);
-            const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
-            matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
-            matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
-        });
-        groups.forEach((g, gi) => {
-            const t = GROUPS[g]; const baseDay = 24 + Math.floor(gi/4);
-            const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
-            matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
-            matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
-        });
+function buildMatchDates() {
+    const matches = [];
+    let id = 1;
+    const groups = Object.keys(GROUPS);
+    // Fase de grupos con horarios oficiales (hora local de la sede)
+    // Jornada 1: 11-13 junio
+    const j1Hours = [
+        '13:00','22:00', '15:00','18:00', '15:00','21:00', '21:00','12:00',
+        '13:00','16:00', '16:00','22:00', '12:00','15:00', '12:00','15:00',
+        '15:00','18:00', '15:00','18:00', '13:00','22:00', '16:00','19:00'
+    ];
+    groups.forEach((g, gi) => {
+        const t = GROUPS[g];
+        const baseDay = 11 + Math.floor(gi/4);
+        const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
+        const h1 = j1Hours[gi*2] || '18:00';
+        const h2 = j1Hours[gi*2+1] || '21:00';
+        matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T${h1}:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
+        matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T${h2}:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
+    });
 
-        const koDates = [
-            '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
-            '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
-            '2026-07-03','2026-07-03','2026-07-03','2026-07-03',
-            '2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06',
-            '2026-07-07','2026-07-07',
-            '2026-07-09','2026-07-09','2026-07-10','2026-07-10',
-            '2026-07-14','2026-07-15',
-            '2026-07-18',
-            '2026-07-19'
-        ];
-        const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
-        const roundNames = [
-            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-            'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
-            'Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos',
-            'Cuartos','Cuartos','Cuartos','Cuartos',
-            'Semifinales','Semifinales',
-            '3er Puesto',
-            'Final'
-        ];
-        for (let i = 0; i < koDates.length; i++) {
-            const v = VENUES[koVenues[i]];
-            matches.push({
-                id: id++,
-                group: 'KO',
-                round: roundNames[i],
-                home: 'Por definir',
-                away: 'Por definir',
-                date: koDates[i] + 'T20:00',
-                venue: `${v.stadium}, ${v.city}`,
-                homeScore: null,
-                awayScore: null
-            });
-        }
-        return matches;
+    // Jornada 2: 18-20 junio (horario simplificado, se mantiene similar al original)
+    groups.forEach((g, gi) => {
+        const t = GROUPS[g];
+        const baseDay = 18 + Math.floor(gi/4);
+        const v1 = VENUES[(gi+4) % 16], v2 = VENUES[(gi+12) % 16];
+        matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:2, homeScore:null, awayScore:null});
+        matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:2, homeScore:null, awayScore:null});
+    });
+
+    // Jornada 3: 24-26 junio
+    groups.forEach((g, gi) => {
+        const t = GROUPS[g];
+        const baseDay = 24 + Math.floor(gi/4);
+        const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
+        matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${v1.stadium}, ${v1.city}`, round:3, homeScore:null, awayScore:null});
+        matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${v2.stadium}, ${v2.city}`, round:3, homeScore:null, awayScore:null});
+    });
+
+    // Eliminatorias (32 fechas con horas oficiales)
+    const koDates = [
+        '2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30',
+        '2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03',
+        '2026-07-03','2026-07-03','2026-07-03','2026-07-03',
+        '2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06',
+        '2026-07-07','2026-07-07',
+        '2026-07-09','2026-07-09','2026-07-10','2026-07-10',
+        '2026-07-14','2026-07-15',
+        '2026-07-18',
+        '2026-07-19'
+    ];
+    const koHours = [
+        '16:00','19:00','13:00','16:00','13:00','16:00',
+        '13:00','16:00','13:00','16:00','13:00','16:00',
+        '16:00','16:00','19:00','19:00',
+        '13:00','16:00','13:00','16:00','13:00','16:00',
+        '13:00','16:00',
+        '16:00','19:00','16:00','19:00',
+        '16:00','16:00',
+        '16:00',
+        '15:00'
+    ];
+    const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15, 14,9,15,0,8,7,11,4, 13,5,12,10, 8,11, 12, 15];
+    const roundNames = [
+        'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+        'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+        'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+        'Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos',
+        'Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos',
+        'Cuartos','Cuartos','Cuartos','Cuartos',
+        'Semifinales','Semifinales',
+        '3er Puesto',
+        'Final'
+    ];
+    for (let i = 0; i < koDates.length; i++) {
+        const v = VENUES[koVenues[i]];
+        const time = koHours[i] || '20:00';
+        matches.push({
+            id: id++,
+            group: 'KO',
+            round: roundNames[i],
+            home: 'Por definir',
+            away: 'Por definir',
+            date: koDates[i] + `T${time}:00`,
+            venue: `${v.stadium}, ${v.city}`,
+            homeScore: null,
+            awayScore: null
+        });
     }
+
+    return matches;
+}
     const DEFAULT_MATCHES = buildMatchDates();
 
     async function refreshAllData() {
@@ -917,7 +947,10 @@
         let html = '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
         matches.filter(m => m.group !== 'KO').forEach(m => {
             const p = preds[m.id] || {};
-            const dis = (m.homeScore !== null) ? 'disabled' : '';
+            // Bloquear si ya hay resultado oficial o si la hora actual supera la del partido
+            const matchDate = new Date(m.date);
+            const now = new Date();
+            const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
             html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td>
                      <td><input class="small-input" id="ph-${m.id}" value="${p.home||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away||''}" ${dis}></td></tr>`;
         });
@@ -939,7 +972,10 @@
                     <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
                     <span>${homeTeam} ${score} ${awayTeam}</span>`;
                 if (groupsComplete && p.homeTeam && p.homeTeam !== 'Por definir') {
-                    const dis = (m.homeScore !== null) ? 'disabled' : '';
+                    // Bloquear si ya hay resultado oficial o si la hora actual supera la del partido
+                    const matchDate = new Date(m.date);
+                    const now = new Date();
+                    const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
                     html += `<td><input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis}></td>`;
                 }
                 html += '</div>';
@@ -1058,33 +1094,39 @@
             if (btn.dataset.tab === 'admin') renderAdmin();
         }));
 
-        document.getElementById('save-name-btn').addEventListener('click', async () => {
-            const name = document.getElementById('player-name').value.trim();
-            const code = document.getElementById('access-code').value.trim();
-            if (!name || !code) return alert('Debes introducir un nombre y un código de acceso.');
-            if (!dataLoaded) return alert('Los datos aún se están cargando. Espera unos segundos.');
+document.getElementById('save-name-btn').addEventListener('click', async () => {
+    const name = document.getElementById('player-name').value.trim();
+    const code = document.getElementById('access-code').value.trim();
+    if (!name || !code) return alert('Debes introducir un nombre y un código de acceso.');
+    if (!dataLoaded) return alert('Los datos aún se están cargando. Espera unos segundos.');
 
-            try {
-                const codeDoc = await getDoc(`accessCodes/${code}`);
-                if (!codeDoc || codeDoc.usedBy === undefined) return alert('Código de acceso inválido.');
-                if (codeDoc.usedBy && codeDoc.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
+    try {
+        const codeDoc = await getDoc(`accessCodes/${code}`);
+        if (!codeDoc || codeDoc.usedBy === undefined) return alert('Código de acceso inválido.');
+        if (codeDoc.usedBy && codeDoc.usedBy !== name) return alert('Ese código ya ha sido usado por otro participante.');
 
-                if (!codeDoc.usedBy) await setDoc(`accessCodes/${code}`, { usedBy: name });
-                sessionValid = true;
+        if (!codeDoc.usedBy) await setDoc(`accessCodes/${code}`, { usedBy: name });
 
-                currentPlayer = name;
-                localStorage.setItem('currentPlayer_wc26_v3', name);
-                if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
-                await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
-                await refreshAllData();  // Recarga para obtener predicciones previas si las hay
-                renderMyPool();
-                updateGenerateKOButton();
-                showToast(`Bienvenid@ ${name}!`);
-            } catch (err) {
-                alert('Error al validar el código: ' + err.message);
-            }
-        });
+        currentPlayer = name;
+        sessionValid = true;
+        localStorage.setItem('currentPlayer_wc26_v3', name);
 
+        // Solo crear el documento si no existe en Firestore, pero sin sobrescribir datos previos
+        if (!predictions[currentPlayer]) {
+            predictions[currentPlayer] = {};
+            await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+        }
+
+        // Recargar todos los datos para obtener la versión más actualizada (incluye predicciones previas si las había)
+        await refreshAllData();
+
+        renderMyPool();
+        updateGenerateKOButton();
+        showToast(`Bienvenid@ ${name}!`);
+    } catch (err) {
+        alert('Error al validar el código: ' + err.message);
+    }
+});
         document.getElementById('save-picks-btn').addEventListener('click', async () => {
             if (!sessionValid) return alert('Debes iniciar sesión primero.');
             if (!currentPlayer) return;
