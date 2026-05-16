@@ -128,7 +128,7 @@
     </div>
     <div id="tab-matches" class="tab-content">
         <h1>📅 Calendario Completo</h1>
-        <p class="subtitle">104 partidos · sedes oficiales</p>
+        <p class="subtitle">104 partidos · sedes oficiales <button class="btn btn-outline btn-sm" id="refresh-matches-btn"><i class="fa-solid fa-arrows-rotate"></i> Refrescar</button></p>
         <div class="panel" id="matches-full-list"><p class="text-muted">Cargando partidos...</p></div>
     </div>
     <div id="tab-groups" class="tab-content">
@@ -329,18 +329,15 @@
         return response.json();
     }
 
-    // Función auxiliar para extraer el valor real de un campo de Firestore (soporta anidamiento)
     function extractValue(field) {
         if (!field || typeof field !== 'object') return field;
-        // Si es un valor primitivo (stringValue, integerValue, etc.)
         const keys = Object.keys(field);
         if (keys.length === 1 && ['stringValue','integerValue','booleanValue','nullValue','doubleValue','timestampValue'].includes(keys[0])) {
             const val = field[keys[0]];
             if (keys[0] === 'nullValue') return null;
-            if (keys[0] === 'integerValue') return String(val); // devolver como cadena para homogeneizar
+            if (keys[0] === 'integerValue') return String(val);
             return val;
         }
-        // Si es un mapValue (objeto anidado)
         if (field.mapValue && field.mapValue.fields) {
             const obj = {};
             for (const [k, v] of Object.entries(field.mapValue.fields)) {
@@ -348,11 +345,9 @@
             }
             return obj;
         }
-        // arrayValue (no usado por ahora)
         if (field.arrayValue && field.arrayValue.values) {
             return field.arrayValue.values.map(v => extractValue(v));
         }
-        // Fallback: devolver el propio campo
         return field;
     }
 
@@ -401,7 +396,6 @@
             } else if (typeof value === 'boolean') {
                 firestoreValue = { booleanValue: value };
             } else if (typeof value === 'object') {
-                // Para objetos anidados (como predicciones de partidos)
                 const mapFields = {};
                 for (const [k, v] of Object.entries(value)) {
                     if (v === null || v === undefined) mapFields[k] = { nullValue: null };
@@ -501,7 +495,6 @@
     }
     const DEFAULT_MATCHES = buildMatchDates();
 
-    // ========== FUNCIONES REST ==========
     async function refreshAllData() {
         try {
             const matchesDocs = await getDocs('matches', 200);
@@ -519,15 +512,14 @@
             const predsDocs = await getDocs('predictions', 200);
             predictions = {};
             for (const doc of predsDocs) {
-                const player = doc.id;
-                predictions[player] = doc; // getDocs ya devuelve los campos correctos
+                predictions[doc.id] = doc;
             }
             pointsConfig = (await getDoc('config/points')) || pointsConfig;
             actualWinners = (await getDoc('config/winners')) || actualWinners;
             const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
             dataLoaded = true;
-            renderAllTabs();
+            renderAllPanels();    // <-- NUEVO: renderiza todas las pestañas
             updateGenerateKOButton();
             updateBotaBalonSuggestions();
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
