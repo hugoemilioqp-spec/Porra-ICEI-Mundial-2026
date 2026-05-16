@@ -195,6 +195,7 @@
             <select id="points-player-select" style="max-width:250px;"></select>
         </div>
         <div class="panel" id="points-detail"></div>
+        <div class="panel mt-2" id="player-picks-view"></div>  <!-- NUEVO: pronósticos ajenos -->
     </div>
     <div id="tab-rules" class="tab-content">
         <h1>📖 Reglas</h1>
@@ -215,20 +216,13 @@
         <h1>📘 Instrucciones completas</h1>
         <div class="panel">
             <h2>1. Cómo participar</h2>
-            <p>Para unirte a la porra necesitas un <strong>código de acceso</strong> que te facilitará el administrador. Ve a <strong>Mi Porra</strong>, escribe un <strong>nombre único</strong> y en "Contraseña" introduce el código. Pulsa <strong>Acceder</strong>. A partir de ese momento podrás hacer tus pronósticos.</p>
-            <h2>2. Hacer pronósticos de partidos</h2>
+            <p>Para unirte a la porra necesitas un <strong>código de acceso</strong> que te facilitará el administrador. Ve a <strong>Mi Porra</strong>, escribe un <strong>nombre único</strong> y en "Contraseña" introduce el código. Pulsa <strong>Acceder</strong>.</p>
+            <h2>2. Hacer pronósticos</h2>
             <p>En <strong>Mi Porra</strong> verás los 104 partidos. Para cada partido de la fase de grupos escribe el marcador exacto. Los partidos de eliminatorias se mostrarán automáticamente según tus pronósticos. Cuando el administrador introduzca resultados oficiales, podrás generar los cruces reales.</p>
             <h2>3. Premios especiales</h2>
-            <p>En la misma pestaña <strong>Mi Porra</strong> puedes escribir el nombre del ganador de la Bota de Oro, el Balón de Oro y seleccionar el Campeón del Mundo. <strong>Una vez que pulses "Guardar y bloquear premios" no podrás cambiarlos.</strong></p>
-            <h2>4. Pestañas de información</h2>
-            <ul>
-                <li><strong>Dashboard:</strong> resumen con estadísticas.</li>
-                <li><strong>Partidos:</strong> calendario completo con fechas y sedes.</li>
-                <li><strong>Grupos:</strong> clasificación actualizada.</li>
-                <li><strong>Eliminatorias:</strong> cuadro visual cuando esté disponible.</li>
-                <li><strong>Clasificación:</strong> puntos de todos los participantes.</li>
-                <li><strong>Mi Puntuación:</strong> desglose detallado de puntos.</li>
-            </ul>
+            <p>En la misma pestaña puedes escribir el nombre del ganador de la Bota de Oro, el Balón de Oro y seleccionar el Campeón del Mundo. <strong>Una vez que pulses "Guardar y bloquear premios" no podrás cambiarlos.</strong></p>
+            <h2>4. Consultar otros pronósticos</h2>
+            <p>En <strong>Mi Puntuación</strong>, al seleccionar un jugador, verás no solo sus puntos sino también sus pronósticos completos (solo lectura).</p>
         </div>
     </div>
     <div id="tab-admin" class="tab-content">
@@ -274,8 +268,6 @@
     </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
     // ==================== API REST DE FIRESTORE ====================
     const API_KEY = "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU";
@@ -350,9 +342,10 @@
     let predictions = {};
     let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
     let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
-    let currentPlayer = localStorage.getItem('currentPlayer_wc26_v3') || '';
+    let currentPlayer = '';  // Solo se asigna tras login exitoso
+    let sessionValid = false;
     let adminLogged = false;
-    let selectedPointsPlayer = currentPlayer;
+    let selectedPointsPlayer = '';
     let accessCodes = [];
     let dataLoaded = false;
 
@@ -545,6 +538,7 @@
         const sel = document.getElementById('points-player-select');
         if (sel) sel.value = name;
         renderPointsDetail();
+        renderPlayerPicks(name);   // NUEVO: mostrar pronósticos del jugador seleccionado
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         const btn = document.querySelector('[data-tab="mypoints"]');
         if (btn) btn.classList.add('active');
@@ -675,7 +669,7 @@
 
     function renderSpecialPicks() {
         const panel = document.getElementById('special-picks-panel');
-        if (!currentPlayer) { if (panel) panel.style.display = 'none'; return; }
+        if (!currentPlayer || !sessionValid) { if (panel) panel.style.display = 'none'; return; }
         panel.style.display = 'block';
         const preds = predictions[currentPlayer] || {};
         const locked = preds._picksLocked === true;
@@ -766,7 +760,7 @@
         container.innerHTML = html;
     }
     function renderMyPool() {
-        if (!currentPlayer) {
+        if (!currentPlayer || !sessionValid) {
             document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Inicia sesión para ver tu porra.</p>';
             document.getElementById('pool-actions').style.display = 'none';
             document.getElementById('special-picks-panel').style.display = 'none';
@@ -823,6 +817,35 @@
         else { html += '<table><tr><th>Evento</th><th>Detalle</th><th>Puntos</th></tr>'; det.details.forEach(d => { html += `<tr><td>${d.type}</td><td>${d.match || d.team || d.name}</td><td class="pts-highlight">+${d.points}</td></tr>`; }); html += '</table>'; }
         const detail = document.getElementById('points-detail'); if (detail) detail.innerHTML = html;
     }
+    // NUEVA FUNCIÓN: mostrar pronósticos de otro jugador
+    function renderPlayerPicks(playerName) {
+        const container = document.getElementById('player-picks-view');
+        if (!container || !playerName || !predictions[playerName]) {
+            if (container) container.innerHTML = '';
+            return;
+        }
+        const preds = predictions[playerName];
+        let html = `<h3>Pronósticos de ${playerName}</h3>`;
+        html += '<h4>Fase de grupos</h4><table><tr><th>Ronda</th><th>Partido</th><th>Pronóstico</th></tr>';
+        matches.filter(m => m.group !== 'KO').forEach(m => {
+            const p = preds[m.id] || {};
+            html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td>${p.home||'-'} - ${p.away||'-'}</td></tr>`;
+        });
+        html += '</table><h4>Eliminatorias</h4>';
+        const koMatches = matches.filter(m => m.group === 'KO');
+        ['Dieciseisavos','Octavos','Cuartos','Semifinales','3er Puesto','Final'].forEach(round => {
+            const roundMatches = koMatches.filter(m => m.round === round);
+            if (roundMatches.length === 0) return;
+            html += `<div class="group-header">🏟️ ${round}</div>`;
+            roundMatches.forEach(m => {
+                const p = preds[m.id] || {};
+                const homeTeam = p.homeTeam || m.home;
+                const awayTeam = p.awayTeam || m.away;
+                html += `<div style="padding:2px 0;font-size:0.8rem;">${homeTeam} vs ${awayTeam} → ${p.homeScore||'-'} - ${p.awayScore||'-'}</div>`;
+            });
+        });
+        container.innerHTML = html;
+    }
     function updateBotaBalonSuggestions() {
         const botaList = document.getElementById('bota-suggestions'); const balonList = document.getElementById('balon-suggestions');
         if (!botaList || !balonList) return;
@@ -876,7 +899,6 @@
         if (!codeDoc || codeDoc.usedBy === undefined) throw new Error('Código de acceso inválido.');
         if (codeDoc.usedBy && codeDoc.usedBy !== name) throw new Error('Ese código ya ha sido usado por otro participante.');
         if (!codeDoc.usedBy) await setDoc(`accessCodes/${code}`, { usedBy: name });
-        // Verificar si el usuario ya tiene predicciones
         const existingPreds = await getDoc(`predictions/${name}`);
         if (!existingPreds) {
             await guardarPrediccion(name, {});
@@ -885,12 +907,9 @@
     }
 
     async function changePassword(name, oldCode, newCode) {
-        // Verificar código antiguo
         const oldDoc = await getDoc(`accessCodes/${oldCode}`);
         if (!oldDoc || oldDoc.usedBy !== name) throw new Error('Contraseña actual incorrecta.');
-        // Marcar nuevo código
         await setDoc(`accessCodes/${newCode}`, { usedBy: name });
-        // Liberar el antiguo
         await setDoc(`accessCodes/${oldCode}`, { usedBy: null });
         return true;
     }
@@ -898,6 +917,13 @@
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
+
+        // Limpiar sesión al cargar (obligar a loguearse de nuevo)
+        currentPlayer = '';
+        sessionValid = false;
+        document.getElementById('pool-actions').style.display = 'none';
+        document.getElementById('special-picks-panel').style.display = 'none';
+        document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Inicia sesión para ver tu porra.</p>';
 
         // Autocompletar nombre si existe en localStorage
         const savedName = localStorage.getItem('currentPlayer_wc26_v3');
@@ -913,7 +939,7 @@
             const tab = document.getElementById('tab-'+btn.dataset.tab);
             if (tab) tab.classList.add('active');
             renderAllTabs();
-            if (btn.dataset.tab === 'mypoints') renderPointsDetail();
+            if (btn.dataset.tab === 'mypoints') { renderPointsDetail(); renderPlayerPicks(selectedPointsPlayer); }
             if (btn.dataset.tab === 'admin') renderAdmin();
         }));
 
@@ -925,6 +951,7 @@
             try {
                 await loginUser(name, code);
                 currentPlayer = name;
+                sessionValid = true;
                 localStorage.setItem('currentPlayer_wc26_v3', name);
                 await refreshAllData();
                 renderMyPool();
@@ -953,7 +980,7 @@
 
         // GUARDAR PREDICCIONES
         document.getElementById('save-picks-btn').addEventListener('click', async () => {
-            if (!currentPlayer) return alert('Debes iniciar sesión.');
+            if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             const preds = predictions[currentPlayer] || {};
             matches.forEach(m => {
                 const h = document.getElementById('ph-'+m.id), a = document.getElementById('pa-'+m.id);
@@ -974,7 +1001,7 @@
 
         // GENERAR KO OFICIAL
         document.getElementById('generate-ko-btn').addEventListener('click', async () => {
-            if (!currentPlayer) return;
+            if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             let preds = predictions[currentPlayer] || {};
             preds = autoFillKO({...preds}, true);
             predictions[currentPlayer] = preds;
@@ -985,7 +1012,7 @@
 
         // GUARDAR PREMIOS
         document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
-            if (!currentPlayer) return alert('Debes iniciar sesión.');
+            if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
             this.disabled = true;
             predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
