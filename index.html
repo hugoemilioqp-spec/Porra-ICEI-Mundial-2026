@@ -195,7 +195,7 @@
             <select id="points-player-select" style="max-width:250px;"></select>
         </div>
         <div class="panel" id="points-detail"></div>
-        <div class="panel mt-2" id="player-picks-view"></div>  <!-- NUEVO: pronósticos ajenos -->
+        <div class="panel mt-2" id="player-picks-view"></div>
     </div>
     <div id="tab-rules" class="tab-content">
         <h1>📖 Reglas</h1>
@@ -216,13 +216,59 @@
         <h1>📘 Instrucciones completas</h1>
         <div class="panel">
             <h2>1. Cómo participar</h2>
-            <p>Para unirte a la porra necesitas un <strong>código de acceso</strong> que te facilitará el administrador. Ve a <strong>Mi Porra</strong>, escribe un <strong>nombre único</strong> y en "Contraseña" introduce el código. Pulsa <strong>Acceder</strong>.</p>
-            <h2>2. Hacer pronósticos</h2>
-            <p>En <strong>Mi Porra</strong> verás los 104 partidos. Para cada partido de la fase de grupos escribe el marcador exacto. Los partidos de eliminatorias se mostrarán automáticamente según tus pronósticos. Cuando el administrador introduzca resultados oficiales, podrás generar los cruces reales.</p>
+            <p>Para unirte a la porra necesitas un <strong>código de acceso</strong> que te facilitará el administrador. Ve a <strong>Mi Porra</strong>, escribe un <strong>nombre único</strong> (sin espacios, como un apodo) y en el campo "Contraseña" introduce el código. Pulsa <strong>Acceder</strong>. A partir de ese momento podrás hacer tus pronósticos.</p>
+            <p><strong>Nota:</strong> El código es personal e intransferible. Una vez usado, queda asociado a tu nombre.</p>
+
+            <h2>2. Hacer pronósticos de partidos</h2>
+            <p>Dentro de <strong>Mi Porra</strong> verás los <strong>104 partidos</strong> del Mundial, ordenados por fecha y fase. La página está dividida en dos secciones:</p>
+            <ul>
+                <li><strong>Fase de grupos:</strong> Debes escribir el marcador exacto (goles del equipo local y visitante) que crees que ocurrirá en cada uno de los 72 partidos de grupo.</li>
+                <li><strong>Proyección de eliminatorias:</strong> Los cruces de Dieciseisavos, Octavos, etc., se rellenan automáticamente según tus propios resultados de grupo. Podrás ver cómo quedaría el cuadro, pero <strong>no podrás introducir marcadores de eliminatorias</strong> hasta que el administrador haya publicado los resultados oficiales de la fase de grupos.</li>
+            </ul>
+            <p><strong>Importante:</strong> Puedes modificar tus pronósticos tantas veces como quieras mientras el partido no haya comenzado. Una vez que el partido alcanza su hora de inicio (o el administrador introduce un resultado oficial), los campos se bloquean automáticamente y ya no podrás cambiarlos.</p>
+
             <h2>3. Premios especiales</h2>
-            <p>En la misma pestaña puedes escribir el nombre del ganador de la Bota de Oro, el Balón de Oro y seleccionar el Campeón del Mundo. <strong>Una vez que pulses "Guardar y bloquear premios" no podrás cambiarlos.</strong></p>
-            <h2>4. Consultar otros pronósticos</h2>
-            <p>En <strong>Mi Puntuación</strong>, al seleccionar un jugador, verás no solo sus puntos sino también sus pronósticos completos (solo lectura).</p>
+            <p>Debajo de la tabla de partidos encontrarás la sección <strong>⭐ Premios del Mundial</strong>. Aquí puedes:</p>
+            <ul>
+                <li>Escribir el nombre del jugador que crees que ganará la <strong>Bota de Oro</strong> (máximo goleador).</li>
+                <li>Escribir el nombre del jugador que crees que ganará el <strong>Balón de Oro</strong> (mejor jugador).</li>
+                <li>Seleccionar de la lista el <strong>Campeón del Mundo</strong>.</li>
+            </ul>
+            <p><strong>¡Atención!</strong> Una vez que pulses el botón <strong>"Guardar y bloquear premios"</strong>, estas selecciones quedarán fijadas y no podrás modificarlas. Asegúrate de estar seguro antes de pulsarlo.</p>
+
+            <h2>4. Pestañas de información</h2>
+            <ul>
+                <li><strong>Dashboard:</strong> Resumen con el número total de partidos, partidos jugados, número de participantes y los próximos encuentros.</li>
+                <li><strong>Partidos:</strong> Calendario completo con fechas, horas y sedes de los 104 partidos. Los resultados reales aparecerán cuando el administrador los introduzca.</li>
+                <li><strong>Grupos:</strong> Clasificación de los 12 grupos según los resultados oficiales.</li>
+                <li><strong>Eliminatorias:</strong> Cuadro visual de las eliminatorias (se activa cuando termina la fase de grupos).</li>
+                <li><strong>Clasificación:</strong> Tabla general con los puntos de todos los participantes. Haz clic en un jugador para ver su puntuación detallada y sus pronósticos.</li>
+                <li><strong>Mi Puntuación:</strong> Selecciona un jugador para ver el desglose exacto de cómo ha obtenido sus puntos (partido a partido, clasificados, premios) y también sus pronósticos completos en modo lectura.</li>
+            </ul>
+
+            <h2>5. Reglas de puntuación</h2>
+            <ul>
+                <li><strong>Signo (1X2):</strong> 10 puntos si aciertas quién gana o si hay empate (no hace falta acertar los goles).</li>
+                <li><strong>Resultado exacto:</strong> 25 puntos si aciertas el marcador exacto.</li>
+                <li><strong>Clasificado a dieciseisavos:</strong> 5 puntos por cada equipo que aciertes que pasa a la siguiente ronda (máximo 120 puntos).</li>
+                <li><strong>Bota de Oro:</strong> 30 puntos si aciertas el máximo goleador.</li>
+                <li><strong>Balón de Oro:</strong> 30 puntos si aciertas el mejor jugador.</li>
+                <li><strong>Campeón del Mundo:</strong> 50 puntos si aciertas el equipo ganador.</li>
+            </ul>
+            <p>No se otorgan puntos por diferencia de goles. Los puntos solo se calculan cuando el administrador introduce los resultados oficiales. Si un partido aún no tiene resultado, no suma ni resta puntos.</p>
+
+            <h2>6. Cambio de contraseña</h2>
+            <p>En la misma pestaña <strong>Mi Porra</strong>, una vez que hayas iniciado sesión, puedes cambiar tu contraseña (código de acceso). Escribe tu contraseña actual, la nueva y pulsa <strong>Cambiar contraseña</strong>.</p>
+
+            <h2>7. Fechas clave</h2>
+            <ul>
+                <li>La fase de grupos termina el <strong>26 de junio de 2026</strong>.</li>
+                <li>Los dieciseisavos empiezan el <strong>28 de junio de 2026</strong>.</li>
+                <li>La final se juega el <strong>19 de julio de 2026</strong> en el MetLife Stadium de Nueva York/NJ.</li>
+            </ul>
+
+            <h2>8. Consejos</h2>
+            <p>Puedes modificar tus pronósticos en cualquier momento antes del inicio de cada partido. Si ves un partido con los campos en gris, significa que ya ha comenzado o que el administrador ha fijado un resultado oficial. ¡Suerte y que gane el mejor!</p>
         </div>
     </div>
     <div id="tab-admin" class="tab-content">
@@ -283,6 +329,33 @@
         return response.json();
     }
 
+    // Función auxiliar para extraer el valor real de un campo de Firestore (soporta anidamiento)
+    function extractValue(field) {
+        if (!field || typeof field !== 'object') return field;
+        // Si es un valor primitivo (stringValue, integerValue, etc.)
+        const keys = Object.keys(field);
+        if (keys.length === 1 && ['stringValue','integerValue','booleanValue','nullValue','doubleValue','timestampValue'].includes(keys[0])) {
+            const val = field[keys[0]];
+            if (keys[0] === 'nullValue') return null;
+            if (keys[0] === 'integerValue') return String(val); // devolver como cadena para homogeneizar
+            return val;
+        }
+        // Si es un mapValue (objeto anidado)
+        if (field.mapValue && field.mapValue.fields) {
+            const obj = {};
+            for (const [k, v] of Object.entries(field.mapValue.fields)) {
+                obj[k] = extractValue(v);
+            }
+            return obj;
+        }
+        // arrayValue (no usado por ahora)
+        if (field.arrayValue && field.arrayValue.values) {
+            return field.arrayValue.values.map(v => extractValue(v));
+        }
+        // Fallback: devolver el propio campo
+        return field;
+    }
+
     async function getDocs(collection, pageSize = 200) {
         const data = await firestoreRequest('GET', collection + `?pageSize=${pageSize}`);
         const docs = [];
@@ -291,7 +364,9 @@
                 const id = doc.name.split('/').pop();
                 const fields = doc.fields || {};
                 const obj = { id };
-                for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
+                for (const [key, value] of Object.entries(fields)) {
+                    obj[key] = extractValue(value);
+                }
                 docs.push(obj);
             }
         }
@@ -303,7 +378,9 @@
             const data = await firestoreRequest('GET', path);
             const fields = data.fields || {};
             const obj = {};
-            for (const [key, value] of Object.entries(fields)) obj[key] = Object.values(value)[0];
+            for (const [key, value] of Object.entries(fields)) {
+                obj[key] = extractValue(value);
+            }
             return obj;
         } catch (err) {
             if (err.message.includes('404')) return null;
@@ -315,11 +392,27 @@
         const fields = {};
         for (const [key, value] of Object.entries(data)) {
             let firestoreValue;
-            if (value === null || value === undefined) firestoreValue = { nullValue: null };
-            else if (typeof value === 'string') firestoreValue = { stringValue: value };
-            else if (typeof value === 'number') firestoreValue = { integerValue: value };
-            else if (typeof value === 'boolean') firestoreValue = { booleanValue: value };
-            else firestoreValue = { stringValue: String(value) };
+            if (value === null || value === undefined) {
+                firestoreValue = { nullValue: null };
+            } else if (typeof value === 'string') {
+                firestoreValue = { stringValue: value };
+            } else if (typeof value === 'number') {
+                firestoreValue = { integerValue: value };
+            } else if (typeof value === 'boolean') {
+                firestoreValue = { booleanValue: value };
+            } else if (typeof value === 'object') {
+                // Para objetos anidados (como predicciones de partidos)
+                const mapFields = {};
+                for (const [k, v] of Object.entries(value)) {
+                    if (v === null || v === undefined) mapFields[k] = { nullValue: null };
+                    else if (typeof v === 'string') mapFields[k] = { stringValue: v };
+                    else if (typeof v === 'number') mapFields[k] = { integerValue: v };
+                    else mapFields[k] = { stringValue: String(v) };
+                }
+                firestoreValue = { mapValue: { fields: mapFields } };
+            } else {
+                firestoreValue = { stringValue: String(value) };
+            }
             fields[key] = firestoreValue;
         }
         await firestoreRequest('PATCH', path, { fields });
@@ -342,7 +435,7 @@
     let predictions = {};
     let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
     let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
-    let currentPlayer = '';  // Solo se asigna tras login exitoso
+    let currentPlayer = '';
     let sessionValid = false;
     let adminLogged = false;
     let selectedPointsPlayer = '';
@@ -427,24 +520,7 @@
             predictions = {};
             for (const doc of predsDocs) {
                 const player = doc.id;
-                predictions[player] = {};
-                for (const [key, value] of Object.entries(doc)) {
-                    if (key === 'id') continue;
-                    if (!isNaN(parseInt(key))) {
-                        const matchId = parseInt(key);
-                        if (typeof value === 'object' && value !== null) {
-                            predictions[player][matchId] = {};
-                            if (value.home !== undefined) predictions[player][matchId].home = String(value.home);
-                            if (value.away !== undefined) predictions[player][matchId].away = String(value.away);
-                            if (value.homeTeam !== undefined) predictions[player][matchId].homeTeam = String(value.homeTeam);
-                            if (value.awayTeam !== undefined) predictions[player][matchId].awayTeam = String(value.awayTeam);
-                            if (value.homeScore !== undefined) predictions[player][matchId].homeScore = String(value.homeScore);
-                            if (value.awayScore !== undefined) predictions[player][matchId].awayScore = String(value.awayScore);
-                        }
-                    } else {
-                        predictions[player][key] = value;
-                    }
-                }
+                predictions[player] = doc; // getDocs ya devuelve los campos correctos
             }
             pointsConfig = (await getDoc('config/points')) || pointsConfig;
             actualWinners = (await getDoc('config/winners')) || actualWinners;
@@ -538,7 +614,7 @@
         const sel = document.getElementById('points-player-select');
         if (sel) sel.value = name;
         renderPointsDetail();
-        renderPlayerPicks(name);   // NUEVO: mostrar pronósticos del jugador seleccionado
+        renderPlayerPicks(name);
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         const btn = document.querySelector('[data-tab="mypoints"]');
         if (btn) btn.classList.add('active');
@@ -817,7 +893,6 @@
         else { html += '<table><tr><th>Evento</th><th>Detalle</th><th>Puntos</th></tr>'; det.details.forEach(d => { html += `<tr><td>${d.type}</td><td>${d.match || d.team || d.name}</td><td class="pts-highlight">+${d.points}</td></tr>`; }); html += '</table>'; }
         const detail = document.getElementById('points-detail'); if (detail) detail.innerHTML = html;
     }
-    // NUEVA FUNCIÓN: mostrar pronósticos de otro jugador
     function renderPlayerPicks(playerName) {
         const container = document.getElementById('player-picks-view');
         if (!container || !playerName || !predictions[playerName]) {
@@ -918,14 +993,12 @@
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
 
-        // Limpiar sesión al cargar (obligar a loguearse de nuevo)
         currentPlayer = '';
         sessionValid = false;
         document.getElementById('pool-actions').style.display = 'none';
         document.getElementById('special-picks-panel').style.display = 'none';
         document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Inicia sesión para ver tu porra.</p>';
 
-        // Autocompletar nombre si existe en localStorage
         const savedName = localStorage.getItem('currentPlayer_wc26_v3');
         if (savedName) {
             const playerNameInput = document.getElementById('player-name');
@@ -943,7 +1016,6 @@
             if (btn.dataset.tab === 'admin') renderAdmin();
         }));
 
-        // LOGIN USUARIO
         document.getElementById('login-btn-user').addEventListener('click', async () => {
             const name = document.getElementById('player-name').value.trim();
             const code = document.getElementById('access-code').value.trim();
@@ -962,7 +1034,6 @@
             }
         });
 
-        // CAMBIAR CONTRASEÑA
         document.getElementById('change-pwd-btn').addEventListener('click', async () => {
             if (!currentPlayer) return alert('Debes iniciar sesión primero.');
             const oldCode = document.getElementById('access-code').value.trim();
@@ -978,7 +1049,6 @@
             }
         });
 
-        // GUARDAR PREDICCIONES
         document.getElementById('save-picks-btn').addEventListener('click', async () => {
             if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             const preds = predictions[currentPlayer] || {};
@@ -999,7 +1069,6 @@
             showToast('Pronósticos guardados');
         });
 
-        // GENERAR KO OFICIAL
         document.getElementById('generate-ko-btn').addEventListener('click', async () => {
             if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             let preds = predictions[currentPlayer] || {};
@@ -1010,7 +1079,6 @@
             showToast('Eliminatorias oficiales generadas.');
         });
 
-        // GUARDAR PREMIOS
         document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
             if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
@@ -1029,7 +1097,6 @@
             }
         });
 
-        // ADMIN
         document.getElementById('login-btn-admin').addEventListener('click', () => {
             if (document.getElementById('admin-pass').value === 'admin2026') {
                 adminLogged = true;
@@ -1103,7 +1170,6 @@
             } catch (err) { alert('Error: ' + err.message); }
         });
 
-        // Selectores de campeón
         const champ = document.getElementById('champion-pick');
         const realChamp = document.getElementById('real-champion');
         if (champ && realChamp) {
