@@ -498,16 +498,27 @@
     async function refreshAllData() {
         try {
             const matchesDocs = await getDocs('matches', 200);
+            console.log('Documentos obtenidos de matches:', matchesDocs.length);
             if (matchesDocs.length > 0) {
-                matches = matchesDocs.map(doc => ({
-                    id: parseInt(doc.id), group: doc.group, home: doc.home, away: doc.away,
-                    date: doc.date, venue: doc.venue, round: doc.round,
+            matches = matchesDocs.map(doc => {
+                console.log('Procesando doc', doc.id, doc);
+                return {
+                    id: parseInt(doc.id),
+                    group: doc.group,
+                    home: doc.home,
+                    away: doc.away,
+                    date: doc.date,
+                    venue: doc.venue,
+                    round: doc.round,
                     homeScore: doc.homeScore != null ? parseInt(doc.homeScore) : null,
                     awayScore: doc.awayScore != null ? parseInt(doc.awayScore) : null
-                }));
+                };
+            });
                 matches.sort((a,b)=>a.id-b.id);
+                console.log('Matches final:', matches.length);
             } else {
                 matches = [...DEFAULT_MATCHES];
+                console.log('Usando DEFAULT_MATCHES');
             }
             const predsDocs = await getDocs('predictions', 200);
             predictions = {};
@@ -525,6 +536,7 @@
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
         } catch (err) {
             console.error(err);
+            console.error('Error en refreshAllData:', err);
             const el = document.getElementById('matches-full-list');
             if (el) el.innerHTML = `<p class="text-muted">Error al cargar datos: ${err.message}</p>`;
         }
