@@ -805,37 +805,48 @@
         upcoming.forEach(m => { const d = new Date(m.date); const ds = isNaN(d) ? '??' : d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}); html += `<tr><td>${ds}</td><td>${m.group==='KO'?m.round:'J'+m.round}</td><td>${m.home} vs ${m.away}</td><td class="venue-info">${m.venue||''}</td></tr>`; });
         const el = document.getElementById('upcoming-matches'); if (el) el.innerHTML = html+'</table>';
     }
-    function renderMatchesFull() {
-        let html = '';
-        const groups = Object.keys(GROUPS);
-        groups.forEach(g => {
-            html += `<div class="group-header">🔹 Grupo ${g}</div>`;
-            for (let r = 1; r <= 3; r++) {
-                const roundMatches = matches.filter(m => m.group === g && m.round === r);
-                if (roundMatches.length === 0) continue;
-                html += `<div style="font-weight:600;color:var(--gold-light);margin-top:4px;">Jornada ${r}</div>`;
-                roundMatches.forEach(m => {
-                    const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
-                    html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${m.home} vs ${m.away}</span><span class="score-display">${sc}</span><span class="venue-info">${m.venue||''}</span></div>`;
-                });
-            }
-        });
-        html += `<div class="group-header" style="border-left:3px solid var(--rose);">🏟️ Eliminatorias</div>`;
-        const koMatches = matches.filter(m => m.group === 'KO');
-        koMatches.forEach(m => {
-            const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
-            html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${m.home} vs ${m.away}</span><span class="score-display">${sc}</span><span class="venue-info">${m.venue||''}</span></div>`;
-        });
-        console.log('matches-full-list HTML generado, length:', html.length);
+function renderMatchesFull() {
+    let html = '';
+    const groups = Object.keys(GROUPS);
+    groups.forEach(g => {
+        html += `<div class="group-header">🔹 Grupo ${g}</div>`;
+        for (let r = 1; r <= 3; r++) {
+            const roundMatches = matches.filter(m => m.group === g && m.round === r);
+            if (roundMatches.length === 0) continue;
+            html += `<div style="font-weight:600;color:var(--gold-light);margin-top:4px;">Jornada ${r}</div>`;
+            roundMatches.forEach(m => {
+                const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
+                html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;">
+                    <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+                    <span>${m.home} vs ${m.away}</span>
+                    <span class="score-display">${sc}</span>
+                    <span class="venue-info">${m.venue||''}</span>
+                </div>`;
+            });
+        }
+    });
+    html += `<div class="group-header" style="border-left:3px solid var(--rose);">🏟️ Eliminatorias</div>`;
+    const koMatches = matches.filter(m => m.group === 'KO');
+    koMatches.forEach(m => {
+        const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
+        html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;">
+            <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+            <span>${m.home} vs ${m.away}</span>
+            <span class="score-display">${sc}</span>
+            <span class="venue-info">${m.venue||''}</span>
+        </div>`;
+    });
+
+    setTimeout(() => {
         const el = document.getElementById('matches-full-list');
-        console.log('Elemento matches-full-list:', el);
         if (el) {
-                el.innerHTML = html;
-                console.log('HTML asignado correctamente');
-                } else {
-            console.error('No se encontró matches-full-list');
-            }
-    }
+            el.innerHTML = html;
+            el.style.display = 'block';
+            el.style.visibility = 'visible';
+            console.log('Partidos renderizados correctamente');
+        }
+    }, 0);
+}
     function renderGroups() {
         let html = '';
         for (const [g, teams] of Object.entries(GROUPS)) {
@@ -1047,6 +1058,11 @@
     }
             if (btn.dataset.tab === 'mypoints') { renderPointsDetail(); renderPlayerPicks(selectedPointsPlayer); }
             if (btn.dataset.tab === 'admin') renderAdmin();
+            if (btn.dataset.tab === 'matches') {
+    setTimeout(() => {
+        renderMatchesFull();
+    }, 50);
+}
         }));
 
         document.getElementById('login-btn-user').addEventListener('click', async () => {
