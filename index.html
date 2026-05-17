@@ -519,7 +519,7 @@
             const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
             dataLoaded = true;
-            renderAllPanels();    // <-- NUEVO: renderiza todas las pestañas
+            renderAllPanels();
             updateGenerateKOButton();
             updateBotaBalonSuggestions();
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
@@ -528,6 +528,18 @@
             const el = document.getElementById('matches-full-list');
             if (el) el.innerHTML = `<p class="text-muted">Error al cargar datos: ${err.message}</p>`;
         }
+    }
+
+    function renderAllPanels() {
+        renderDashboard();
+        renderMatchesFull();
+        renderGroups();
+        renderBracket();
+        renderMyPool();
+        renderStandings();
+        renderPointsDetail();
+        renderRules();
+        // Admin no se fuerza
     }
 
     async function initDB() {
@@ -945,13 +957,7 @@
         document.getElementById('real-champion').value = actualWinners.champion || '';
         renderAccessCodes(); renderPlayersList();
     }
-    function renderAllTabs() {
-        const active = document.querySelector('.tab-content.active');
-        if (!active) return;
-        const id = active.id.replace('tab-','');
-        const fns = { dashboard: renderDashboard, matches: renderMatchesFull, groups: renderGroups, bracket: renderBracket, mypool: renderMyPool, standings: renderStandings, mypoints: renderPointsDetail, rules: renderRules, instructions:()=>{}, admin: renderAdmin };
-        if (fns[id]) fns[id]();
-    }
+
     function updateGenerateKOButton() {
         const btn = document.getElementById('generate-ko-btn');
         if (!btn) return;
@@ -1003,7 +1009,8 @@
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             const tab = document.getElementById('tab-'+btn.dataset.tab);
             if (tab) tab.classList.add('active');
-            renderAllTabs();
+            // Al cambiar de pestaña se vuelve a renderizar todo
+            renderAllPanels();
             if (btn.dataset.tab === 'mypoints') { renderPointsDetail(); renderPlayerPicks(selectedPointsPlayer); }
             if (btn.dataset.tab === 'admin') renderAdmin();
         }));
@@ -1018,8 +1025,6 @@
                 sessionValid = true;
                 localStorage.setItem('currentPlayer_wc26_v3', name);
                 await refreshAllData();
-                renderMyPool();
-                updateGenerateKOButton();
                 showToast(`Bienvenid@ ${name}!`);
             } catch (err) {
                 alert('Error: ' + err.message);
@@ -1089,6 +1094,7 @@
             }
         });
 
+        // Admin
         document.getElementById('login-btn-admin').addEventListener('click', () => {
             if (document.getElementById('admin-pass').value === 'admin2026') {
                 adminLogged = true;
@@ -1130,7 +1136,7 @@
             };
             await setDoc('config/winners', actualWinners);
             showToast('Ganadores actualizados');
-            renderAllTabs();
+            renderAllPanels();
         });
 
         document.getElementById('generate-code-btn').addEventListener('click', () => {
@@ -1162,6 +1168,7 @@
             } catch (err) { alert('Error: ' + err.message); }
         });
 
+        // Selectores de campeón
         const champ = document.getElementById('champion-pick');
         const realChamp = document.getElementById('real-champion');
         if (champ && realChamp) {
