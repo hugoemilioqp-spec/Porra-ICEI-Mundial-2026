@@ -1023,6 +1023,14 @@
             if (playerNameInput) playerNameInput.value = savedName;
         }
 
+        const refreshBtn = document.getElementById('refresh-matches-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+            refreshAllData();               // Recarga los datos desde Firestore
+            renderMatchesFull();            // Vuelve a pintar la lista
+            showToast('Lista de partidos actualizada');
+            });
+        }
         document.querySelectorAll('.sidebar-nav button').forEach(btn => btn.addEventListener('click', () => {
             document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -1031,6 +1039,12 @@
             if (tab) tab.classList.add('active');
             // Al cambiar de pestaña se vuelve a renderizar todo
             renderAllPanels();
+            if (btn.dataset.tab === 'matches') {
+                    setTimeout(() => {
+                    renderMatchesFull();
+            console.log('Renderizando Partidos tras cambio de pestaña');
+        }, 50);
+    }
             if (btn.dataset.tab === 'mypoints') { renderPointsDetail(); renderPlayerPicks(selectedPointsPlayer); }
             if (btn.dataset.tab === 'admin') renderAdmin();
         }));
