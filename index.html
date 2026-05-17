@@ -826,7 +826,15 @@
             const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
             html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${m.home} vs ${m.away}</span><span class="score-display">${sc}</span><span class="venue-info">${m.venue||''}</span></div>`;
         });
-        const el = document.getElementById('matches-full-list'); if (el) el.innerHTML = html;
+        console.log('matches-full-list HTML generado, length:', html.length);
+        const el = document.getElementById('matches-full-list');
+        console.log('Elemento matches-full-list:', el);
+        if (el) {
+                el.innerHTML = html;
+                console.log('HTML asignado correctamente');
+                } else {
+            console.error('No se encontró matches-full-list');
+            }
     }
     function renderGroups() {
         let html = '';
