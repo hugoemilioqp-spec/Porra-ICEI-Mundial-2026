@@ -346,7 +346,7 @@
     <div id="tab-admin" class="tab-content">
         <h1>🔐 Admin</h1>
         <div class="panel">
-            <input type="password" id="admin-pass" placeholder="Contraseña"><button class="btn btn-accent" id="login-btn-admin">Acceder</button>
+            <input type="password" id="admin-pass" placeholder="Contraseña"><button class="btn btn-accent" id="login-btn-admin" onclick="adminLogin()">Acceder</button>
             <div id="admin-panel" style="display:none;">
                 <h3>Resultados</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
                 <button class="btn btn-gold mt-2" id="save-results-btn">Guardar Resultados</button>
@@ -1333,6 +1333,15 @@ function renderMatchesFull() {
     await refreshAllData();   // Recargar para que se vean los cambios
     renderAllPanels();
 }
+    function adminLogin() {
+    if (document.getElementById('admin-pass').value === 'admin2026') {
+        adminLogged = true;
+        document.getElementById('admin-panel').style.display = 'block';
+        renderAdmin();
+    } else {
+        alert('Contraseña incorrecta');
+    }
+}
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
@@ -1459,14 +1468,6 @@ function renderMatchesFull() {
             }
         });
 
-        // Admin
-        document.getElementById('login-btn-admin').addEventListener('click', () => {
-            if (document.getElementById('admin-pass').value === 'admin2026') {
-                adminLogged = true;
-                document.getElementById('admin-panel').style.display = 'block';
-                renderAdmin();
-            } else alert('Contraseña incorrecta');
-        });
 
         document.getElementById('save-results-btn').addEventListener('click', () => {
             if (!adminLogged) return;
