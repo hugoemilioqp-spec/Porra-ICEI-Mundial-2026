@@ -910,11 +910,6 @@
         thirds.sort((a,b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
         return thirds.slice(0, 8);
     }
-    function getOfficialR32Mapping(bestThirds) {
-        const groups = bestThirds.map(t => t.group).sort().join('');
-        const comboMap = { 'ABCDEFGH': {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'}, 'ABCDEFGI': {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'} };
-        return comboMap[groups] || {74:'A',77:'C',79:'C',80:'E',81:'B',82:'A',85:'E',87:'D'};
-    }
 
     function autoFillKO(preds, useOfficial = false) {
         if (preds._koLocked && !useOfficial) return preds;
@@ -1404,74 +1399,73 @@ koMatches.forEach(m => {
     }
     }
     async function generateOfficialRoundOf32() {
-    // Verificar sesión de administrador
-    if (!adminLogged) {
-        alert('Debes iniciar sesión como administrador.');
-        return;
-    }
-    // Verificar que todos los partidos de grupo tengan resultado
+    if (!adminLogged) return alert('Debes iniciar sesión como administrador.');
     if (!allGroupMatchesPlayed(matches)) {
-        alert('Aún no se han completado todos los partidos de la fase de grupos.');
-        return;
+        return alert('Aún no se han completado todos los partidos de la fase de grupos.');
     }
 
-    // Obtener clasificados reales (basados en resultados oficiales)
+    // 1. Clasificación oficial de cada grupo (1º, 2º, 3º)
     const qual = {};
     for (const g of Object.keys(GROUPS)) {
         const st = getGroupStandings(matches, g);
         qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
     }
-    const bestThirds = getBestThirds(matches);
-    const thirdMap = getOfficialR32Mapping(bestThirds);
-    const usedThirds = new Set(); // Para no repetir terceros
-const getThird = (keys) => {
-    for (const k of keys) {
-        const found = bestThirds.find(t => t.group === k && !usedThirds.has(t.team));
-        if (found) {
-            usedThirds.add(found.team);
-            return found.team;
-        }
-    }
-    // Si ya se usaron todos los posibles, devolvemos 'Por definir'
-    return 'Por definir';
-};
 
-const r32 = {
-    73: [qual.A[1], qual.B[1]],
-    74: [qual.E[0], getThird((thirdMap[74] || 'A').split(''))],
-    75: [qual.F[0], qual.C[1]],
-    76: [qual.C[0], qual.F[1]],
-    77: [qual.I[0], getThird((thirdMap[77] || 'C').split(''))],
-    78: [qual.E[1], qual.I[1]],
-    79: [qual.A[0], getThird((thirdMap[79] || 'C').split(''))],
-    80: [qual.L[0], getThird((thirdMap[80] || 'E').split(''))],
-    81: [qual.D[0], getThird((thirdMap[81] || 'B').split(''))],
-    82: [qual.G[0], getThird((thirdMap[82] || 'A').split(''))],
-    83: [qual.K[1], qual.L[1]],
-    84: [qual.H[0], qual.J[1]],
-    85: [qual.B[0], getThird((thirdMap[85] || 'E').split(''))],
-    86: [qual.J[0], qual.H[1]],
-    87: [qual.K[0], getThird((thirdMap[87] || 'D').split(''))],
-    88: [qual.D[1], qual.G[1]]
-};
-    // Actualizar documentos en Firestore
-    console.log('Generando Dieciseisavos...', r32);
-        for (const [id, teams] of Object.entries(r32)) {
+    // 2. Mejores 8 terceros, ya ordenados por puntos/goles
+    const bestThirds = getBestThirds(matches).slice(0, 8);
+
+    // 3. Ordenar los 8 terceros alfabéticamente por grupo (regla oficial)
+    const sortedThirds = [...bestThirds].sort((a, b) => a.group.localeCompare(b.group));
+    // 4. Asignar en orden fijo a los partidos que llevan tercero
+    const thirdSlots = [74, 77, 79, 80, 81, 82, 85, 87];  // orden obligatorio
+
+    // 5. Emparejamientos fijos (el resto no lleva tercero)
+    const r32 = {
+        73: [qual.A[1], qual.B[1]],
+        75: [qual.F[0], qual.C[1]],
+        76: [qual.C[0], qual.F[1]],
+        78: [qual.E[1], qual.I[1]],
+        83: [qual.K[1], qual.L[1]],
+        84: [qual.H[0], qual.J[1]],
+        86: [qual.J[0], qual.H[1]],
+        88: [qual.D[1], qual.G[1]]
+    };
+
+    // Insertar los terceros en sus slots
+    thirdSlots.forEach((matchId, i) => {
+        if (sortedThirds[i]) {
+            r32[matchId] = [
+                qual[Object.keys(GROUPS)[Object.keys(GROUPS).indexOf(
+                    matchId === 74 ? 'E' : matchId === 77 ? 'I' : matchId === 79 ? 'A' :
+                    matchId === 80 ? 'L' : matchId === 81 ? 'D' : matchId === 82 ? 'G' :
+                    matchId === 85 ? 'B' : 'K'
+                )]][0],
+                sortedThirds[i].team
+            ];
+        } else {
+            r32[matchId] = [null, 'Por definir'];  // no debería ocurrir si hay 8 terceros
+        }
+    });
+
+    // 6. Guardar en Firestore los 16 partidos de Dieciseisavos
+    for (const [id, teams] of Object.entries(r32)) {
+        const baseMatch = matches.find(m => m.id == id);
         await setDoc(`matches/${id}`, {
             group: 'KO',
             round: 'Dieciseisavos',
             home: teams[0],
             away: teams[1],
-            date: matches.find(m => m.id == id).date,   // mantener la fecha existente
-            venue: matches.find(m => m.id == id).venue,
+            date: baseMatch?.date ?? '2026-06-28',
+            venue: baseMatch?.venue ?? '',
             homeScore: null,
             awayScore: null
         });
     }
+
     showToast('Dieciseisavos generados correctamente.');
-    await refreshAllData();   // Recargar para que se vean los cambios
+    await refreshAllData();
     renderAllPanels();
-        if (adminLogged) renderAdmin();
+    if (adminLogged) renderAdmin();
 }
     function adminLogin() {
     if (document.getElementById('admin-pass').value === 'admin2026') {
