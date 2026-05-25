@@ -650,7 +650,7 @@
             renderAllPanels();
             updateGenerateKOButton();
             updateBotaBalonSuggestions();
-            if (adminLogged) { renderAccessCodes(); renderPlayersList(); }
+            if (adminLogged) { renderAccessCodes(); renderPlayersList(); renderAdmin();}
         } catch (err) {
             console.error(err);
             console.error('Error en refreshAllData:', err);
@@ -1090,18 +1090,23 @@ function renderMatchesFull() {
             html += `<div class="group-header">🏟️ ${round}</div>`;
             roundMatches.forEach(m => {
                 const p = preds[m.id] || {};
-                const homeTeam = m.home;   // Ya vienen de Firestore (pueden ser "Por definir" si aún no se generaron)
+                const homeTeam = m.home;   // Ya vienen de Firestore
                 const awayTeam = m.away;
                 const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
-                html += `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;">
-                    <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
-                    <span>${homeTeam} ${score} ${awayTeam}</span>`;
-                // Mostrar inputs SOLO si los equipos están definidos (no son "Por definir") y el partido no ha empezado
+                html += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.8rem;">
+                    <span style="min-width:40px;">${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+                    <span style="flex:1;">${homeTeam} ${score} ${awayTeam}</span>`;
+                // Mostrar inputs SOLO si los equipos están definidos y el partido no ha empezado
                 if (homeTeam !== 'Por definir' && awayTeam !== 'Por definir') {
                     const matchDate = new Date(m.date);
                     const now = new Date();
                     const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
-                    html += `<td><input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis}></td>`;
+                    html += `<span style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-size:0.7rem;">Local:</span>
+                        <input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis}>
+                        <span style="font-size:0.7rem;">Visitante:</span>
+                        <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis}>
+                    </span>`;
                 }
                 html += '</div>';
             });
@@ -1339,6 +1344,7 @@ function renderMatchesFull() {
     showToast('Dieciseisavos generados correctamente.');
     await refreshAllData();   // Recargar para que se vean los cambios
     renderAllPanels();
+        if (adminLogged) renderAdmin();
 }
     function adminLogin() {
     if (document.getElementById('admin-pass').value === 'admin2026') {
