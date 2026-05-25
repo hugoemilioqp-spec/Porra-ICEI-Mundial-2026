@@ -929,33 +929,52 @@ function renderMatchesFull() {
         const detail = document.getElementById('points-detail'); if (detail) detail.innerHTML = html;
     }
     function renderPlayerPicks(playerName) {
-        const container = document.getElementById('player-picks-view');
-        if (!container || !playerName || !predictions[playerName]) {
-            if (container) container.innerHTML = '';
-            return;
-        }
-        const preds = predictions[playerName];
-        let html = `<h3>Pronósticos de ${playerName}</h3>`;
-        html += '<h4>Fase de grupos</h4><table><tr><th>Ronda</th><th>Partido</th><th>Pronóstico</th></tr>';
-        matches.filter(m => m.group !== 'KO').forEach(m => {
-            const p = preds[m.id] || {};
-            html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td>${p.home||'-'} - ${p.away||'-'}</td></tr>`;
-        });
-        html += '</table><h4>Eliminatorias</h4>';
-        const koMatches = matches.filter(m => m.group === 'KO');
-        ['Dieciseisavos','Octavos','Cuartos','Semifinales','3er Puesto','Final'].forEach(round => {
-            const roundMatches = koMatches.filter(m => m.round === round);
-            if (roundMatches.length === 0) return;
-            html += `<div class="group-header">🏟️ ${round}</div>`;
-            roundMatches.forEach(m => {
-                const p = preds[m.id] || {};
-                const homeTeam = p.homeTeam || m.home;
-                const awayTeam = p.awayTeam || m.away;
-                html += `<div style="padding:2px 0;font-size:0.8rem;">${homeTeam} vs ${awayTeam} → ${p.homeScore||'-'} - ${p.awayScore||'-'}</div>`;
-            });
-        });
-        container.innerHTML = html;
+    const container = document.getElementById('player-picks-view');
+    if (!container || !playerName || !predictions[playerName]) {
+        if (container) container.innerHTML = '';
+        return;
     }
+    const preds = predictions[playerName];
+    let html = `<h3>Pronósticos de ${playerName}</h3>`;
+
+    // Fase de grupos
+    html += '<h4>Fase de grupos</h4><table><tr><th>Ronda</th><th>Partido</th><th>Pronóstico</th></tr>';
+    matches.filter(m => m.group !== 'KO').forEach(m => {
+        const p = preds[m.id] || {};
+        html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td>${p.home||'-'} - ${p.away||'-'}</td></tr>`;
+    });
+    html += '</table>';
+
+    // Eliminatorias
+    html += '<h4>Eliminatorias</h4>';
+    const koMatches = matches.filter(m => m.group === 'KO');
+    ['Dieciseisavos','Octavos','Cuartos','Semifinales','3er Puesto','Final'].forEach(round => {
+        const roundMatches = koMatches.filter(m => m.round === round);
+        if (roundMatches.length === 0) return;
+        html += `<div class="group-header">🏟️ ${round}</div>`;
+        roundMatches.forEach(m => {
+            const p = preds[m.id] || {};
+            const homeTeam = p.homeTeam || m.home;
+            const awayTeam = p.awayTeam || m.away;
+            html += `<div style="padding:2px 0;font-size:0.8rem;">${homeTeam} vs ${awayTeam} → ${p.homeScore||'-'} - ${p.awayScore||'-'}</div>`;
+        });
+    });
+
+    // Premios especiales (NUEVO)
+    html += '<h4>⭐ Premios especiales</h4>';
+    const goldenBoot = preds.goldenBoot || 'Sin selección';
+    const goldenBall = preds.goldenBall || 'Sin selección';
+    const champion = preds.champion || 'Sin selección';
+    const locked = preds._picksLocked ? ' (bloqueados)' : '';
+    html += `<ul>
+        <li>Bota de Oro: <strong>${goldenBoot}</strong></li>
+        <li>Balón de Oro: <strong>${goldenBall}</strong></li>
+        <li>Campeón: <strong>${champion}</strong></li>
+    </ul>`;
+    html += `<p class="text-muted">${locked}</p>`;
+
+    container.innerHTML = html;
+}
     function updateBotaBalonSuggestions() {
         const botaList = document.getElementById('bota-suggestions'); const balonList = document.getElementById('balon-suggestions');
         if (!botaList || !balonList) return;
