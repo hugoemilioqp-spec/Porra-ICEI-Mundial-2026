@@ -685,39 +685,58 @@
     }
 
     async function saveResults() {
-    // Guardar todos los resultados (como antes)
+    // 1. Guardar todos los resultados (fase de grupos y eliminatorias)
     for (const m of matches) {
         await setDoc(`matches/${m.id}`, {
-            group: m.group, home: m.home, away: m.away, date: m.date,
-            venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
+            group: m.group,
+            home: m.home,
+            away: m.away,
+            date: m.date,
+            venue: m.venue,
+            round: m.round,
+            homeScore: m.homeScore,
+            awayScore: m.awayScore,
+            winnerTeam: m.winnerTeam || null   // guardamos también el ganador en caso de empate
         });
     }
-    // Avanzar automáticamente en eliminatorias
-    const updatedMatches = matches.filter(m => m.homeScore !== null && m.awayScore !== null && m.group === 'KO');
+
+    // 2. Avanzar automáticamente los equipos en las eliminatorias
+    const updatedMatches = matches.filter(m => 
+        m.homeScore !== null && m.awayScore !== null && m.group === 'KO'
+    );
+
     for (const m of updatedMatches) {
         const advance = KO_ADVANCE_MAP[m.id];
         if (!advance) continue;
-        const winner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : null);
-        if (!winner) continue; // empate (no debería ocurrir en KO, pero por si acaso)
+
+        // Determinar ganador (con desempate por winnerTeam si es necesario)
+        const winner = m.homeScore > m.awayScore 
+            ? m.home 
+            : (m.homeScore < m.awayScore 
+                ? m.away 
+                : (m.winnerTeam || null));
+
+        if (!winner) continue;  // empate sin ganador definido → no avanzamos todavía
+
         const nextMatch = matches.find(n => n.id === advance.nextMatch);
-        const winner = m.homeScore > m.awayScore ? m.home :
-              (m.homeScore < m.awayScore ? m.away :
-              (m.winnerTeam || null));
         if (!nextMatch) continue;
-        // Actualizar el equipo correspondiente en el siguiente partido
+
+        // Colocar al ganador en el siguiente partido
         if (advance.position === 'home') {
             nextMatch.home = winner;
         } else {
             nextMatch.away = winner;
         }
-                // Dentro de saveResults, antes de guardar cada partido:
+
+        // Si el admin seleccionó un ganador manual en caso de empate, lo guardamos
         const winnerSel = document.getElementById('rw-' + m.id);
         if (winnerSel && m.homeScore === m.awayScore) {
             m.winnerTeam = winnerSel.value || null;
         } else {
-            m.winnerTeam = null; // solo tiene sentido en empates
+            m.winnerTeam = null;
         }
-        // Guardar el cambio en Firestore
+
+        // Guardar el partido actualizado y el siguiente
         await setDoc(`matches/${advance.nextMatch}`, {
             group: 'KO',
             round: nextMatch.round,
@@ -728,15 +747,24 @@
             homeScore: nextMatch.homeScore,
             awayScore: nextMatch.awayScore
         });
+
+        // Actualizar el partido actual con su winnerTeam definitivo
         await setDoc(`matches/${m.id}`, {
-    ...
-    winnerTeam: m.winnerTeam || null
-});
+            group: m.group,
+            home: m.home,
+            away: m.away,
+            date: m.date,
+            venue: m.venue,
+            round: m.round,
+            homeScore: m.homeScore,
+            awayScore: m.awayScore,
+            winnerTeam: m.winnerTeam || null
+        });
     }
+
     await refreshAllData();
     showToast('Resultados guardados y siguientes rondas actualizadas');
 }
-
     async function guardarPrediccion(player, predData) {
         await setDoc(`predictions/${player}`, predData);
     }
