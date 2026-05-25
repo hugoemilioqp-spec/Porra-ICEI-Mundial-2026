@@ -599,6 +599,13 @@
                 predictions[doc.id] = doc;
             }
             pointsConfig = (await getDoc('config/points')) || pointsConfig;
+            // Asegurar que los valores de puntuación sean números
+            pointsConfig.sign = parseInt(pointsConfig.sign) || 10;
+            pointsConfig.exact = parseInt(pointsConfig.exact) || 25;
+            pointsConfig.qualify = parseInt(pointsConfig.qualify) || 5;
+            pointsConfig.goldenBoot = parseInt(pointsConfig.goldenBoot) || 30;
+            pointsConfig.goldenBall = parseInt(pointsConfig.goldenBall) || 30;
+            pointsConfig.champion = parseInt(pointsConfig.champion) || 50;
             actualWinners = (await getDoc('config/winners')) || actualWinners;
             const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
