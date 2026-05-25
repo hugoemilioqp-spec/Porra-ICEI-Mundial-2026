@@ -268,6 +268,7 @@
     <h1>📊 Predicciones de grupos</h1>
     <p class="subtitle">Haz clic en un grupo para ver cómo predicen los participantes</p>
     <div id="predictions-groups-container"></div>
+    <div id="best-thirds-container" class="panel mt-3"></div>
 </div>
     <div id="tab-rules" class="tab-content">
         <h1>📖 Reglas</h1>
@@ -622,7 +623,8 @@
         renderMyPool();
         renderStandings();
         renderPointsDetail();
-        renderGroupPredictions(); 
+        renderGroupPredictions();
+        renderBestThirdsPredictions();
         renderRules();
         // Admin no se fuerza
     }
@@ -1044,6 +1046,28 @@ function renderMatchesFull() {
         if (det.details.length === 0) html += '<p>Aún no hay puntos (espera a que se introduzcan resultados oficiales).</p>';
         else { html += '<table><tr><th>Evento</th><th>Detalle</th><th>Puntos</th></tr>'; det.details.forEach(d => { html += `<tr><td>${d.type}</td><td>${d.match || d.team || d.name}</td><td class="pts-highlight">+${d.points}</td></tr>`; }); html += '</table>'; }
         const detail = document.getElementById('points-detail'); if (detail) detail.innerHTML = html;
+    }
+    function renderBestThirdsPredictions() {
+    const container = document.getElementById('best-thirds-container');
+    if (!container) return;
+    let html = '<h3>🌟 Mejores terceros (según predicciones)</h3>';
+    if (Object.keys(predictions).length === 0) {
+        html += '<p class="text-muted">No hay predicciones para calcular.</p>';
+        container.innerHTML = html;
+        return;
+    }
+    html += '<div class="table-responsive"><table><tr><th>Usuario</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th><th>5º</th><th>6º</th><th>7º</th><th>8º</th></tr>';
+    for (const [player, preds] of Object.entries(predictions)) {
+        const simMatches = getSimMatches(preds);
+        const bestThirds = getBestThirds(simMatches);
+        html += `<tr><td>${player}</td>`;
+        for (let i = 0; i < 8; i++) {
+            html += `<td>${bestThirds[i] ? bestThirds[i].team : '-'}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table></div>';
+    container.innerHTML = html;
     }
     function renderPlayerPicks(playerName) {
     const container = document.getElementById('player-picks-view');
