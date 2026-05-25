@@ -700,12 +700,22 @@
         const winner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : null);
         if (!winner) continue; // empate (no debería ocurrir en KO, pero por si acaso)
         const nextMatch = matches.find(n => n.id === advance.nextMatch);
+        const winner = m.homeScore > m.awayScore ? m.home :
+              (m.homeScore < m.awayScore ? m.away :
+              (m.winnerTeam || null));
         if (!nextMatch) continue;
         // Actualizar el equipo correspondiente en el siguiente partido
         if (advance.position === 'home') {
             nextMatch.home = winner;
         } else {
             nextMatch.away = winner;
+        }
+                // Dentro de saveResults, antes de guardar cada partido:
+        const winnerSel = document.getElementById('rw-' + m.id);
+        if (winnerSel && m.homeScore === m.awayScore) {
+            m.winnerTeam = winnerSel.value || null;
+        } else {
+            m.winnerTeam = null; // solo tiene sentido en empates
         }
         // Guardar el cambio en Firestore
         await setDoc(`matches/${advance.nextMatch}`, {
@@ -718,6 +728,10 @@
             homeScore: nextMatch.homeScore,
             awayScore: nextMatch.awayScore
         });
+        await setDoc(`matches/${m.id}`, {
+    ...
+    winnerTeam: m.winnerTeam || null
+});
     }
     await refreshAllData();
     showToast('Resultados guardados y siguientes rondas actualizadas');
@@ -1259,8 +1273,47 @@ koMatches.forEach(m => {
     function renderAdmin() {
         if (!adminLogged) return;
         let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Resultado</th></tr>';
-        matches.forEach(m => html += `<tr><td>${m.group==='KO'?m.round:'Grupo '+m.group+' J'+m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="rh-${m.id}" value="${m.homeScore??''}" placeholder="-"> - <input class="small-input" id="ra-${m.id}" value="${m.awayScore??''}" placeholder="-"></td></tr>`);
+        matches.forEach(m => {
+            const isKO = m.group === 'KO';
+            html += `<tr><td>${isKO ? m.round : 'Grupo '+m.group+' J'+m.round}</td><td>${m.home} vs ${m.away}</td>`;
+            html += `<td style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <input class="small-input" id="rh-${m.id}" value="${m.homeScore??''}" placeholder="-">
+                <span>-</span>
+                <input class="small-input" id="ra-${m.id}" value="${m.awayScore??''}" placeholder="-">`;
+            if (isKO) {
+                html += `<select id="rw-${m.id}" style="width:130px;margin-left:6px;display:none;">
+                    <option value="">Ganador</option>
+                    <option value="${m.home}">${m.home}</option>
+                    <option value="${m.away}">${m.away}</option>
+                </select>`;
+            }
+            html += `</td></tr>`;
+        });        
         document.getElementById('admin-matches').innerHTML = html+'</table>';
+                    // Dentro de renderAdmin, después de document.getElementById('admin-matches').innerHTML = html;
+            if (adminLogged) {
+                matches.filter(m => m.group === 'KO').forEach(m => {
+                    const homeInp = document.getElementById('rh-' + m.id);
+                    const awayInp = document.getElementById('ra-' + m.id);
+                    const winnerSel = document.getElementById('rw-' + m.id);
+                    if (!homeInp || !awayInp || !winnerSel) return;
+                    const updateWinnerVisibility = () => {
+                        const h = homeInp.value.trim();
+                        const a = awayInp.value.trim();
+                        if (h !== '' && a !== '' && h === a) {
+                            winnerSel.style.display = 'inline-block';
+                            // Si ya hay ganador guardado, seleccionarlo
+                            if (m.winnerTeam) winnerSel.value = m.winnerTeam;
+                        } else {
+                            winnerSel.style.display = 'none';
+                            winnerSel.value = '';
+                        }
+                    };
+                    homeInp.addEventListener('input', updateWinnerVisibility);
+                    awayInp.addEventListener('input', updateWinnerVisibility);
+                    updateWinnerVisibility();
+                });
+            }
         document.getElementById('pts-sign').value = pointsConfig.sign;
         document.getElementById('pts-exact').value = pointsConfig.exact;
         document.getElementById('pts-qualify').value = pointsConfig.qualify;
@@ -1342,31 +1395,37 @@ koMatches.forEach(m => {
     }
     const bestThirds = getBestThirds(matches);
     const thirdMap = getOfficialR32Mapping(bestThirds);
-    const getThird = (keys) => {
-        for (const k of keys) {
-            const found = bestThirds.find(t => t.group === k);
-            if (found) return found.team;
+    const usedThirds = new Set(); // Para no repetir terceros
+const getThird = (keys) => {
+    for (const k of keys) {
+        const found = bestThirds.find(t => t.group === k && !usedThirds.has(t.team));
+        if (found) {
+            usedThirds.add(found.team);
+            return found.team;
         }
-        return 'Por definir';
-    };
-    const r32 = {
-        73: [qual.A[1], qual.B[1]],
-        74: [qual.E[0], getThird(thirdMap[74].split(''))],
-        75: [qual.F[0], qual.C[1]],
-        76: [qual.C[0], qual.F[1]],
-        77: [qual.I[0], getThird(thirdMap[77].split(''))],
-        78: [qual.E[1], qual.I[1]],
-        79: [qual.A[0], getThird(thirdMap[79].split(''))],
-        80: [qual.L[0], getThird(thirdMap[80].split(''))],
-        81: [qual.D[0], getThird(thirdMap[81].split(''))],
-        82: [qual.G[0], getThird(thirdMap[82].split(''))],
-        83: [qual.K[1], qual.L[1]],
-        84: [qual.H[0], qual.J[1]],
-        85: [qual.B[0], getThird(thirdMap[85].split(''))],
-        86: [qual.J[0], qual.H[1]],
-        87: [qual.K[0], getThird(thirdMap[87].split(''))],
-        88: [qual.D[1], qual.G[1]]
-    };
+    }
+    // Si ya se usaron todos los posibles, devolvemos 'Por definir'
+    return 'Por definir';
+};
+
+const r32 = {
+    73: [qual.A[1], qual.B[1]],
+    74: [qual.E[0], getThird((thirdMap[74] || 'A').split(''))],
+    75: [qual.F[0], qual.C[1]],
+    76: [qual.C[0], qual.F[1]],
+    77: [qual.I[0], getThird((thirdMap[77] || 'C').split(''))],
+    78: [qual.E[1], qual.I[1]],
+    79: [qual.A[0], getThird((thirdMap[79] || 'C').split(''))],
+    80: [qual.L[0], getThird((thirdMap[80] || 'E').split(''))],
+    81: [qual.D[0], getThird((thirdMap[81] || 'B').split(''))],
+    82: [qual.G[0], getThird((thirdMap[82] || 'A').split(''))],
+    83: [qual.K[1], qual.L[1]],
+    84: [qual.H[0], qual.J[1]],
+    85: [qual.B[0], getThird((thirdMap[85] || 'E').split(''))],
+    86: [qual.J[0], qual.H[1]],
+    87: [qual.K[0], getThird((thirdMap[87] || 'D').split(''))],
+    88: [qual.D[1], qual.G[1]]
+};
     // Actualizar documentos en Firestore
     console.log('Generando Dieciseisavos...', r32);
         for (const [id, teams] of Object.entries(r32)) {
