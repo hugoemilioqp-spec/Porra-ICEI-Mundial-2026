@@ -99,6 +99,66 @@
         border-radius: 4px;
         padding: 2px 6px;
         }
+        /* Mejoras para tablas en grupos y predicciones */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 10px;
+}
+
+.accordion-group {
+    margin-bottom: 8px;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.accordion-header {
+    background: var(--bg-secondary);
+    color: var(--gold-light);
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    user-select: none;
+}
+
+.accordion-header:hover {
+    background: rgba(240,185,11,0.1);
+}
+
+.accordion-content {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 10px;
+    display: none;
+}
+
+.accordion-content.open {
+    display: block;
+}
+
+/* Grid de grupos más flexible */
+.groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .groups-grid {
+        grid-template-columns: 1fr;
+    }
+    .accordion-header {
+        font-size: 0.9rem;
+        padding: 8px 10px;
+    }
+}
     </style>
 </head>
 <body>
@@ -140,7 +200,7 @@
     </div>
     <div id="tab-groups" class="tab-content">
         <h1>📊 Grupos</h1>
-        <div class="grid-3" id="groups-container"></div>
+        <div class="groups-grid" id="groups-container"></div>
     </div>
     <div id="tab-bracket" class="tab-content">
         <h1>🏟️ Cuadro de Eliminatorias</h1>
@@ -205,10 +265,10 @@
         <div class="panel mt-2" id="player-picks-view"></div>
     </div>
     <div id="tab-predictions" class="tab-content">
-        <h1>📊 Predicciones de grupos</h1>
-        <p class="subtitle">Así predicen los participantes la clasificación final</p>
-        <div id="predictions-groups-container" class="grid-3"></div>
-    </div>
+    <h1>📊 Predicciones de grupos</h1>
+    <p class="subtitle">Haz clic en un grupo para ver cómo predicen los participantes</p>
+    <div id="predictions-groups-container"></div>
+</div>
     <div id="tab-rules" class="tab-content">
         <h1>📖 Reglas</h1>
         <div class="rules-box">
@@ -659,8 +719,15 @@
     const groups = Object.keys(GROUPS);
 
     groups.forEach(g => {
-        html += `<div class="panel"><h3>Grupo ${g}</h3>`;
-        html += '<table><tr><th>Usuario</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th></tr>';
+        html += `<div class="accordion-group">`;
+        html += `<div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Grupo ${g}</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                 </div>`;
+        html += `<div class="accordion-content">
+                    <div class="table-responsive">
+                        <table>
+                            <tr><th>Usuario</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th></tr>`;
 
         for (const [player, preds] of Object.entries(predictions)) {
             const simulatedMatches = matches.filter(m => m.group === g).map(m => {
@@ -680,7 +747,12 @@
             });
             html += '</tr>';
         }
-        html += '</table></div>';
+
+        if (Object.keys(predictions).length === 0) {
+            html += '<tr><td colspan="5">No hay predicciones todavía</td></tr>';
+        }
+
+        html += `</table></div></div></div>`;
     });
     container.innerHTML = html;
 }
@@ -1082,6 +1154,25 @@ function renderMatchesFull() {
         return true;
     }
 
+    function toggleAccordion(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('i');
+    if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    } else {
+        // Cerrar otros acordeones
+        document.querySelectorAll('.accordion-content.open').forEach(c => c.classList.remove('open'));
+        document.querySelectorAll('.accordion-header i.fa-chevron-up').forEach(i => {
+            i.classList.remove('fa-chevron-up');
+            i.classList.add('fa-chevron-down');
+        });
+        content.classList.add('open');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    }
+    }
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
