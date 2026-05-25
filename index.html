@@ -1176,7 +1176,12 @@ function renderMatchesFull() {
             renderRules();
             showToast('Configuración guardada');
         });
-
+        document.getElementById('points-player-select').addEventListener('change', function() {
+            const name = this.value;
+            if (name) {
+                selectPointsPlayer(name);
+            }
+        });
         document.getElementById('save-winners-btn').addEventListener('click', async () => {
             if (!adminLogged) return;
             actualWinners = {
