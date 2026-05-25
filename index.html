@@ -915,31 +915,57 @@
         if (preds._koLocked && !useOfficial) return preds;
         const simMatches = useOfficial ? matches : getSimMatches(preds);
         if (useOfficial && !allGroupMatchesPlayed(matches)) return preds;
+    
         const qual = {};
-        for (const g of Object.keys(GROUPS)) { const st = getGroupStandings(simMatches, g); qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team]; }
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(simMatches, g);
+            qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
+        }
+    
         const bestThirds = getBestThirds(simMatches);
         if (useOfficial && bestThirds.length < 8) return preds;
-        const thirdMap = getOfficialR32Mapping(bestThirds);
-        function getThird(keys) { for (const k of keys) { const f = bestThirds.find(t => t.group === k); if (f) return f.team; } return 'Por definir'; }
+    
+        // Ordenar los mejores terceros alfabéticamente por grupo
+        const sortedThirds = [...bestThirds].sort((a, b) => a.group.localeCompare(b.group));
+        const thirdSlots = [74, 77, 79, 80, 81, 82, 85, 87];
+        const thirdMap = {};
+        thirdSlots.forEach((id, i) => {
+            if (sortedThirds[i]) thirdMap[id] = sortedThirds[i].team;
+        });
+    
+        // Función local para obtener el tercero según el partido
+        const getThird = (matchId) => thirdMap[matchId] || 'Por definir';
+    
         const r32 = {
-            73: [qual.A[1], qual.B[1]], 74: [qual.E[0], getThird(thirdMap[74].split(''))],
-            75: [qual.F[0], qual.C[1]], 76: [qual.C[0], qual.F[1]],
-            77: [qual.I[0], getThird(thirdMap[77].split(''))], 78: [qual.E[1], qual.I[1]],
-            79: [qual.A[0], getThird(thirdMap[79].split(''))], 80: [qual.L[0], getThird(thirdMap[80].split(''))],
-            81: [qual.D[0], getThird(thirdMap[81].split(''))], 82: [qual.G[0], getThird(thirdMap[82].split(''))],
-            83: [qual.K[1], qual.L[1]], 84: [qual.H[0], qual.J[1]],
-            85: [qual.B[0], getThird(thirdMap[85].split(''))], 86: [qual.J[0], qual.H[1]],
-            87: [qual.K[0], getThird(thirdMap[87].split(''))], 88: [qual.D[1], qual.G[1]]
+            73: [qual.A[1], qual.B[1]],
+            74: [qual.E[0], getThird(74)],
+            75: [qual.F[0], qual.C[1]],
+            76: [qual.C[0], qual.F[1]],
+            77: [qual.I[0], getThird(77)],
+            78: [qual.E[1], qual.I[1]],
+            79: [qual.A[0], getThird(79)],
+            80: [qual.L[0], getThird(80)],
+            81: [qual.D[0], getThird(81)],
+            82: [qual.G[0], getThird(82)],
+            83: [qual.K[1], qual.L[1]],
+            84: [qual.H[0], qual.J[1]],
+            85: [qual.B[0], getThird(85)],
+            86: [qual.J[0], qual.H[1]],
+            87: [qual.K[0], getThird(87)],
+            88: [qual.D[1], qual.G[1]]
         };
+    
         const koMatches = matches.filter(m => m.group === 'KO');
         koMatches.forEach(km => {
             if (r32[km.id] && r32[km.id][0] && r32[km.id][1]) {
                 if (!preds[km.id]) preds[km.id] = {};
-                preds[km.id].homeTeam = r32[km.id][0]; preds[km.id].awayTeam = r32[km.id][1];
+                preds[km.id].homeTeam = r32[km.id][0];
+                preds[km.id].awayTeam = r32[km.id][1];
                 if (preds[km.id].homeScore === undefined) preds[km.id].homeScore = '';
                 if (preds[km.id].awayScore === undefined) preds[km.id].awayScore = '';
             }
         });
+    
         return preds;
     }
 
@@ -1104,14 +1130,71 @@ function renderMatchesFull() {
     function renderBracket() {
         const container = document.getElementById('bracket-tree');
         if (!container) return;
-        if (!allGroupMatchesPlayed(matches)) { container.innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará cuando terminen los grupos.</p>'; return; }
-        const qual = {}; for (const g of Object.keys(GROUPS)) { const st = getGroupStandings(matches, g); qual[g] = [st[0]?.team, st[1]?.team]; }
-        const bestThirds = getBestThirds(matches); const thirdMap = getOfficialR32Mapping(bestThirds);
-        function getThird(keys) { for (const k of keys) { const f = bestThirds.find(t => t.group === k); if (f) return f.team; } return '?'; }
-        const r32 = [[qual.A[1], qual.B[1]], [qual.E[0], getThird(thirdMap[74].split(''))], [qual.F[0], qual.C[1]], [qual.C[0], qual.F[1]], [qual.I[0], getThird(thirdMap[77].split(''))], [qual.E[1], qual.I[1]], [qual.A[0], getThird(thirdMap[79].split(''))], [qual.L[0], getThird(thirdMap[80].split(''))], [qual.D[0], getThird(thirdMap[81].split(''))], [qual.G[0], getThird(thirdMap[82].split(''))], [qual.K[1], qual.L[1]], [qual.H[0], qual.J[1]], [qual.B[0], getThird(thirdMap[85].split(''))], [qual.J[0], qual.H[1]], [qual.K[0], getThird(thirdMap[87].split(''))], [qual.D[1], qual.G[1]]];
-        let html = '<div class="bracket-tree"><div class="bracket-round-title">Dieciseisavos</div><div class="bracket-round">';
-        for (let i=0; i<16; i++) { const home = r32[i] ? r32[i][0] : '?'; const away = r32[i] ? r32[i][1] : '?'; html += `<div class="bracket-match">${home} vs ${away}</div>`; }
-        html += '</div><div class="bracket-round-title">Octavos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div><div class="bracket-round-title">Cuartos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div><div class="bracket-round-title">Semifinal</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div><div class="bracket-round-title">Final</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div><div class="trophy-center">🏆</div></div>';
+    
+        if (!allGroupMatchesPlayed(matches)) {
+            container.innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará cuando terminen los grupos.</p>';
+            return;
+        }
+    
+        // 1. Clasificados reales (1º y 2º de cada grupo)
+        const qual = {};
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandings(matches, g);
+            qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
+        }
+    
+        // 2. Mejores 8 terceros (ordenados por puntos)
+        const bestThirds = getBestThirds(matches).slice(0, 8);
+    
+        // 3. Ordenar terceros alfabéticamente por grupo (regla oficial)
+        const sortedThirds = [...bestThirds].sort((a, b) => a.group.localeCompare(b.group));
+    
+        // 4. Slots fijos donde van los terceros (en orden alfabético)
+        const thirdSlots = [74, 77, 79, 80, 81, 82, 85, 87];
+        const thirdMap = {};
+        thirdSlots.forEach((id, i) => {
+            if (sortedThirds[i]) thirdMap[id] = sortedThirds[i].team;
+        });
+    
+        // 5. Emparejamientos fijos (los que no llevan tercero)
+        const r32 = {
+            73: [qual.A[1], qual.B[1]],
+            75: [qual.F[0], qual.C[1]],
+            76: [qual.C[0], qual.F[1]],
+            78: [qual.E[1], qual.I[1]],
+            83: [qual.K[1], qual.L[1]],
+            84: [qual.H[0], qual.J[1]],
+            86: [qual.J[0], qual.H[1]],
+            88: [qual.D[1], qual.G[1]]
+        };
+    
+        // 6. Completar los partidos que involucran terceros
+        thirdSlots.forEach(id => {
+            // El equipo local (cabeza de serie) depende del partido
+            const localGroup = 
+                id === 74 ? 'E' : id === 77 ? 'I' : id === 79 ? 'A' :
+                id === 80 ? 'L' : id === 81 ? 'D' : id === 82 ? 'G' :
+                id === 85 ? 'B' : 'K';
+            r32[id] = [qual[localGroup][0], thirdMap[id] || 'Por definir'];
+        });
+    
+        // 7. Construir la visualización
+        let html = '<div class="bracket-tree">';
+        html += '<div class="bracket-round-title">Dieciseisavos</div><div class="bracket-round">';
+        for (let i = 0; i < 16; i++) {
+            const matchId = 73 + i;
+            const home = r32[matchId] ? r32[matchId][0] : '?';
+            const away = r32[matchId] ? r32[matchId][1] : '?';
+            html += `<div class="bracket-match">${home} vs ${away}</div>`;
+        }
+        html += '</div>';
+        // Siguientes rondas (se rellenan cuando haya resultados)
+        html += '<div class="bracket-round-title">Octavos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="bracket-round-title">Cuartos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="bracket-round-title">Semifinal</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="bracket-round-title">Final</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
+        html += '<div class="trophy-center">🏆</div></div>';
+    
         container.innerHTML = html;
     }
     function renderMyPool() {
