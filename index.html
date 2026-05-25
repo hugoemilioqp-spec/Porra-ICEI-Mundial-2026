@@ -350,7 +350,7 @@
             <div id="admin-panel" style="display:none;">
                 <h3>Resultados</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
                 <button class="btn btn-gold mt-2" id="save-results-btn">Guardar Resultados</button>
-                <button class="btn btn-accent mt-2" id="generate-ko-admin-btn">🏟️ Generar Dieciseisavos</button>
+                <button class="btn btn-accent mt-2" id="generate-ko-admin-btn" onclick="generateOfficialRoundOf32()">🏟️ Generar Dieciseisavos</button>
                 <hr>
                 <div class="flex-row">
                     <div><label>Signo</label><input type="number" id="pts-sign" value="10" style="width:50px;"></div>
@@ -1278,11 +1278,17 @@ function renderMatchesFull() {
     }
     }
     async function generateOfficialRoundOf32() {
+    // Verificar sesión de administrador
+    if (!adminLogged) {
+        alert('Debes iniciar sesión como administrador.');
+        return;
+    }
     // Verificar que todos los partidos de grupo tengan resultado
     if (!allGroupMatchesPlayed(matches)) {
         alert('Aún no se han completado todos los partidos de la fase de grupos.');
         return;
     }
+
     // Obtener clasificados reales (basados en resultados oficiales)
     const qual = {};
     for (const g of Object.keys(GROUPS)) {
@@ -1317,7 +1323,8 @@ function renderMatchesFull() {
         88: [qual.D[1], qual.G[1]]
     };
     // Actualizar documentos en Firestore
-    for (const [id, teams] of Object.entries(r32)) {
+    console.log('Generando Dieciseisavos...', r32);
+        for (const [id, teams] of Object.entries(r32)) {
         await setDoc(`matches/${id}`, {
             group: 'KO',
             round: 'Dieciseisavos',
@@ -1440,15 +1447,6 @@ function renderMatchesFull() {
             showToast('Pronósticos guardados');
         });
 
-        document.getElementById('generate-ko-btn').addEventListener('click', async () => {
-            if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
-            let preds = predictions[currentPlayer] || {};
-            preds = autoFillKO({...preds}, true);
-            predictions[currentPlayer] = preds;
-            await guardarPrediccion(currentPlayer, preds);
-            renderMyPool();
-            showToast('Eliminatorias oficiales generadas.');
-        });
 
         document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
             if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
@@ -1545,10 +1543,6 @@ function renderMatchesFull() {
         if (champ && realChamp) {
             ALL_TEAMS.forEach(t => { champ.innerHTML += `<option value="${t}">${t}</option>`; realChamp.innerHTML += `<option value="${t}">${t}</option>`; });
         }
-        document.getElementById('generate-ko-admin-btn').addEventListener('click', () => {
-            if (!adminLogged) return alert('Debes iniciar sesión como administrador.');
-            generateOfficialRoundOf32();
-});
     });
 </script>
 </body>
