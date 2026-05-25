@@ -280,6 +280,7 @@
                 <li><i class="fa-solid fa-futbol"></i> Bota de Oro: <span id="rule-goldenboot">30</span> pts</li>
                 <li><i class="fa-solid fa-trophy"></i> Balón de Oro: <span id="rule-goldenball">30</span> pts</li>
                 <li><i class="fa-solid fa-crown"></i> Campeón del Mundo: <span id="rule-champion">50</span> pts</li>
+                <li><i class="fa-solid fa-arrow-right"></i> Ganador KO (empate): <span id="rule-kowinner">5</span> pts</li>
             </ul>
             <p class="text-muted mt-2">No se otorgan puntos por diferencia de goles.</p>
         </div>
@@ -359,6 +360,7 @@
                     <div><label>Bota</label><input type="number" id="pts-goldenboot" value="30" style="width:50px;"></div>
                     <div><label>Balón</label><input type="number" id="pts-goldenball" value="30" style="width:50px;"></div>
                     <div><label>Campeón</label><input type="number" id="pts-champion" value="50" style="width:50px;"></div>
+                    <div><label>Ganador KO</label><input type="number" id="pts-kowinner" value="5" style="width:50px;"></div>
                 </div>
                 <button class="btn btn-outline btn-sm mt-2" id="save-config-btn">Guardar Config</button>
                 <div class="flex-row mt-2">
@@ -537,7 +539,7 @@
     // ========== ESTADO GLOBAL ==========
     let matches = [];
     let predictions = {};
-    let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50 };
+    let pointsConfig = { sign:10, exact:25, qualify:5, goldenBoot:30, goldenBall:30, champion:50, koWinnerBonus: 5 };
     let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
     let currentPlayer = '';
     let sessionValid = false;
@@ -643,6 +645,7 @@
             pointsConfig.goldenBoot = parseInt(pointsConfig.goldenBoot) || 30;
             pointsConfig.goldenBall = parseInt(pointsConfig.goldenBall) || 30;
             pointsConfig.champion = parseInt(pointsConfig.champion) || 50;
+            pointsConfig.koWinnerBonus = parseInt(pointsConfig.koWinnerBonus) || 5;
             actualWinners = (await getDoc('config/winners')) || actualWinners;
             const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
@@ -938,6 +941,16 @@
             else if (signOk) points = pointsConfig.sign;
             if (points > 0) {
                 details.push({ type: 'Partido', match: `${homeTeam} vs ${awayTeam}`, realResult: `${rh}-${ra}`, userResult: `${ph}-${pa}`, points });
+                // Bonus por acertar ganador en empate real (KO)
+                if (m.group === 'KO' && rh === ra && p.winner) {
+                    const realWinner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : null);
+                    // En empate real, el ganador es el que avanzó (debe venir de Firestore como 'winnerTeam')
+                    // Si no tenemos ese campo, se puede calcular a partir de la siguiente ronda, pero asumimos que el admin lo establece.
+                    if (m.winnerTeam && p.winner === m.winnerTeam) {
+                        details.push({ type: 'Ganador KO', match: `${homeTeam} vs ${awayTeam}`, points: pointsConfig.koWinnerBonus });
+                        total += pointsConfig.koWinnerBonus;
+                    }
+                }
                 total += points;
             }
         }
@@ -1083,35 +1096,60 @@ function renderMatchesFull() {
             html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away||''}" ${dis}></td></tr>`;
         });
         html += '<h3 class="mt-3">Eliminatorias</h3>';
-        const koMatches = matches.filter(m => m.group === 'KO');
-        ['Dieciseisavos','Octavos','Cuartos','Semifinales','3er Puesto','Final'].forEach(round => {
-            const roundMatches = koMatches.filter(m => m.round === round);
-            if (roundMatches.length === 0) return;
-            html += `<div class="group-header">🏟️ ${round}</div>`;
-            roundMatches.forEach(m => {
-                const p = preds[m.id] || {};
-                const homeTeam = m.home;   // Ya vienen de Firestore
-                const awayTeam = m.away;
-                const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
-                html += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.8rem;">
-                    <span style="min-width:40px;">${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
-                    <span style="flex:1;">${homeTeam} ${score} ${awayTeam}</span>`;
-                // Mostrar inputs SOLO si los equipos están definidos y el partido no ha empezado
-                if (homeTeam !== 'Por definir' && awayTeam !== 'Por definir') {
-                    const matchDate = new Date(m.date);
-                    const now = new Date();
-                    const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
-                    html += `<span style="display:flex;align-items:center;gap:4px;">
-                        <span style="font-size:0.7rem;">Local:</span>
-                        <input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis}>
-                        <span style="font-size:0.7rem;">Visitante:</span>
-                        <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis}>
-                    </span>`;
-                }
-                html += '</div>';
-            });
-        });
+const koMatches = matches.filter(m => m.group === 'KO');
+['Dieciseisavos','Octavos','Cuartos','Semifinales','3er Puesto','Final'].forEach(round => {
+    const roundMatches = koMatches.filter(m => m.round === round);
+    if (roundMatches.length === 0) return;
+    html += `<div class="group-header">🏟️ ${round}</div>`;
+    roundMatches.forEach(m => {
+        const p = preds[m.id] || {};
+        const homeTeam = m.home;
+        const awayTeam = m.away;
+        const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
+        const tie = (p.homeScore === p.awayScore && p.homeScore !== '' && p.awayScore !== '');
+        const dis = (m.homeScore !== null || new Date(m.date) <= new Date()) ? 'disabled' : '';
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.8rem;flex-wrap:wrap;">
+            <span style="min-width:40px;">${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+            <span style="flex:1;">${homeTeam} ${score} ${awayTeam}</span>`;
+        if (homeTeam !== 'Por definir' && awayTeam !== 'Por definir') {
+            html += `<span style="display:flex;align-items:center;gap:4px;">
+                <input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis} style="width:35px;">
+                <span>-</span>
+                <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis} style="width:35px;">
+            </span>`;
+            // Select de ganador en caso de empate
+            if (!dis) {
+                html += `<select id="winner-${m.id}" style="width:120px;margin-left:8px;${tie ? '' : 'display:none;'}">
+                    <option value="">Ganador</option>
+                    <option value="${homeTeam}" ${p.winner === homeTeam ? 'selected' : ''}>${homeTeam}</option>
+                    <option value="${awayTeam}" ${p.winner === awayTeam ? 'selected' : ''}>${awayTeam}</option>
+                </select>`;
+            }
+        }
+        html += '</div>';
+    });
+});
         document.getElementById('prediction-form').innerHTML = html;
+        // Activar selects de ganador según empate
+koMatches.forEach(m => {
+    const homeInput = document.getElementById('ph-' + m.id);
+    const awayInput = document.getElementById('pa-' + m.id);
+    const winnerSelect = document.getElementById('winner-' + m.id);
+    if (!homeInput || !awayInput || !winnerSelect) return;
+    const updateWinnerVisibility = () => {
+        const h = homeInput.value.trim();
+        const a = awayInput.value.trim();
+        if (h !== '' && a !== '' && h === a) {
+            winnerSelect.style.display = 'inline-block';
+        } else {
+            winnerSelect.style.display = 'none';
+            winnerSelect.value = ''; // resetear selección si no hay empate
+        }
+    };
+    homeInput.addEventListener('input', updateWinnerVisibility);
+    awayInput.addEventListener('input', updateWinnerVisibility);
+    updateWinnerVisibility();
+});
         renderSpecialPicks();
         document.getElementById('generate-ko-btn').style.display = groupsComplete ? 'inline-flex' : 'none';
     }
@@ -1216,6 +1254,7 @@ function renderMatchesFull() {
         document.getElementById('rule-goldenboot').textContent = pointsConfig.goldenBoot;
         document.getElementById('rule-goldenball').textContent = pointsConfig.goldenBall;
         document.getElementById('rule-champion').textContent = pointsConfig.champion;
+        document.getElementById('rule-kowinner').textContent = pointsConfig.koWinnerBonus || 5;
     }
     function renderAdmin() {
         if (!adminLogged) return;
@@ -1231,6 +1270,7 @@ function renderMatchesFull() {
         document.getElementById('real-golden-boot').value = actualWinners.goldenBoot || '';
         document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
         document.getElementById('real-champion').value = actualWinners.champion || '';
+        document.getElementById('pts-kowinner').value = pointsConfig.koWinnerBonus || 5;
         renderAccessCodes(); renderPlayersList();
     }
 
@@ -1440,10 +1480,15 @@ function renderMatchesFull() {
                 const h = document.getElementById('ph-'+m.id), a = document.getElementById('pa-'+m.id);
                 if (h && a) {
                     if (m.group === 'KO') {
-                        preds[m.id] = preds[m.id] || {};
-                        preds[m.id].homeScore = h.value;
-                        preds[m.id].awayScore = a.value;
-                    } else {
+                    preds[m.id] = preds[m.id] || {};
+                    preds[m.id].homeScore = h.value;
+                    preds[m.id].awayScore = a.value;
+                    // Guardar ganador en caso de empate
+                    const winnerSelect = document.getElementById('winner-' + m.id);
+                    if (winnerSelect) {
+                        preds[m.id].winner = winnerSelect.value;
+                    }
+                } else {
                         preds[m.id] = { home: h.value, away: a.value };
                     }
                 }
@@ -1490,7 +1535,8 @@ function renderMatchesFull() {
                 qualify: parseInt(document.getElementById('pts-qualify').value)||5,
                 goldenBoot: parseInt(document.getElementById('pts-goldenboot').value)||30,
                 goldenBall: parseInt(document.getElementById('pts-goldenball').value)||30,
-                champion: parseInt(document.getElementById('pts-champion').value)||50
+                champion: parseInt(document.getElementById('pts-champion').value)||50,
+                koWinnerBonus: parseInt(document.getElementById('pts-kowinner').value) || 5
             };
             await setDoc('config/points', pointsConfig);
             renderRules();
