@@ -93,6 +93,12 @@
         .bracket-match { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; min-width: 140px; text-align: center; font-size: 0.7rem; margin: 4px; }
         #connection-detail { color: var(--rose); font-size:0.7rem; margin-top:4px; display:block; }
         .locked-input { opacity: 0.5; background: rgba(255,255,255,0.02); }
+        .pred-qualified {
+        background: rgba(240, 185, 11, 0.2);
+        font-weight: bold;
+        border-radius: 4px;
+        padding: 2px 6px;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +112,7 @@
         <button data-tab="mypool"><i class="fa-solid fa-pen-to-square"></i> <span>Mi Porra</span></button>
         <button data-tab="standings"><i class="fa-solid fa-trophy"></i> <span>Clasificación</span></button>
         <button data-tab="mypoints"><i class="fa-solid fa-magnifying-glass-chart"></i> <span>Mi Puntuación</span></button>
+        <button data-tab="predictions"><i class="fa-solid fa-users"></i> <span>Predicciones</span></button>
         <button data-tab="rules"><i class="fa-solid fa-book"></i> <span>Reglas</span></button>
         <button data-tab="instructions"><i class="fa-solid fa-circle-info"></i> <span>Instrucciones</span></button>
         <button data-tab="admin"><i class="fa-solid fa-lock"></i> <span>Admin</span></button>
@@ -196,6 +203,11 @@
         </div>
         <div class="panel" id="points-detail"></div>
         <div class="panel mt-2" id="player-picks-view"></div>
+    </div>
+    <div id="tab-predictions" class="tab-content">
+        <h1>📊 Predicciones de grupos</h1>
+        <p class="subtitle">Así predicen los participantes la clasificación final</p>
+        <div id="predictions-groups-container" class="grid-3"></div>
     </div>
     <div id="tab-rules" class="tab-content">
         <h1>📖 Reglas</h1>
@@ -550,6 +562,7 @@
         renderMyPool();
         renderStandings();
         renderPointsDetail();
+        renderGroupPredictions(); 
         renderRules();
         // Admin no se fuerza
     }
@@ -639,6 +652,38 @@
         if (tab) tab.classList.add('active');
     };
 
+    function renderGroupPredictions() {
+    const container = document.getElementById('predictions-groups-container');
+    if (!container) return;
+    let html = '';
+    const groups = Object.keys(GROUPS);
+
+    groups.forEach(g => {
+        html += `<div class="panel"><h3>Grupo ${g}</h3>`;
+        html += '<table><tr><th>Usuario</th><th>1º</th><th>2º</th><th>3º</th><th>4º</th></tr>';
+
+        for (const [player, preds] of Object.entries(predictions)) {
+            const simulatedMatches = matches.filter(m => m.group === g).map(m => {
+                const p = preds[m.id];
+                if (p && p.home !== '' && p.away !== '') {
+                    return { ...m, homeScore: parseInt(p.home), awayScore: parseInt(p.away) };
+                }
+                return m;
+            });
+
+            const standings = getGroupStandings(simulatedMatches, g);
+            html += '<tr>';
+            html += `<td>${player}</td>`;
+            standings.forEach((team, idx) => {
+                const className = idx < 2 ? 'pred-qualified' : '';
+                html += `<td class="${className}">${team.team}</td>`;
+            });
+            html += '</tr>';
+        }
+        html += '</table></div>';
+    });
+    container.innerHTML = html;
+}
     function getGroupStandings(mArr, group) {
         const teams = GROUPS[group];
         const stats = {};
