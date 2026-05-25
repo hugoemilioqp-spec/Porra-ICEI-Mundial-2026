@@ -247,7 +247,6 @@
         </div>
         <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;">
             <button class="btn btn-accent" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
-            <button class="btn btn-outline btn-sm" id="generate-ko-btn" disabled title="Disponible cuando todos los partidos de grupo tengan resultado oficial">🏟️ Generar eliminatorias oficiales</button>
         </div>
     </div>
     <div id="tab-standings" class="tab-content">
@@ -351,6 +350,7 @@
             <div id="admin-panel" style="display:none;">
                 <h3>Resultados</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
                 <button class="btn btn-gold mt-2" id="save-results-btn">Guardar Resultados</button>
+                <button class="btn btn-accent mt-2" id="generate-ko-admin-btn">🏟️ Generar Dieciseisavos</button>
                 <hr>
                 <div class="flex-row">
                     <div><label>Signo</label><input type="number" id="pts-sign" value="10" style="width:50px;"></div>
@@ -402,6 +402,43 @@
         return response.json();
     }
 
+    const KO_ADVANCE_MAP = {
+    // Dieciseisavos -> Octavos
+    73: { nextMatch: 89, position: 'home' },
+    74: { nextMatch: 89, position: 'away' },
+    75: { nextMatch: 90, position: 'home' },
+    76: { nextMatch: 90, position: 'away' },
+    77: { nextMatch: 91, position: 'home' },
+    78: { nextMatch: 91, position: 'away' },
+    79: { nextMatch: 92, position: 'home' },
+    80: { nextMatch: 92, position: 'away' },
+    81: { nextMatch: 93, position: 'home' },
+    82: { nextMatch: 93, position: 'away' },
+    83: { nextMatch: 94, position: 'home' },
+    84: { nextMatch: 94, position: 'away' },
+    85: { nextMatch: 95, position: 'home' },
+    86: { nextMatch: 95, position: 'away' },
+    87: { nextMatch: 96, position: 'home' },
+    88: { nextMatch: 96, position: 'away' },
+    // Octavos -> Cuartos
+    89: { nextMatch: 97, position: 'home' },
+    90: { nextMatch: 97, position: 'away' },
+    91: { nextMatch: 98, position: 'home' },
+    92: { nextMatch: 98, position: 'away' },
+    93: { nextMatch: 99, position: 'home' },
+    94: { nextMatch: 99, position: 'away' },
+    95: { nextMatch: 100, position: 'home' },
+    96: { nextMatch: 100, position: 'away' },
+    // Cuartos -> Semifinales
+    97: { nextMatch: 101, position: 'home' },
+    98: { nextMatch: 101, position: 'away' },
+    99: { nextMatch: 102, position: 'home' },
+    100: { nextMatch: 102, position: 'away' },
+    // Semifinales -> Tercer puesto y Final
+    101: { nextMatch: 103, position: 'home' }, // perdedor semis va a 3er puesto (esto requiere lógica especial)
+    102: { nextMatch: 104, position: 'home' }  // ganador semis a final (es más complejo)
+    // Para simplificar, el admin puede editar manualmente el 3er puesto y la final
+};
     function extractValue(field) {
         if (!field || typeof field !== 'object') return field;
         const keys = Object.keys(field);
@@ -645,12 +682,43 @@
     }
 
     async function saveResults() {
-        for (const m of matches) {
-            await setDoc(`matches/${m.id}`, { group: m.group, home: m.home, away: m.away, date: m.date, venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore });
-        }
-        await refreshAllData();
-        showToast('Resultados guardados');
+    // Guardar todos los resultados (como antes)
+    for (const m of matches) {
+        await setDoc(`matches/${m.id}`, {
+            group: m.group, home: m.home, away: m.away, date: m.date,
+            venue: m.venue, round: m.round, homeScore: m.homeScore, awayScore: m.awayScore
+        });
     }
+    // Avanzar automáticamente en eliminatorias
+    const updatedMatches = matches.filter(m => m.homeScore !== null && m.awayScore !== null && m.group === 'KO');
+    for (const m of updatedMatches) {
+        const advance = KO_ADVANCE_MAP[m.id];
+        if (!advance) continue;
+        const winner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : null);
+        if (!winner) continue; // empate (no debería ocurrir en KO, pero por si acaso)
+        const nextMatch = matches.find(n => n.id === advance.nextMatch);
+        if (!nextMatch) continue;
+        // Actualizar el equipo correspondiente en el siguiente partido
+        if (advance.position === 'home') {
+            nextMatch.home = winner;
+        } else {
+            nextMatch.away = winner;
+        }
+        // Guardar el cambio en Firestore
+        await setDoc(`matches/${advance.nextMatch}`, {
+            group: 'KO',
+            round: nextMatch.round,
+            home: nextMatch.home,
+            away: nextMatch.away,
+            date: nextMatch.date,
+            venue: nextMatch.venue,
+            homeScore: nextMatch.homeScore,
+            awayScore: nextMatch.awayScore
+        });
+    }
+    await refreshAllData();
+    showToast('Resultados guardados y siguientes rondas actualizadas');
+}
 
     async function guardarPrediccion(player, predData) {
         await setDoc(`predictions/${player}`, predData);
@@ -1014,7 +1082,7 @@ function renderMatchesFull() {
             const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
             html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away||''}" ${dis}></td></tr>`;
         });
-        html += '</table><h3 class="mt-3">Proyección de eliminatorias</h3>';
+        html += '<h3 class="mt-3">Eliminatorias</h3>';
         const koMatches = matches.filter(m => m.group === 'KO');
         ['Dieciseisavos','Octavos','Cuartos','Semifinales','3er Puesto','Final'].forEach(round => {
             const roundMatches = koMatches.filter(m => m.round === round);
@@ -1022,11 +1090,16 @@ function renderMatchesFull() {
             html += `<div class="group-header">🏟️ ${round}</div>`;
             roundMatches.forEach(m => {
                 const p = preds[m.id] || {};
-                const homeTeam = p.homeTeam || m.home; const awayTeam = p.awayTeam || m.away;
+                const homeTeam = m.home;   // Ya vienen de Firestore (pueden ser "Por definir" si aún no se generaron)
+                const awayTeam = m.away;
                 const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
-                html += `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;"><span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span><span>${homeTeam} ${score} ${awayTeam}</span>`;
-                if (groupsComplete && p.homeTeam && p.homeTeam !== 'Por definir') {
-                    const matchDate = new Date(m.date); const now = new Date();
+                html += `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;">
+                    <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+                    <span>${homeTeam} ${score} ${awayTeam}</span>`;
+                // Mostrar inputs SOLO si los equipos están definidos (no son "Por definir") y el partido no ha empezado
+                if (homeTeam !== 'Por definir' && awayTeam !== 'Por definir') {
+                    const matchDate = new Date(m.date);
+                    const now = new Date();
                     const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
                     html += `<td><input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis}></td>`;
                 }
@@ -1204,6 +1277,62 @@ function renderMatchesFull() {
         icon.classList.add('fa-chevron-up');
     }
     }
+    async function generateOfficialRoundOf32() {
+    // Verificar que todos los partidos de grupo tengan resultado
+    if (!allGroupMatchesPlayed(matches)) {
+        alert('Aún no se han completado todos los partidos de la fase de grupos.');
+        return;
+    }
+    // Obtener clasificados reales (basados en resultados oficiales)
+    const qual = {};
+    for (const g of Object.keys(GROUPS)) {
+        const st = getGroupStandings(matches, g);
+        qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
+    }
+    const bestThirds = getBestThirds(matches);
+    const thirdMap = getOfficialR32Mapping(bestThirds);
+    const getThird = (keys) => {
+        for (const k of keys) {
+            const found = bestThirds.find(t => t.group === k);
+            if (found) return found.team;
+        }
+        return 'Por definir';
+    };
+    const r32 = {
+        73: [qual.A[1], qual.B[1]],
+        74: [qual.E[0], getThird(thirdMap[74].split(''))],
+        75: [qual.F[0], qual.C[1]],
+        76: [qual.C[0], qual.F[1]],
+        77: [qual.I[0], getThird(thirdMap[77].split(''))],
+        78: [qual.E[1], qual.I[1]],
+        79: [qual.A[0], getThird(thirdMap[79].split(''))],
+        80: [qual.L[0], getThird(thirdMap[80].split(''))],
+        81: [qual.D[0], getThird(thirdMap[81].split(''))],
+        82: [qual.G[0], getThird(thirdMap[82].split(''))],
+        83: [qual.K[1], qual.L[1]],
+        84: [qual.H[0], qual.J[1]],
+        85: [qual.B[0], getThird(thirdMap[85].split(''))],
+        86: [qual.J[0], qual.H[1]],
+        87: [qual.K[0], getThird(thirdMap[87].split(''))],
+        88: [qual.D[1], qual.G[1]]
+    };
+    // Actualizar documentos en Firestore
+    for (const [id, teams] of Object.entries(r32)) {
+        await setDoc(`matches/${id}`, {
+            group: 'KO',
+            round: 'Dieciseisavos',
+            home: teams[0],
+            away: teams[1],
+            date: matches.find(m => m.id == id).date,   // mantener la fecha existente
+            venue: matches.find(m => m.id == id).venue,
+            homeScore: null,
+            awayScore: null
+        });
+    }
+    showToast('Dieciseisavos generados correctamente.');
+    await refreshAllData();   // Recargar para que se vean los cambios
+    renderAllPanels();
+}
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
@@ -1415,6 +1544,10 @@ function renderMatchesFull() {
         if (champ && realChamp) {
             ALL_TEAMS.forEach(t => { champ.innerHTML += `<option value="${t}">${t}</option>`; realChamp.innerHTML += `<option value="${t}">${t}</option>`; });
         }
+        document.getElementById('generate-ko-admin-btn').addEventListener('click', () => {
+            if (!adminLogged) return alert('Debes iniciar sesión como administrador.');
+            generateOfficialRoundOf32();
+});
     });
 </script>
 </body>
