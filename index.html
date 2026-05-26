@@ -1495,7 +1495,9 @@ koMatches.forEach(m => {
         const scores = {}; for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
         const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]);
         let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
-        sorted.forEach(([n,p], i) => { const rc = i===0?'rank1':(i===1?'rank2':(i===2?'rank3':'rank-other')); html += `<tr style="cursor:pointer;" onclick="selectPointsPlayer('${n}')"><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`; });
+        sorted.forEach(([n,p], i) => { const rc = i===0?'rank1':(i===1?'rank2':(i===2?'rank3':'rank-other')); html += `<tr style="cursor:pointer;" onclick="selectPointsPlayer('${n}')"><td><span class="rank-circle ${rc}">${i+1}</span></td><td>${n}</td><td class="pts-highlight">${p}</td></tr>`; 
+                                     const isMe = (n === currentPlayer);
+                                        html += `<tr style="cursor:pointer;${isMe ? 'background:rgba(240,185,11,0.1);' : ''}" onclick="selectPointsPlayer('${n}')"> ...});
         const el = document.getElementById('standings-table'); if (el) el.innerHTML = html+'</table>';
     }
     function renderPointsDetail() {
@@ -1928,6 +1930,9 @@ async function generateOfficialRoundOf32() {
         });
 
         document.getElementById('save-picks-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('save-picks-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
             if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             const preds = predictions[currentPlayer] || {};
             matches.forEach(m => {
@@ -1949,11 +1954,14 @@ async function generateOfficialRoundOf32() {
             });
             predictions[currentPlayer] = preds;
             await guardarPrediccion(currentPlayer, preds);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Todo';
             showToast('Pronósticos guardados');
         });
 
 
         document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
+            if (!confirm('¿Estás seguro? Una vez bloqueados no podrás modificarlos.')) return;
             if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
             if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
             this.disabled = true;
