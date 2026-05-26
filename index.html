@@ -159,6 +159,94 @@
         padding: 8px 10px;
     }
 }
+            /* NUEVO ESTILO: BRACKET CONVERGENTE (REEMPLAZA LAS REGLAS ANTERIORES DE .bracket-tree, .bracket-round, .bracket-match) */
+    .bracket-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 15px;
+        padding: 20px 10px;
+        overflow-x: auto;
+        font-size: 0.7rem;
+    }
+    .bracket-column {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        gap: 4px;
+        min-width: 130px;
+    }
+    .bracket-column.round-32 { gap: 2px; }
+    .bracket-column.round-16 { gap: 16px; }
+    .bracket-column.round-qf { gap: 40px; }
+    .bracket-column.round-sf { gap: 90px; }
+    .bracket-column.round-final { justify-content: center; gap: 0; }
+
+    .bracket-match {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 6px 8px;
+        text-align: center;
+        position: relative;
+        transition: all 0.2s;
+    }
+    .bracket-match:hover {
+        border-color: var(--gold);
+        box-shadow: 0 0 12px rgba(240, 185, 11, 0.2);
+    }
+    .bracket-match .match-id {
+        font-weight: 700;
+        color: var(--gold-light);
+        font-size: 0.6rem;
+        display: block;
+    }
+    .bracket-match .teams {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .bracket-match .score {
+        font-family: 'Space Grotesk', monospace;
+        background: rgba(0,0,0,0.3);
+        padding: 1px 5px;
+        border-radius: 4px;
+        margin-top: 3px;
+        display: inline-block;
+    }
+
+    .connector-line {
+        position: absolute;
+        background: rgba(255,255,255,0.2);
+        z-index: 0;
+    }
+
+    /* Centro: Trofeo y Final */
+    .bracket-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        min-width: 180px;
+        text-align: center;
+    }
+    .trophy-bracket {
+        font-size: 3.5rem;
+        filter: drop-shadow(0 0 20px rgba(240,185,11,0.5));
+        animation: floatTrophy 3s ease-in-out infinite;
+    }
+
+    @media (max-width: 900px) {
+        .bracket-container {
+            flex-direction: column;
+            align-items: center;
+        }
+        .bracket-column {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    }
     </style>
 </head>
 <body>
@@ -285,18 +373,18 @@
             <p class="text-muted mt-2">No se otorgan puntos por diferencia de goles.</p>
         </div>
     </div>
-    <div id="tab-instructions" class="tab-content instructions">
+        <div id="tab-instructions" class="tab-content instructions">
         <h1>📘 Instrucciones completas</h1>
         <div class="panel">
             <h2>1. Cómo participar</h2>
             <p>Para unirte a la porra necesitas un <strong>código de acceso</strong> que te facilitará el administrador. Ve a <strong>Mi Porra</strong>, escribe un <strong>nombre único</strong> (sin espacios, como un apodo) y en el campo "Contraseña" introduce el código. Pulsa <strong>Acceder</strong>. A partir de ese momento podrás hacer tus pronósticos.</p>
-            <p><strong>Nota:</strong> El código es personal e intransferible. Una vez usado, queda asociado a tu nombre.</p>
+            <p><strong>Nota:</strong> El código es personal e intransferible. Una vez usado, queda asociado a tu nombre. Puedes cambiar tu contraseña en cualquier momento desde la misma pestaña.</p>
 
             <h2>2. Hacer pronósticos de partidos</h2>
             <p>Dentro de <strong>Mi Porra</strong> verás los <strong>104 partidos</strong> del Mundial, ordenados por fecha y fase. La página está dividida en dos secciones:</p>
             <ul>
                 <li><strong>Fase de grupos:</strong> Debes escribir el marcador exacto (goles del equipo local y visitante) que crees que ocurrirá en cada uno de los 72 partidos de grupo.</li>
-                <li><strong>Proyección de eliminatorias:</strong> Los cruces de Dieciseisavos, Octavos, etc., se rellenan automáticamente según tus propios resultados de grupo. Podrás ver cómo quedaría el cuadro, pero <strong>no podrás introducir marcadores de eliminatorias</strong> hasta que el administrador haya publicado los resultados oficiales de la fase de grupos.</li>
+                <li><strong>Proyección de eliminatorias:</strong> Una vez que completes tus resultados de grupo, el sistema rellena automáticamente los cruces de Dieciseisavos, Octavos, etc., siguiendo el calendario oficial de la FIFA. Podrás ver cómo quedaría el cuadro según tus pronósticos, pero <strong>no podrás introducir marcadores de eliminatorias</strong> hasta que el administrador haya publicado los resultados oficiales de la fase de grupos y generado los cruces reales.</li>
             </ul>
             <p><strong>Importante:</strong> Puedes modificar tus pronósticos tantas veces como quieras mientras el partido no haya comenzado. Una vez que el partido alcanza su hora de inicio (o el administrador introduce un resultado oficial), los campos se bloquean automáticamente y ya no podrás cambiarlos.</p>
 
@@ -311,27 +399,31 @@
 
             <h2>4. Pestañas de información</h2>
             <ul>
-                <li><strong>Dashboard:</strong> Resumen con el número total de partidos, partidos jugados, número de participantes y los próximos encuentros.</li>
+                <li><strong>Dashboard:</strong> Resumen con el número total de partidos, partidos jugados, número de participantes, los próximos encuentros y el Top 5 de la clasificación.</li>
                 <li><strong>Partidos:</strong> Calendario completo con fechas, horas y sedes de los 104 partidos. Los resultados reales aparecerán cuando el administrador los introduzca.</li>
-                <li><strong>Grupos:</strong> Clasificación de los 12 grupos según los resultados oficiales.</li>
-                <li><strong>Eliminatorias:</strong> Cuadro visual de las eliminatorias (se activa cuando termina la fase de grupos).</li>
+                <li><strong>Grupos:</strong> Clasificación de los 12 grupos (A-L) según los resultados oficiales.</li>
+                <li><strong>Eliminatorias:</strong> Cuadro visual de las eliminatorias que se activa cuando termina la fase de grupos. Las llaves se muestran en dos bloques (izquierdo y derecho) que convergen hacia la final en el centro, reflejando la estructura oficial del Mundial 2026.</li>
                 <li><strong>Clasificación:</strong> Tabla general con los puntos de todos los participantes. Haz clic en un jugador para ver su puntuación detallada y sus pronósticos.</li>
                 <li><strong>Mi Puntuación:</strong> Selecciona un jugador para ver el desglose exacto de cómo ha obtenido sus puntos (partido a partido, clasificados, premios) y también sus pronósticos completos en modo lectura.</li>
+                <li><strong>Predicciones:</strong> Consulta, para cada grupo, cómo creen los participantes que quedará la clasificación final y qué equipos pasarán a la siguiente ronda.</li>
             </ul>
 
             <h2>5. Reglas de puntuación</h2>
+            <p>Los puntos se otorgan de la siguiente manera:</p>
             <ul>
-                <li><strong>Signo (1X2):</strong> 10 puntos si aciertas quién gana o si hay empate (no hace falta acertar los goles).</li>
-                <li><strong>Resultado exacto:</strong> 25 puntos si aciertas el marcador exacto.</li>
-                <li><strong>Clasificado a dieciseisavos:</strong> 5 puntos por cada equipo que aciertes que pasa a la siguiente ronda (máximo 120 puntos).</li>
-                <li><strong>Bota de Oro:</strong> 30 puntos si aciertas el máximo goleador.</li>
-                <li><strong>Balón de Oro:</strong> 30 puntos si aciertas el mejor jugador.</li>
-                <li><strong>Campeón del Mundo:</strong> 50 puntos si aciertas el equipo ganador.</li>
+                <li><strong>Signo (1X2):</strong> <span id="rule-sign">10</span> puntos si aciertas quién gana o si hay empate (no hace falta acertar los goles).</li>
+                <li><strong>Resultado exacto:</strong> <span id="rule-exact">25</span> puntos si aciertas el marcador exacto.</li>
+                <li><strong>Clasificado a dieciseisavos:</strong> <span id="rule-qualify">5</span> puntos por cada equipo que aciertes que pasa a la siguiente ronda (máximo 120 puntos).</li>
+                <li><strong>Ganador de eliminatoria (bonus):</strong> <span id="rule-kowinner">5</span> puntos extra si, en un partido de eliminatoria que termina en empate, aciertas el equipo que avanza de ronda.</li>
+                <li><strong>Bota de Oro:</strong> <span id="rule-goldenboot">30</span> puntos si aciertas el máximo goleador.</li>
+                <li><strong>Balón de Oro:</strong> <span id="rule-goldenball">30</span> puntos si aciertas el mejor jugador.</li>
+                <li><strong>Campeón del Mundo:</strong> <span id="rule-champion">50</span> puntos si aciertas el equipo ganador.</li>
             </ul>
-            <p>No se otorgan puntos por diferencia de goles. Los puntos solo se calculan cuando el administrador introduce los resultados oficiales. Si un partido aún no tiene resultado, no suma ni resta puntos.</p>
+            <p>No se otorgan puntos por diferencia de goles. Los puntos solo se calculan cuando el administrador introduce los resultados oficiales y los ganadores de los premios. Si un partido aún no tiene resultado, no suma ni resta puntos.</p>
+            <p class="text-muted mt-2">Los valores de puntuación pueden ser ajustados por el administrador en cualquier momento. La tabla de puntuación reflejará siempre la configuración más reciente.</p>
 
             <h2>6. Cambio de contraseña</h2>
-            <p>En la misma pestaña <strong>Mi Porra</strong>, una vez que hayas iniciado sesión, puedes cambiar tu contraseña (código de acceso). Escribe tu contraseña actual, la nueva y pulsa <strong>Cambiar contraseña</strong>.</p>
+            <p>En la misma pestaña <strong>Mi Porra</strong>, una vez que hayas iniciado sesión, puedes cambiar tu contraseña (código de acceso). Introduce tu contraseña actual, la nueva y pulsa <strong>Cambiar contraseña</strong>.</p>
 
             <h2>7. Fechas clave</h2>
             <ul>
@@ -341,7 +433,7 @@
             </ul>
 
             <h2>8. Consejos</h2>
-            <p>Puedes modificar tus pronósticos en cualquier momento antes del inicio de cada partido. Si ves un partido con los campos en gris, significa que ya ha comenzado o que el administrador ha fijado un resultado oficial. ¡Suerte y que gane el mejor!</p>
+            <p>Puedes modificar tus pronósticos en cualquier momento antes del inicio de cada partido. Si ves un partido con los campos en gris, significa que ya ha comenzado o que el administrador ha fijado un resultado oficial. Recuerda que los campos de eliminatorias permanecerán bloqueados hasta que el administrador genere los cruces reales tras la fase de grupos. ¡Suerte y que gane el mejor!</p>
         </div>
     </div>
     <div id="tab-admin" class="tab-content">
@@ -1127,76 +1219,110 @@ function renderMatchesFull() {
         }
         const el = document.getElementById('groups-container'); if (el) el.innerHTML = html;
     }
-    function renderBracket() {
-        const container = document.getElementById('bracket-tree');
-        if (!container) return;
-    
-        if (!allGroupMatchesPlayed(matches)) {
-            container.innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará cuando terminen los grupos.</p>';
-            return;
-        }
-    
-        // 1. Clasificados reales (1º y 2º de cada grupo)
-        const qual = {};
-        for (const g of Object.keys(GROUPS)) {
-            const st = getGroupStandings(matches, g);
-            qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
-        }
-    
-        // 2. Mejores 8 terceros (ordenados por puntos)
-        const bestThirds = getBestThirds(matches).slice(0, 8);
-    
-        // 3. Ordenar terceros alfabéticamente por grupo (regla oficial)
-        const sortedThirds = [...bestThirds].sort((a, b) => a.group.localeCompare(b.group));
-    
-        // 4. Slots fijos donde van los terceros (en orden alfabético)
-        const thirdSlots = [74, 77, 79, 80, 81, 82, 85, 87];
-        const thirdMap = {};
-        thirdSlots.forEach((id, i) => {
-            if (sortedThirds[i]) thirdMap[id] = sortedThirds[i].team;
-        });
-    
-        // 5. Emparejamientos fijos (los que no llevan tercero)
-        const r32 = {
-            73: [qual.A[1], qual.B[1]],
-            75: [qual.F[0], qual.C[1]],
-            76: [qual.C[0], qual.F[1]],
-            78: [qual.E[1], qual.I[1]],
-            83: [qual.K[1], qual.L[1]],
-            84: [qual.H[0], qual.J[1]],
-            86: [qual.J[0], qual.H[1]],
-            88: [qual.D[1], qual.G[1]]
-        };
-    
-        // 6. Completar los partidos que involucran terceros
-        thirdSlots.forEach(id => {
-            // El equipo local (cabeza de serie) depende del partido
-            const localGroup = 
-                id === 74 ? 'E' : id === 77 ? 'I' : id === 79 ? 'A' :
-                id === 80 ? 'L' : id === 81 ? 'D' : id === 82 ? 'G' :
-                id === 85 ? 'B' : 'K';
-            r32[id] = [qual[localGroup][0], thirdMap[id] || 'Por definir'];
-        });
-    
-        // 7. Construir la visualización
-        let html = '<div class="bracket-tree">';
-        html += '<div class="bracket-round-title">Dieciseisavos</div><div class="bracket-round">';
-        for (let i = 0; i < 16; i++) {
-            const matchId = 73 + i;
-            const home = r32[matchId] ? r32[matchId][0] : '?';
-            const away = r32[matchId] ? r32[matchId][1] : '?';
-            html += `<div class="bracket-match">${home} vs ${away}</div>`;
-        }
-        html += '</div>';
-        // Siguientes rondas (se rellenan cuando haya resultados)
-        html += '<div class="bracket-round-title">Octavos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
-        html += '<div class="bracket-round-title">Cuartos</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
-        html += '<div class="bracket-round-title">Semifinal</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
-        html += '<div class="bracket-round-title">Final</div><div class="bracket-round"><div class="bracket-match">Por definir</div></div>';
-        html += '<div class="trophy-center">🏆</div></div>';
-    
-        container.innerHTML = html;
+function renderBracket() {
+    const container = document.getElementById('bracket-tree');
+    if (!container) return;
+
+    if (!allGroupMatchesPlayed(matches)) {
+        container.innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará cuando terminen los grupos.</p>';
+        return;
     }
+
+    // --- LÓGICA DE CLASIFICADOS (idéntica a la anterior) ---
+    const qual = {};
+    for (const g of Object.keys(GROUPS)) {
+        const st = getGroupStandings(matches, g);
+        qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
+    }
+    const bestThirds = getBestThirds(matches).slice(0, 8);
+    const sortedThirds = [...bestThirds].sort((a, b) => a.group.localeCompare(b.group));
+    const thirdSlots = [74, 77, 79, 80, 81, 82, 85, 87];
+    const thirdMap = {};
+    thirdSlots.forEach((id, i) => { if (sortedThirds[i]) thirdMap[id] = sortedThirds[i].team; });
+
+    const r32 = {
+        73: [qual.A[1], qual.B[1]], 74: [qual.E[0], thirdMap[74] || '?'],
+        75: [qual.F[0], qual.C[1]], 76: [qual.C[0], qual.F[1]],
+        77: [qual.I[0], thirdMap[77] || '?'], 78: [qual.E[1], qual.I[1]],
+        79: [qual.A[0], thirdMap[79] || '?'], 80: [qual.L[0], thirdMap[80] || '?'],
+        81: [qual.D[0], thirdMap[81] || '?'], 82: [qual.G[0], thirdMap[82] || '?'],
+        83: [qual.K[1], qual.L[1]], 84: [qual.H[0], qual.J[1]],
+        85: [qual.B[0], thirdMap[85] || '?'], 86: [qual.J[0], qual.H[1]],
+        87: [qual.K[0], thirdMap[87] || '?'], 88: [qual.D[1], qual.G[1]]
+    };
+    const koMatches = matches.filter(m => m.group === 'KO');
+    const findKo = (id) => koMatches.find(m => m.id === id) || { home: '?', away: '?', homeScore: null, awayScore: null };
+
+    // --- CONSTRUCCIÓN DEL HTML DEL BRACKET ---
+    let html = '<div class="bracket-container">';
+
+    // --- LADO IZQUIERDO ---
+    html += '<div class="bracket-column round-32">';
+    [73, 74, 75, 76, 77, 78, 79, 80].forEach(id => {
+        const m = findKo(id);
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home || r32[id][0]} vs ${m.away || r32[id][1]}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+    });
+    html += '</div>';
+
+    html += '<div class="bracket-column round-16">';
+    [89, 90, 91, 92].forEach(id => {
+        const m = findKo(id);
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+    });
+    html += '</div>';
+
+    html += '<div class="bracket-column round-qf">';
+    [97, 98].forEach(id => {
+        const m = findKo(id);
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+    });
+    html += '</div>';
+
+    html += '<div class="bracket-column round-sf">';
+    const m101 = findKo(101);
+    html += `<div class="bracket-match"><span class="match-id">M101</span><span class="teams">${m101.home} vs ${m101.away}</span>${m101.homeScore !== null ? `<span class="score">${m101.homeScore}-${m101.awayScore}</span>` : ''}</div>`;
+    html += '</div>';
+
+    // --- CENTRO: FINAL, 3ER PUESTO y TROFEO ---
+    html += '<div class="bracket-center">';
+    html += '<div class="trophy-bracket">🏆</div>';
+    const m104 = findKo(104);
+    html += `<div class="bracket-match" style="min-width:160px;"><span class="match-id">🏁 FINAL (M104)</span><span class="teams">${m104.home} vs ${m104.away}</span>${m104.homeScore !== null ? `<span class="score">${m104.homeScore}-${m104.awayScore}</span>` : ''}</div>`;
+    const m103 = findKo(103);
+    html += `<div class="bracket-match" style="min-width:140px; margin-top:10px;"><span class="match-id">🥉 3er Puesto (M103)</span><span class="teams">${m103.home} vs ${m103.away}</span>${m103.homeScore !== null ? `<span class="score">${m103.homeScore}-${m103.awayScore}</span>` : ''}</div>`;
+    html += '</div>';
+
+    // --- LADO DERECHO (espejo del izquierdo) ---
+    html += '<div class="bracket-column round-sf">';
+    const m102 = findKo(102);
+    html += `<div class="bracket-match"><span class="match-id">M102</span><span class="teams">${m102.home} vs ${m102.away}</span>${m102.homeScore !== null ? `<span class="score">${m102.homeScore}-${m102.awayScore}</span>` : ''}</div>`;
+    html += '</div>';
+
+    html += '<div class="bracket-column round-qf">';
+    [99, 100].forEach(id => {
+        const m = findKo(id);
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+    });
+    html += '</div>';
+
+    html += '<div class="bracket-column round-16">';
+    [93, 94, 95, 96].forEach(id => {
+        const m = findKo(id);
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+    });
+    html += '</div>';
+
+    html += '<div class="bracket-column round-32">';
+    [81, 82, 83, 84, 85, 86, 87, 88].forEach(id => {
+        const m = findKo(id);
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home || r32[id][0]} vs ${m.away || r32[id][1]}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+    });
+    html += '</div>';
+
+    html += '</div>'; // Cierre del contenedor principal
+
+    container.innerHTML = html;
+}
     function renderMyPool() {
         if (!currentPlayer || !sessionValid) {
             document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Inicia sesión para ver tu porra.</p>';
