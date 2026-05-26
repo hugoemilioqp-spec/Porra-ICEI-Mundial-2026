@@ -1765,7 +1765,7 @@ async function generateOfficialRoundOf32() {
             if (!oldCode || !newCode) return alert('Introduce la contraseña actual y la nueva.');
             try {
                 await changePassword(currentPlayer, oldCode, newCode);
-                showToast('Contraseña cambiada correctamente.');
+                showToast('Contraseña cambiada. Usa tu nueva contraseña a partir de ahora.');
                 document.getElementById('access-code').value = '';
                 document.getElementById('new-password').value = '';
             } catch (err) {
@@ -1921,7 +1921,9 @@ if (data.accessCodes) {
         });
 
         document.getElementById('reset-btn').addEventListener('click', async () => {
-            if (!confirm('¿Eliminar TODOS los datos de la nube?')) return;
+            const input = prompt('Para confirmar, escribe BORRAR en mayúsculas:');
+            if (input !== 'BORRAR') { alert('Reinicio cancelado.'); return; }
+            if (!confirm('¿Estás ABSOLUTAMENTE seguro? Se eliminarán TODOS los datos de la nube.')) return;
             try {
                 const matchesDocs = await getDocs('matches'); for (const doc of matchesDocs) await deleteDoc(`matches/${doc.id}`);
                 const predsDocs = await getDocs('predictions'); for (const doc of predsDocs) await deleteDoc(`predictions/${doc.id}`);
