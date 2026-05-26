@@ -799,43 +799,25 @@
 
     for (const m of updatedMatches) {
         const advance = KO_ADVANCE_MAP[m.id];
-        if (!advance) continue;
+if (!advance) continue;
 
-        // Determinar ganador (con desempate por winnerTeam si es necesario)
-        const winner = m.homeScore > m.awayScore 
-            ? m.home 
-            : (m.homeScore < m.awayScore 
-                ? m.away 
-                : (m.winnerTeam || null));
+const winner = m.homeScore > m.awayScore 
+    ? m.home 
+    : (m.homeScore < m.awayScore 
+        ? m.away 
+        : (m.winnerTeam || null));
+if (!winner) continue;
 
-        if (!winner) continue;  // empate sin ganador definido → no avanzamos todavía
-
-        const nextMatch = matches.find(n => n.id === advance.nextMatch);
-        if (!nextMatch) continue;
-
-        // Colocar al ganador en el siguiente partido
-        if (advance.position === 'home') {
-            nextMatch.home = winner;
-        } else {
-            nextMatch.away = winner;
-        }
-        if (m.id === 101 || m.id === 102) {
-            const loser = winner === m.home ? m.away : m.home;
-            const thirdMatch = matches.find(n => n.id === advance.nextMatchLose);
-            if (advance.positionLose === 'home') thirdMatch.home = loser;
-            else thirdMatch.away = loser;
-            await setDoc(`matches/103`, { home: thirdMatch.home, away: thirdMatch.away });
-        }
-        // Si el admin seleccionó un ganador manual en caso de empate, lo guardamos
-        const winnerSel = document.getElementById('rw-' + m.id);
-        if (winnerSel && m.homeScore === m.awayScore) {
-            m.winnerTeam = winnerSel.value || null;
-        } else {
-            m.winnerTeam = null;
-        }
-
-        // Guardar el partido actualizado y el siguiente
-        await setDoc(`matches/${advance.nextMatch}`, {
+// --- Avanzar al ganador (siguiente partido) ---
+let nextMatchWinId = advance.nextMatchWin || advance.nextMatch;  // semis o partidos normales
+let positionWin = advance.positionWin || advance.position;
+if (nextMatchWinId) {
+    const nextMatch = matches.find(n => n.id === nextMatchWinId);
+    if (nextMatch) {
+        if (positionWin === 'home') nextMatch.home = winner;
+        else nextMatch.away = winner;
+        // Guardar el partido siguiente
+        await setDoc(`matches/${nextMatchWinId}`, {
             group: 'KO',
             round: nextMatch.round,
             home: nextMatch.home,
@@ -845,20 +827,32 @@
             homeScore: nextMatch.homeScore,
             awayScore: nextMatch.awayScore
         });
-
-        // Actualizar el partido actual con su winnerTeam definitivo
-        await setDoc(`matches/${m.id}`, {
-            group: m.group,
-            home: m.home,
-            away: m.away,
-            date: m.date,
-            venue: m.venue,
-            round: m.round,
-            homeScore: m.homeScore,
-            awayScore: m.awayScore,
-            winnerTeam: m.winnerTeam || null
-        });
     }
+}
+
+// --- Avanzar al perdedor (solo semifinales) ---
+if (m.id === 101 || m.id === 102) {
+    const loser = winner === m.home ? m.away : m.home;
+    const thirdMatchId = advance.nextMatchLose;
+    const positionLose = advance.positionLose;
+    if (thirdMatchId) {
+        const thirdMatch = matches.find(n => n.id === thirdMatchId);
+        if (thirdMatch) {
+            if (positionLose === 'home') thirdMatch.home = loser;
+            else thirdMatch.away = loser;
+            await setDoc(`matches/${thirdMatchId}`, {
+                group: 'KO',
+                round: thirdMatch.round,
+                home: thirdMatch.home,
+                away: thirdMatch.away,
+                date: thirdMatch.date,
+                venue: thirdMatch.venue,
+                homeScore: thirdMatch.homeScore,
+                awayScore: thirdMatch.awayScore
+            });
+        }
+    }
+}
 
     await refreshAllData();
     showToast('Resultados guardados y siguientes rondas actualizadas');
