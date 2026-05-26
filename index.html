@@ -921,6 +921,7 @@ async function saveResults() {
             html += `<tr><td>${p}</td><td><button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button></td></tr>`;
         });
         div.innerHTML = html + '</table>';
+        html += `<td><button class="btn btn-sm btn-outline" onclick="selectPointsPlayer('${p}')">👁️ Ver</button></td>`;
     }
 
     window.deleteCode = deleteCode;
@@ -1552,14 +1553,13 @@ koMatches.forEach(m => {
         document.getElementById('pts-kowinner').value = pointsConfig.koWinnerBonus || 5;
         renderAccessCodes(); renderPlayersList();
     }
-
-    function updateGenerateKOButton() {
-        const btn = document.getElementById('generate-ko-btn');
-        if (!btn) return;
-        const allPlayed = allGroupMatchesPlayed(matches);
-        btn.disabled = !allPlayed;
-        btn.title = allPlayed ? 'Generar cruces con los resultados oficiales' : 'Aún no se han completado todos los partidos de grupo';
-    }
+function updateGenerateKOButton() {
+    const btn = document.getElementById('generate-ko-admin-btn');
+    if (!btn) return;
+    const allPlayed = allGroupMatchesPlayed(matches);
+    btn.disabled = !allPlayed;
+    btn.title = allPlayed ? 'Generar cruces con los resultados oficiales' : 'Aún no se han completado todos los partidos de grupo';
+}
 
     // ========== AUTENTICACIÓN DE USUARIO ==========
 async function loginUser(name, code) {
