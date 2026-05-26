@@ -870,7 +870,7 @@ function buildMatchDates() {
         renderMatchesFull();
         renderGroups();
         renderBracket();
-        renderMyPool();
+        ();
         renderStandings();
         renderPointsDetail();
         renderGroupPredictions();
@@ -1416,91 +1416,106 @@ function renderBracket() {
 
     container.innerHTML = html;
 }
-    function renderMyPool() {
-        if (!currentPlayer || !sessionValid) {
-            document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Inicia sesión para ver tu porra.</p>';
-            document.getElementById('pool-actions').style.display = 'none';
-            document.getElementById('special-picks-panel').style.display = 'none';
-            return;
-        }
-        document.getElementById('pool-actions').style.display = 'flex';
-        document.getElementById('special-picks-panel').style.display = 'block';
-        const groupsComplete = allGroupMatchesPlayed(matches);
-        const preds = predictions[currentPlayer] || {};
-        let html = '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
-        const now = new Date();
-        const groupMatches = matches
-            .filter(m => m.group !== 'KO')
-            .sort((a, b) => {
-                const aLocked = (a.homeScore !== null || now >= new Date(a.date));
-                const bLocked = (b.homeScore !== null || now >= new Date(b.date));
-                if (aLocked !== bLocked) return aLocked ? 1 : -1; // no bloqueados primero
-                return new Date(a.date) - new Date(b.date); // luego por fecha
-            });
-        
-        groupMatches.forEach(m => {
-            const p = preds[m.id] || {};
-            const matchDate = new Date(m.date);
-            const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
-            html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away||''}" ${dis}></td></tr>`;
-        });
-        html += '<h3 class="mt-3">Eliminatorias</h3>';
-const koMatches = matches.filter(m => m.group === 'KO');
-['Dieciseisavos','Octavos','Cuartos','Semifinales','3er Puesto','Final'].forEach(round => {
-    const roundMatches = koMatches.filter(m => m.round === round);
-    if (roundMatches.length === 0) return;
-    html += `<div class="group-header">🏟️ ${round}</div>`;
-    roundMatches.forEach(m => {
-        const p = preds[m.id] || {};
-        const homeTeam = m.home;
-        const awayTeam = m.away;
-        const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
-        const tie = (p.homeScore === p.awayScore && p.homeScore !== '' && p.awayScore !== '');
-        const dis = (m.homeScore !== null || new Date(m.date) <= new Date()) ? 'disabled' : '';
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.8rem;flex-wrap:wrap;">
-            <span style="min-width:40px;">${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
-            <span style="flex:1;">${homeTeam} ${score} ${awayTeam}</span>`;
-        if (homeTeam !== 'Por definir' && awayTeam !== 'Por definir') {
-            html += `<span style="display:flex;align-items:center;gap:4px;">
-                <input class="small-input" id="ph-${m.id}" value="${p.homeScore||''}" ${dis} style="width:35px;">
-                <span>-</span>
-                <input class="small-input" id="pa-${m.id}" value="${p.awayScore||''}" ${dis} style="width:35px;">
-            </span>`;
-            // Select de ganador en caso de empate
-            if (!dis) {
-                html += `<select id="winner-${m.id}" style="width:120px;margin-left:8px;${tie ? '' : 'display:none;'}">
-                    <option value="">Ganador</option>
-                    <option value="${homeTeam}" ${p.winner === homeTeam ? 'selected' : ''}>${homeTeam}</option>
-                    <option value="${awayTeam}" ${p.winner === awayTeam ? 'selected' : ''}>${awayTeam}</option>
-                </select>`;
-            }
-        }
-        html += '</div>';
-    });
-});
-        document.getElementById('prediction-form').innerHTML = html;
-        // Activar selects de ganador según empate
-koMatches.forEach(m => {
-    const homeInput = document.getElementById('ph-' + m.id);
-    const awayInput = document.getElementById('pa-' + m.id);
-    const winnerSelect = document.getElementById('winner-' + m.id);
-    if (!homeInput || !awayInput || !winnerSelect) return;
-    const updateWinnerVisibility = () => {
-        const h = homeInput.value.trim();
-        const a = awayInput.value.trim();
-        if (h !== '' && a !== '' && h === a) {
-            winnerSelect.style.display = 'inline-block';
-        } else {
-            winnerSelect.style.display = 'none';
-            winnerSelect.value = ''; // resetear selección si no hay empate
-        }
-    };
-    homeInput.addEventListener('input', updateWinnerVisibility);
-    awayInput.addEventListener('input', updateWinnerVisibility);
-    updateWinnerVisibility();
-});
-        renderSpecialPicks();
+function renderMyPool() {
+    if (!currentPlayer || !sessionValid) {
+        document.getElementById('prediction-form').innerHTML = '<p class="text-muted">Inicia sesión para ver tu porra.</p>';
+        document.getElementById('pool-actions').style.display = 'none';
+        document.getElementById('special-picks-panel').style.display = 'none';
+        return;
     }
+    document.getElementById('pool-actions').style.display = 'flex';
+    document.getElementById('special-picks-panel').style.display = 'block';
+    const preds = predictions[currentPlayer] || {};
+    const now = new Date();
+    let html = '';
+
+    // --- FASE DE GRUPOS (pendientes primero, luego bloqueados) ---
+    html += '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
+    const groupMatches = matches
+        .filter(m => m.group !== 'KO')
+        .sort((a, b) => {
+            const aLocked = (a.homeScore !== null || now >= new Date(a.date));
+            const bLocked = (b.homeScore !== null || now >= new Date(b.date));
+            if (aLocked !== bLocked) return aLocked ? 1 : -1; // pendientes primero
+            return new Date(a.date) - new Date(b.date);       // luego por fecha
+        });
+
+    groupMatches.forEach(m => {
+        const p = preds[m.id] || {};
+        const matchDate = new Date(m.date);
+        const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
+        html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home || ''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away || ''}" ${dis}></td></tr>`;
+    });
+    html += '</table>';  // ← CIERRE CORRECTO DE LA TABLA DE GRUPOS
+
+    // --- ELIMINATORIAS (pendientes primero, luego bloqueadas) ---
+    html += '<h3 class="mt-3">Eliminatorias</h3>';
+    const koMatches = matches
+        .filter(m => m.group === 'KO')
+        .sort((a, b) => {
+            const aLocked = (a.homeScore !== null || now >= new Date(a.date));
+            const bLocked = (b.homeScore !== null || now >= new Date(b.date));
+            if (aLocked !== bLocked) return aLocked ? 1 : -1; // pendientes primero
+            return new Date(a.date) - new Date(b.date);       // luego por fecha
+        });
+
+    ['Dieciseisavos', 'Octavos', 'Cuartos', 'Semifinales', '3er Puesto', 'Final'].forEach(round => {
+        const roundMatches = koMatches.filter(m => m.round === round);
+        if (roundMatches.length === 0) return;
+        html += `<div class="group-header">🏟️ ${round}</div>`;
+        roundMatches.forEach(m => {
+            const p = preds[m.id] || {};
+            const homeTeam = m.home;
+            const awayTeam = m.away;
+            const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
+            const tie = (p.homeScore === p.awayScore && p.homeScore !== '' && p.awayScore !== '');
+            const dis = (m.homeScore !== null || now >= new Date(m.date)) ? 'disabled' : '';
+            html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.8rem;flex-wrap:wrap;">
+                <span style="min-width:40px;">${new Date(m.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
+                <span style="flex:1;">${homeTeam} ${score} ${awayTeam}</span>`;
+            if (homeTeam !== 'Por definir' && awayTeam !== 'Por definir') {
+                html += `<span style="display:flex;align-items:center;gap:4px;">
+                    <input class="small-input" id="ph-${m.id}" value="${p.homeScore || ''}" ${dis} style="width:35px;">
+                    <span>-</span>
+                    <input class="small-input" id="pa-${m.id}" value="${p.awayScore || ''}" ${dis} style="width:35px;">
+                </span>`;
+                if (!dis) {
+                    html += `<select id="winner-${m.id}" style="width:120px;margin-left:8px;${tie ? '' : 'display:none;'}">
+                        <option value="">Ganador</option>
+                        <option value="${homeTeam}" ${p.winner === homeTeam ? 'selected' : ''}>${homeTeam}</option>
+                        <option value="${awayTeam}" ${p.winner === awayTeam ? 'selected' : ''}>${awayTeam}</option>
+                    </select>`;
+                }
+            }
+            html += '</div>';
+        });
+    });
+
+    document.getElementById('prediction-form').innerHTML = html;
+
+    // Activar selects de ganador según empate
+    koMatches.forEach(m => {
+        const homeInput = document.getElementById('ph-' + m.id);
+        const awayInput = document.getElementById('pa-' + m.id);
+        const winnerSelect = document.getElementById('winner-' + m.id);
+        if (!homeInput || !awayInput || !winnerSelect) return;
+        const updateWinnerVisibility = () => {
+            const h = homeInput.value.trim();
+            const a = awayInput.value.trim();
+            if (h !== '' && a !== '' && h === a) {
+                winnerSelect.style.display = 'inline-block';
+            } else {
+                winnerSelect.style.display = 'none';
+                winnerSelect.value = '';
+            }
+        };
+        homeInput.addEventListener('input', updateWinnerVisibility);
+        awayInput.addEventListener('input', updateWinnerVisibility);
+        updateWinnerVisibility();
+    });
+
+    renderSpecialPicks();
+}
     function renderStandings() {
         const scores = {};
         for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
@@ -1947,58 +1962,56 @@ async function generateOfficialRoundOf32() {
             }
         });
 
-        document.getElementById('save-picks-btn').addEventListener('click', async () => {
-            if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
-            const btn = document.getElementById('save-picks-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-            try {
-                const preds = predictions[currentPlayer] || {};
-                matches.forEach(m => {
-                    const h = document.getElementById('ph-' + m.id), a = document.getElementById('pa-' + m.id);
-                    if (h && a) {
-                        if (m.group === 'KO') {
-                            preds[m.id] = preds[m.id] || {};
-                            preds[m.id].homeScore = h.value;
-                            preds[m.id].awayScore = a.value;
-                            const winnerSelect = document.getElementById('winner-' + m.id);
-                            if (winnerSelect) preds[m.id].winner = winnerSelect.value;
-                        } else {
-                            preds[m.id] = { home: h.value, away: a.value };
-                        }
-                    }
-                });
-                predictions[currentPlayer] = preds;
-                await guardarPrediccion(currentPlayer, preds);
-                showToast('Pronósticos guardados');
-            } catch (err) {
-                alert('Error al guardar: ' + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Todo';
+document.getElementById('save-picks-btn').addEventListener('click', async () => {
+    if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
+    const btn = document.getElementById('save-picks-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+    try {
+        const preds = predictions[currentPlayer] || {};
+        matches.forEach(m => {
+            const h = document.getElementById('ph-' + m.id), a = document.getElementById('pa-' + m.id);
+            if (h && a) {
+                if (m.group === 'KO') {
+                    preds[m.id] = preds[m.id] || {};
+                    preds[m.id].homeScore = h.value;
+                    preds[m.id].awayScore = a.value;
+                    const winnerSelect = document.getElementById('winner-' + m.id);
+                    if (winnerSelect) preds[m.id].winner = winnerSelect.value;
+                } else {
+                    preds[m.id] = { home: h.value, away: a.value };
+                }
             }
         });
+        predictions[currentPlayer] = preds;
+        await guardarPrediccion(currentPlayer, preds);
+        showToast('Pronósticos guardados');
+    } catch (err) {
+        alert('Error al guardar: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Todo';
+    }
+});
 
-
-        document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
-            if (!confirm('¿Estás seguro? Una vez bloqueados no podrás modificarlos.')) return;
-            if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
-            if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
-            this.disabled = true;
-            predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
-            predictions[currentPlayer].goldenBall = document.getElementById('golden-ball-pick').value;
-            predictions[currentPlayer].champion = document.getElementById('champion-pick').value;
-            predictions[currentPlayer]._picksLocked = true;
-            try {
-                await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
-                renderSpecialPicks();
-                showToast('Premios bloqueados correctamente.');
-            } catch (err) {
-                this.disabled = false;
-                alert('Error: ' + err.message);
-            }
-        });
-
+document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
+    if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
+    if (!confirm('¿Estás seguro? Una vez bloqueados no podrás modificarlos.')) return;
+    if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+    this.disabled = true;
+    predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
+    predictions[currentPlayer].goldenBall = document.getElementById('golden-ball-pick').value;
+    predictions[currentPlayer].champion = document.getElementById('champion-pick').value;
+    predictions[currentPlayer]._picksLocked = true;
+    try {
+        await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
+        renderSpecialPicks();
+        showToast('Premios bloqueados correctamente.');
+    } catch (err) {
+        this.disabled = false;
+        alert('Error: ' + err.message);
+    }
+});
 
         document.getElementById('save-results-btn').addEventListener('click', () => {
             if (!adminLogged) return;
