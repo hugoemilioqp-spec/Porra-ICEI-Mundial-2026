@@ -424,6 +424,7 @@
 
             <h2>6. Cambio de contraseña</h2>
             <p>En la misma pestaña <strong>Mi Porra</strong>, una vez que hayas iniciado sesión, puedes cambiar tu contraseña (código de acceso). Introduce tu contraseña actual, la nueva y pulsa <strong>Cambiar contraseña</strong>.</p>
+            <p><strong>Importante:</strong> Al cambiar tu código de acceso, el antiguo se elimina definitivamente y nadie podrá utilizarlo. Tu nuevo código será el único válido para acceder a tus pronósticos.</p>
 
             <h2>7. Fechas clave</h2>
             <ul>
@@ -1568,25 +1569,51 @@ koMatches.forEach(m => {
     }
 
     // ========== AUTENTICACIÓN DE USUARIO ==========
-    async function loginUser(name, code) {
-        const codeDoc = await getDoc(`accessCodes/${code}`);
-        if (!codeDoc || codeDoc.usedBy === undefined) throw new Error('Código de acceso inválido.');
-        if (codeDoc.usedBy && codeDoc.usedBy !== name) throw new Error('Ese código ya ha sido usado por otro participante.');
-        if (!codeDoc.usedBy) await setDoc(`accessCodes/${code}`, { usedBy: name });
-        const existingPreds = await getDoc(`predictions/${name}`);
-        if (!existingPreds) {
-            await guardarPrediccion(name, {});
-        }
-        return true;
+async function loginUser(name, code) {
+    const codeDoc = await getDoc(`accessCodes/${code}`);
+    if (!codeDoc || codeDoc.usedBy === undefined) throw new Error('Código de acceso inválido.');
+    
+    // Si el código ya está usado y no es por este nombre → error
+    if (codeDoc.usedBy && codeDoc.usedBy !== name) {
+        throw new Error('Ese código ya ha sido usado por otro participante.');
     }
 
-    async function changePassword(name, oldCode, newCode) {
-        const oldDoc = await getDoc(`accessCodes/${oldCode}`);
-        if (!oldDoc || oldDoc.usedBy !== name) throw new Error('Contraseña actual incorrecta.');
-        await setDoc(`accessCodes/${newCode}`, { usedBy: name });
-        await setDoc(`accessCodes/${oldCode}`, { usedBy: null });
-        return true;
-    }
+    // Verificar que el nombre no esté ya registrado en predicciones
+            const existingPreds = await getDoc(`predictions/${name}`);
+            if (existingPreds && codeDoc.usedBy !== name) {
+                // El nombre ya tiene predicciones pero el código no es el suyo → nombre duplicado
+                throw new Error('El nombre de usuario ya existe. Elige otro.');
+            }
+        
+            // Si el código no estaba asignado, lo vinculamos a este nombre
+            if (!codeDoc.usedBy) {
+                await setDoc(`accessCodes/${code}`, { usedBy: name });
+            }
+        
+            // Si no había predicciones previas, creamos un documento vacío
+            if (!existingPreds) {
+                await guardarPrediccion(name, {});
+            }
+        
+            return true;
+        }
+        
+        async function changePassword(name, oldCode, newCode) {
+            const oldDoc = await getDoc(`accessCodes/${oldCode}`);
+            if (!oldDoc || oldDoc.usedBy !== name) throw new Error('Contraseña actual incorrecta.');
+        
+            // Evitar que el nuevo código ya exista en el sistema
+            const newDoc = await getDoc(`accessCodes/${newCode}`);
+            if (newDoc) throw new Error('El nuevo código ya está en uso. Elige otro.');
+        
+            // Eliminar el código antiguo para que no quede libre
+            await deleteDoc(`accessCodes/${oldCode}`);
+        
+            // Crear el nuevo código asociado al mismo nombre
+            await setDoc(`accessCodes/${newCode}`, { usedBy: name });
+        
+            return true;
+        }
 
     function toggleAccordion(header) {
     const content = header.nextElementSibling;
