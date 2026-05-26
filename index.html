@@ -1428,9 +1428,19 @@ function renderBracket() {
         const groupsComplete = allGroupMatchesPlayed(matches);
         const preds = predictions[currentPlayer] || {};
         let html = '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
-        matches.filter(m => m.group !== 'KO').forEach(m => {
+        const now = new Date();
+        const groupMatches = matches
+            .filter(m => m.group !== 'KO')
+            .sort((a, b) => {
+                const aLocked = (a.homeScore !== null || now >= new Date(a.date));
+                const bLocked = (b.homeScore !== null || now >= new Date(b.date));
+                if (aLocked !== bLocked) return aLocked ? 1 : -1; // no bloqueados primero
+                return new Date(a.date) - new Date(b.date); // luego por fecha
+            });
+        
+        groupMatches.forEach(m => {
             const p = preds[m.id] || {};
-            const matchDate = new Date(m.date); const now = new Date();
+            const matchDate = new Date(m.date);
             const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
             html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home||''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away||''}" ${dis}></td></tr>`;
         });
@@ -1492,22 +1502,22 @@ koMatches.forEach(m => {
         renderSpecialPicks();
     }
     function renderStandings() {
-    const scores = {};
-    for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
-    const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-    let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
-    sorted.forEach(([n, p], i) => {
-        const rc = i === 0 ? 'rank1' : (i === 1 ? 'rank2' : (i === 2 ? 'rank3' : 'rank-other'));
-        const isMe = (n === currentPlayer);
-        html += `<tr style="cursor:pointer;${isMe ? 'background:rgba(240,185,11,0.1);' : ''}" onclick="selectPointsPlayer('${n}')">
-            <td><span class="rank-circle ${rc}">${i + 1}</span></td>
-            <td>${n}</td>
-            <td class="pts-highlight">${p}</td>
-        </tr>`;
-    });
-    const el = document.getElementById('standings-table');
-    if (el) el.innerHTML = html + '</table>';
-}
+        const scores = {};
+        for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
+        const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+        let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
+        sorted.forEach(([n, p], i) => {
+            const rc = i === 0 ? 'rank1' : (i === 1 ? 'rank2' : (i === 2 ? 'rank3' : 'rank-other'));
+            const isMe = (n === currentPlayer);
+            html += `<tr style="cursor:pointer;${isMe ? 'background:rgba(240,185,11,0.1);' : ''}" onclick="selectPointsPlayer('${n}')">
+                <td><span class="rank-circle ${rc}">${i + 1}</span></td>
+                <td>${n}</td>
+                <td class="pts-highlight">${p}</td>
+            </tr>`;
+        });
+        const el = document.getElementById('standings-table');
+        if (el) el.innerHTML = html + '</table>';
+    }
     function renderPointsDetail() {
         const select = document.getElementById('points-player-select');
         if (select) select.innerHTML = Object.keys(predictions).map(p => `<option value="${p}" ${p===selectedPointsPlayer?'selected':''}>${p}</option>`).join('');
