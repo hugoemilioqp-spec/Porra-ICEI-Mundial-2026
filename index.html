@@ -278,6 +278,13 @@
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
         <div class="flex-row" id="stats-row"></div>
+        <div class="panel" id="countdown-panel">
+    <h2><i class="fa-solid fa-hourglass-half"></i> Próximo partido</h2>
+    <div id="countdown-display" style="font-size: 2rem; font-weight: 700; text-align: center; padding: 12px; font-family: 'Space Grotesk', monospace;">
+        Cargando...
+    </div>
+    <p class="text-muted" id="countdown-match-info" style="text-align: center;"></p>
+</div>
         <div class="panel"><h2>Top 5 Clasificación</h2><div id="top5-table"></div></div>
         <div class="panel"><h2>Próximos Partidos</h2><div id="upcoming-matches"></div></div>
     </div>
@@ -641,6 +648,7 @@
     let selectedPointsPlayer = '';
     let accessCodes = [];
     let dataLoaded = false;
+    let countdownInterval = null;
 
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
@@ -668,37 +676,138 @@
         { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
     ];
 
-    function buildMatchDates() {
-        const matches = [];
-        let id = 1;
-        const groups = Object.keys(GROUPS);
-        const j1Hours = ['13:00','22:00','15:00','18:00','15:00','21:00','21:00','12:00','13:00','16:00','16:00','22:00','12:00','15:00','12:00','15:00','15:00','18:00','15:00','18:00','13:00','22:00','16:00','19:00'];
-        groups.forEach((g, gi) => {
-            const t = GROUPS[g]; const baseDay = 11 + Math.floor(gi/4);
-            const v1 = VENUES[gi % 16], v2 = VENUES[(gi+8) % 16];
-            matches.push({id:id++, group:g, home:t[0], away:t[1], date:`2026-06-${baseDay}T${j1Hours[gi*2]||'18:00'}:00`, venue:`${v1.stadium}, ${v1.city}`, round:1, homeScore:null, awayScore:null});
-            matches.push({id:id++, group:g, home:t[2], away:t[3], date:`2026-06-${baseDay}T${j1Hours[gi*2+1]||'21:00'}:00`, venue:`${v2.stadium}, ${v2.city}`, round:1, homeScore:null, awayScore:null});
+function buildMatchDates() {
+    const matches = [];
+    let id = 1;
+
+    // --- FASE DE GRUPOS (IDs 1 a 72) ---
+    // Las fechas y horas están en UTC (basadas en los GMT del calendario oficial)
+    const groupStage = [
+        // Jornada 1
+        { group: 'A', home: '🇲🇽 México', away: '🇿🇦 Sudáfrica', date: '2026-06-11T19:00:00Z', venue: 'Estadio Azteca, Ciudad de México', round: 1 },
+        { group: 'A', home: '🇰🇷 Corea del Sur', away: '🇨🇿 República Checa', date: '2026-06-12T04:00:00Z', venue: 'Estadio Akron, Guadalajara', round: 1 },
+        { group: 'B', home: '🇨🇦 Canadá', away: '🇧🇦 Bosnia', date: '2026-06-12T20:00:00Z', venue: 'BMO Field, Toronto', round: 1 },
+        { group: 'D', home: '🇺🇸 Estados Unidos', away: '🇵🇾 Paraguay', date: '2026-06-13T05:00:00Z', venue: 'SoFi Stadium, Los Ángeles', round: 1 },
+        { group: 'C', home: '🇭🇹 Haití', away: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia', date: '2026-06-14T02:00:00Z', venue: 'Gillette Stadium, Boston', round: 1 },
+        { group: 'D', home: '🇦🇺 Australia', away: '🇹🇷 Turquía', date: '2026-06-14T08:00:00Z', venue: 'BC Place, Vancouver', round: 1 },
+        { group: 'C', home: '🇧🇷 Brasil', away: '🇲🇦 Marruecos', date: '2026-06-13T23:00:00Z', venue: 'MetLife Stadium, Nueva York/NJ', round: 1 },
+        { group: 'B', home: '🇶🇦 Catar', away: '🇨🇭 Suiza', date: '2026-06-13T23:00:00Z', venue: "Levi's Stadium, San Francisco", round: 1 },
+        { group: 'E', home: '🇨🇮 Costa de Marfil', away: '🇪🇨 Ecuador', date: '2026-06-15T00:00:00Z', venue: 'Lincoln Financial Field, Filadelfia', round: 1 },
+        { group: 'E', home: '🇩🇪 Alemania', away: '🇨🇼 Curazao', date: '2026-06-14T19:00:00Z', venue: 'NRG Stadium, Houston', round: 1 },
+        { group: 'F', home: '🇳🇱 Países Bajos', away: '🇯🇵 Japón', date: '2026-06-14T22:00:00Z', venue: 'AT&T Stadium, Dallas', round: 1 },
+        { group: 'F', home: '🇹🇳 Túnez', away: '🇸🇪 Suecia', date: '2026-06-15T04:00:00Z', venue: 'Estadio BBVA, Monterrey', round: 1 },
+        { group: 'H', home: '🇸🇦 Arabia Saudita', away: '🇺🇾 Uruguay', date: '2026-06-15T23:00:00Z', venue: 'Hard Rock Stadium, Miami', round: 1 },
+        { group: 'H', home: '🇪🇸 España', away: '🇨🇻 Cabo Verde', date: '2026-06-15T17:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta', round: 1 },
+        { group: 'G', home: '🇮🇷 Irán', away: '🇳🇿 Nueva Zelanda', date: '2026-06-16T05:00:00Z', venue: 'SoFi Stadium, Los Ángeles', round: 1 },
+        { group: 'G', home: '🇧🇪 Bélgica', away: '🇪🇬 Egipto', date: '2026-06-15T23:00:00Z', venue: 'Lumen Field, Seattle', round: 1 },
+        { group: 'I', home: '🇫🇷 Francia', away: '🇸🇳 Senegal', date: '2026-06-16T20:00:00Z', venue: 'MetLife Stadium, Nueva York/NJ', round: 1 },
+        { group: 'I', home: '🇮🇶 Irak', away: '🇳🇴 Noruega', date: '2026-06-16T23:00:00Z', venue: 'Gillette Stadium, Boston', round: 1 },
+        { group: 'J', home: '🇦🇷 Argentina', away: '🇩🇿 Argelia', date: '2026-06-17T03:00:00Z', venue: 'Arrowhead Stadium, Kansas City', round: 1 },
+        { group: 'J', home: '🇦🇹 Austria', away: '🇯🇴 Jordania', date: '2026-06-17T08:00:00Z', venue: "Levi's Stadium, San Francisco", round: 1 },
+        { group: 'L', home: '🇬🇭 Ghana', away: '🇵🇦 Panamá', date: '2026-06-18T00:00:00Z', venue: 'BMO Field, Toronto', round: 1 },
+        { group: 'L', home: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra', away: '🇭🇷 Croacia', date: '2026-06-17T22:00:00Z', venue: 'AT&T Stadium, Dallas', round: 1 },
+        { group: 'K', home: '🇵🇹 Portugal', away: '🇨🇩 RD Congo', date: '2026-06-17T19:00:00Z', venue: 'NRG Stadium, Houston', round: 1 },
+        { group: 'K', home: '🇺🇿 Uzbekistán', away: '🇨🇴 Colombia', date: '2026-06-18T04:00:00Z', venue: 'Estadio Azteca, Ciudad de México', round: 1 },
+        // Jornada 2
+        { group: 'A', home: '🇨🇿 República Checa', away: '🇿🇦 Sudáfrica', date: '2026-06-18T17:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta', round: 2 },
+        { group: 'B', home: '🇨🇭 Suiza', away: '🇧🇦 Bosnia', date: '2026-06-18T23:00:00Z', venue: 'SoFi Stadium, Los Ángeles', round: 2 },
+        { group: 'B', home: '🇨🇦 Canadá', away: '🇶🇦 Catar', date: '2026-06-19T02:00:00Z', venue: 'BC Place, Vancouver', round: 2 },
+        { group: 'A', home: '🇲🇽 México', away: '🇰🇷 Corea del Sur', date: '2026-06-19T03:00:00Z', venue: 'Estadio Akron, Guadalajara', round: 2 },
+        { group: 'C', home: '🇧🇷 Brasil', away: '🇭🇹 Haití', date: '2026-06-19T23:00:00Z', venue: 'Lincoln Financial Field, Filadelfia', round: 2 },
+        { group: 'C', home: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia', away: '🇲🇦 Marruecos', date: '2026-06-19T23:00:00Z', venue: 'Gillette Stadium, Boston', round: 2 },
+        { group: 'D', home: '🇹🇷 Turquía', away: '🇵🇾 Paraguay', date: '2026-06-20T08:00:00Z', venue: "Levi's Stadium, San Francisco", round: 2 },
+        { group: 'D', home: '🇺🇸 Estados Unidos', away: '🇦🇺 Australia', date: '2026-06-19T23:00:00Z', venue: 'Lumen Field, Seattle', round: 2 },
+        { group: 'E', home: '🇩🇪 Alemania', away: '🇨🇮 Costa de Marfil', date: '2026-06-20T19:00:00Z', venue: 'BMO Field, Toronto', round: 2 },
+        { group: 'E', home: '🇪🇨 Ecuador', away: '🇨🇼 Curazao', date: '2026-06-20T23:00:00Z', venue: 'Arrowhead Stadium, Kansas City', round: 2 },
+        { group: 'F', home: '🇳🇱 Países Bajos', away: '🇸🇪 Suecia', date: '2026-06-20T19:00:00Z', venue: 'NRG Stadium, Houston', round: 2 },
+        { group: 'F', home: '🇹🇳 Túnez', away: '🇯🇵 Japón', date: '2026-06-20T23:00:00Z', venue: 'Estadio BBVA, Monterrey', round: 2 },
+        { group: 'H', home: '🇺🇾 Uruguay', away: '🇨🇻 Cabo Verde', date: '2026-06-21T17:00:00Z', venue: 'Hard Rock Stadium, Miami', round: 2 },
+        { group: 'H', home: '🇪🇸 España', away: '🇸🇦 Arabia Saudita', date: '2026-06-21T23:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta', round: 2 },
+        { group: 'G', home: '🇧🇪 Bélgica', away: '🇮🇷 Irán', date: '2026-06-21T17:00:00Z', venue: 'SoFi Stadium, Los Ángeles', round: 2 },
+        { group: 'G', home: '🇳🇿 Nueva Zelanda', away: '🇪🇬 Egipto', date: '2026-06-21T23:00:00Z', venue: 'BC Place, Vancouver', round: 2 },
+        { group: 'I', home: '🇳🇴 Noruega', away: '🇸🇳 Senegal', date: '2026-06-22T20:00:00Z', venue: 'MetLife Stadium, Nueva York/NJ', round: 2 },
+        { group: 'I', home: '🇫🇷 Francia', away: '🇮🇶 Irak', date: '2026-06-22T23:00:00Z', venue: 'Lincoln Financial Field, Filadelfia', round: 2 },
+        { group: 'J', home: '🇦🇷 Argentina', away: '🇦🇹 Austria', date: '2026-06-23T03:00:00Z', venue: 'AT&T Stadium, Dallas', round: 2 },
+        { group: 'J', home: '🇯🇴 Jordania', away: '🇩🇿 Argelia', date: '2026-06-23T08:00:00Z', venue: "Levi's Stadium, San Francisco", round: 2 },
+        { group: 'L', home: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra', away: '🇬🇭 Ghana', date: '2026-06-23T22:00:00Z', venue: 'Gillette Stadium, Boston', round: 2 },
+        { group: 'L', home: '🇵🇦 Panamá', away: '🇭🇷 Croacia', date: '2026-06-24T02:00:00Z', venue: 'BMO Field, Toronto', round: 2 },
+        { group: 'K', home: '🇵🇹 Portugal', away: '🇺🇿 Uzbekistán', date: '2026-06-23T19:00:00Z', venue: 'NRG Stadium, Houston', round: 2 },
+        { group: 'K', home: '🇨🇴 Colombia', away: '🇨🇩 RD Congo', date: '2026-06-24T04:00:00Z', venue: 'Estadio Akron, Guadalajara', round: 2 },
+        // Jornada 3
+        { group: 'C', home: '🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia', away: '🇧🇷 Brasil', date: '2026-06-24T23:00:00Z', venue: 'Hard Rock Stadium, Miami', round: 3 },
+        { group: 'C', home: '🇲🇦 Marruecos', away: '🇭🇹 Haití', date: '2026-06-24T23:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta', round: 3 },
+        { group: 'B', home: '🇨🇭 Suiza', away: '🇨🇦 Canadá', date: '2026-06-25T02:00:00Z', venue: 'BC Place, Vancouver', round: 3 },
+        { group: 'B', home: '🇧🇦 Bosnia', away: '🇶🇦 Catar', date: '2026-06-25T02:00:00Z', venue: 'Lumen Field, Seattle', round: 3 },
+        { group: 'A', home: '🇨🇿 República Checa', away: '🇲🇽 México', date: '2026-06-25T19:00:00Z', venue: 'Estadio Azteca, Ciudad de México', round: 3 },
+        { group: 'A', home: '🇿🇦 Sudáfrica', away: '🇰🇷 Corea del Sur', date: '2026-06-25T19:00:00Z', venue: 'Estadio BBVA, Monterrey', round: 3 },
+        { group: 'E', home: '🇨🇼 Curazao', away: '🇨🇮 Costa de Marfil', date: '2026-06-25T23:00:00Z', venue: 'Lincoln Financial Field, Filadelfia', round: 3 },
+        { group: 'E', home: '🇪🇨 Ecuador', away: '🇩🇪 Alemania', date: '2026-06-25T23:00:00Z', venue: 'MetLife Stadium, Nueva York/NJ', round: 3 },
+        { group: 'F', home: '🇯🇵 Japón', away: '🇸🇪 Suecia', date: '2026-06-26T03:00:00Z', venue: 'AT&T Stadium, Dallas', round: 3 },
+        { group: 'F', home: '🇹🇳 Túnez', away: '🇳🇱 Países Bajos', date: '2026-06-26T03:00:00Z', venue: 'Arrowhead Stadium, Kansas City', round: 3 },
+        { group: 'D', home: '🇹🇷 Turquía', away: '🇺🇸 Estados Unidos', date: '2026-06-26T19:00:00Z', venue: 'SoFi Stadium, Los Ángeles', round: 3 },
+        { group: 'D', home: '🇵🇾 Paraguay', away: '🇦🇺 Australia', date: '2026-06-26T19:00:00Z', venue: "Levi's Stadium, San Francisco", round: 3 },
+        { group: 'I', home: '🇳🇴 Noruega', away: '🇫🇷 Francia', date: '2026-06-27T02:00:00Z', venue: 'Gillette Stadium, Boston', round: 3 },
+        { group: 'I', home: '🇸🇳 Senegal', away: '🇮🇶 Irak', date: '2026-06-27T02:00:00Z', venue: 'BMO Field, Toronto', round: 3 },
+        { group: 'G', home: '🇪🇬 Egipto', away: '🇮🇷 Irán', date: '2026-06-27T17:00:00Z', venue: 'Lumen Field, Seattle', round: 3 },
+        { group: 'G', home: '🇳🇿 Nueva Zelanda', away: '🇧🇪 Bélgica', date: '2026-06-27T17:00:00Z', venue: 'BC Place, Vancouver', round: 3 },
+        { group: 'H', home: '🇨🇻 Cabo Verde', away: '🇸🇦 Arabia Saudita', date: '2026-06-27T23:00:00Z', venue: 'NRG Stadium, Houston', round: 3 },
+        { group: 'H', home: '🇺🇾 Uruguay', away: '🇪🇸 España', date: '2026-06-27T23:00:00Z', venue: 'Estadio Akron, Guadalajara', round: 3 },
+        { group: 'L', home: '🇵🇦 Panamá', away: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra', date: '2026-06-28T02:00:00Z', venue: 'MetLife Stadium, Nueva York/NJ', round: 3 },
+        { group: 'L', home: '🇭🇷 Croacia', away: '🇬🇭 Ghana', date: '2026-06-28T02:00:00Z', venue: 'Lincoln Financial Field, Filadelfia', round: 3 },
+        { group: 'J', home: '🇩🇿 Argelia', away: '🇦🇹 Austria', date: '2026-06-28T17:00:00Z', venue: 'Arrowhead Stadium, Kansas City', round: 3 },
+        { group: 'J', home: '🇯🇴 Jordania', away: '🇦🇷 Argentina', date: '2026-06-28T17:00:00Z', venue: 'AT&T Stadium, Dallas', round: 3 },
+        { group: 'K', home: '🇨🇴 Colombia', away: '🇵🇹 Portugal', date: '2026-06-28T23:00:00Z', venue: 'Hard Rock Stadium, Miami', round: 3 },
+        { group: 'K', home: '🇨🇩 RD Congo', away: '🇺🇿 Uzbekistán', date: '2026-06-28T23:00:00Z', venue: 'Mercedes-Benz Stadium, Atlanta', round: 3 }
+    ];
+
+    // Agregar partidos de grupo al array
+    groupStage.forEach(m => {
+        matches.push({
+            id: id++,
+            group: m.group,
+            home: m.home,
+            away: m.away,
+            date: m.date,
+            venue: m.venue,
+            round: m.round,
+            homeScore: null,
+            awayScore: null
         });
-        groups.forEach((g, gi) => {
-            const t = GROUPS[g]; const baseDay = 18 + Math.floor(gi/4);
-            matches.push({id:id++, group:g, home:t[0], away:t[2], date:`2026-06-${baseDay}T18:00`, venue:`${VENUES[(gi+4)%16].stadium}, ${VENUES[(gi+4)%16].city}`, round:2, homeScore:null, awayScore:null});
-            matches.push({id:id++, group:g, home:t[1], away:t[3], date:`2026-06-${baseDay}T21:00`, venue:`${VENUES[(gi+12)%16].stadium}, ${VENUES[(gi+12)%16].city}`, round:2, homeScore:null, awayScore:null});
+    });
+
+    // --- FASE DE ELIMINATORIAS (IDs 73 a 104) ---
+    // (La lógica de esta sección no cambia)
+    const koDates = ['2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30','2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06','2026-07-07','2026-07-07','2026-07-09','2026-07-09','2026-07-10','2026-07-10','2026-07-14','2026-07-15','2026-07-18','2026-07-19'];
+    const koHours = ['16:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','16:00','19:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','19:00','16:00','19:00','16:00','16:00','16:00','15:00'];
+    const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15,14,9,15,0,8,7,11,4,13,5,12,10,8,11,12,15];
+    const roundNames = ['Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Cuartos','Cuartos','Cuartos','Cuartos','Semifinales','Semifinales','3er Puesto','Final'];
+    const VENUES = [
+        { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
+        { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
+        { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
+        { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
+        { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
+        { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
+        { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
+        { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
+    ];
+
+    for (let i = 0; i < koDates.length; i++) {
+        const v = VENUES[koVenues[i]];
+        matches.push({
+            id: id++,
+            group: 'KO',
+            round: roundNames[i],
+            home: 'Por definir',
+            away: 'Por definir',
+            date: koDates[i] + `T${koHours[i] || '20:00'}:00Z`, // ¡Ojo! Añadir 'Z' aquí también
+            venue: `${v.stadium}, ${v.city}`,
+            homeScore: null,
+            awayScore: null
         });
-        groups.forEach((g, gi) => {
-            const t = GROUPS[g]; const baseDay = 24 + Math.floor(gi/4);
-            matches.push({id:id++, group:g, home:t[0], away:t[3], date:`2026-06-${baseDay}T18:00`, venue:`${VENUES[gi%16].stadium}, ${VENUES[gi%16].city}`, round:3, homeScore:null, awayScore:null});
-            matches.push({id:id++, group:g, home:t[1], away:t[2], date:`2026-06-${baseDay}T21:00`, venue:`${VENUES[(gi+8)%16].stadium}, ${VENUES[(gi+8)%16].city}`, round:3, homeScore:null, awayScore:null});
-        });
-        const koDates = ['2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30','2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06','2026-07-07','2026-07-07','2026-07-09','2026-07-09','2026-07-10','2026-07-10','2026-07-14','2026-07-15','2026-07-18','2026-07-19'];
-        const koHours = ['16:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','16:00','19:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','19:00','16:00','19:00','16:00','16:00','16:00','15:00'];
-        const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15,14,9,15,0,8,7,11,4,13,5,12,10,8,11,12,15];
-        const roundNames = ['Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Cuartos','Cuartos','Cuartos','Cuartos','Semifinales','Semifinales','3er Puesto','Final'];
-        for (let i = 0; i < koDates.length; i++) {
-            const v = VENUES[koVenues[i]];
-            matches.push({id:id++, group:'KO', round:roundNames[i], home:'Por definir', away:'Por definir', date:koDates[i]+`T${koHours[i]||'20:00'}:00`, venue:`${v.stadium}, ${v.city}`, homeScore:null, awayScore:null});
-        }
-        return matches;
     }
+    return matches;
+}
     const DEFAULT_MATCHES = buildMatchDates();
 
     async function refreshAllData() {
@@ -1561,6 +1670,54 @@ function updateGenerateKOButton() {
     btn.title = allPlayed ? 'Generar cruces con los resultados oficiales' : 'Aún no se han completado todos los partidos de grupo';
 }
 
+
+    function updateCountdown() {
+    const now = new Date(); // fecha actual en UTC
+    const upcoming = matches
+        .filter(m => m.homeScore === null && m.awayScore === null)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const display = document.getElementById('countdown-display');
+    const info = document.getElementById('countdown-match-info');
+    if (!display || !info) return;
+
+    if (upcoming.length === 0) {
+        display.textContent = 'Todos los partidos han finalizado';
+        info.textContent = '';
+        return;
+    }
+
+    const nextMatch = upcoming[0];
+    const matchDate = new Date(nextMatch.date);
+    const diff = matchDate - now;
+
+    if (diff <= 0) {
+        display.innerHTML = '⚽ ¡En juego!';
+        info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
+        return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    display.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    info.textContent = `${nextMatch.home} vs ${nextMatch.away} — ${matchDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} (UTC)`;
+}
+
+function startCountdown() {
+    stopCountdown(); // por si ya había uno activo
+    updateCountdown();
+    countdownInterval = setInterval(updateCountdown, 1000);
+}
+
+function stopCountdown() {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+}
     // ========== AUTENTICACIÓN DE USUARIO ==========
 async function loginUser(name, code) {
     const codeDoc = await getDoc(`accessCodes/${code}`);
@@ -1698,6 +1855,9 @@ async function generateOfficialRoundOf32() {
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
         refreshAllData();
+        if (document.getElementById('tab-dashboard').classList.contains('active')) {
+    startCountdown();
+}
 
         currentPlayer = '';
         sessionValid = false;
@@ -1725,6 +1885,12 @@ async function generateOfficialRoundOf32() {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             const tab = document.getElementById('tab-'+btn.dataset.tab);
             if (tab) tab.classList.add('active');
+            // Control de la cuenta regresiva
+            if (btn.dataset.tab === 'dashboard') {
+                startCountdown();
+            } else {
+                stopCountdown();
+            }
             // Al cambiar de pestaña se vuelve a renderizar todo
             renderAllPanels();
             if (btn.dataset.tab === 'matches') {
