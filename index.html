@@ -530,9 +530,8 @@
     99: { nextMatch: 102, position: 'home' },
     100: { nextMatch: 102, position: 'away' },
     // Semifinales -> Tercer puesto y Final
-    101: { nextMatch: 103, position: 'home' }, // perdedor semis va a 3er puesto (esto requiere lógica especial)
-    102: { nextMatch: 104, position: 'home' }  // ganador semis a final (es más complejo)
-    // Para simplificar, el admin puede editar manualmente el 3er puesto y la final
+    101: { nextMatchWin: 104, positionWin: 'home', nextMatchLose: 103, positionLose: 'home' },
+    102: { nextMatchWin: 104, positionWin: 'away', nextMatchLose: 103, positionLose: 'away' }
 };
     function extractValue(field) {
         if (!field || typeof field !== 'object') return field;
@@ -820,7 +819,13 @@
         } else {
             nextMatch.away = winner;
         }
-
+        if (m.id === 101 || m.id === 102) {
+            const loser = winner === m.home ? m.away : m.home;
+            const thirdMatch = matches.find(n => n.id === advance.nextMatchLose);
+            if (advance.positionLose === 'home') thirdMatch.home = loser;
+            else thirdMatch.away = loser;
+            await setDoc(`matches/103`, { home: thirdMatch.home, away: thirdMatch.away });
+        }
         // Si el admin seleccionó un ganador manual en caso de empate, lo guardamos
         const winnerSel = document.getElementById('rw-' + m.id);
         if (winnerSel && m.homeScore === m.awayScore) {
@@ -995,14 +1000,56 @@
     }
     function allGroupMatchesPlayed(mArr) { return mArr.filter(m => m.group !== 'KO').every(m => m.homeScore !== null); }
     function getBestThirds(mArr) {
-        const thirds = [];
-        for (const g of Object.keys(GROUPS)) {
-            const st = getGroupStandings(mArr, g);
-            if (st[2] && st[2].pj > 0) thirds.push({team: st[2].team, group: g, pts: st[2].pts, gd: st[2].gf - st[2].ga, gf: st[2].gf});
+    const thirds = [];
+    for (const g of Object.keys(GROUPS)) {
+        const st = getGroupStandings(mArr, g);
+        if (st[2] && st[2].pj > 0) {
+            thirds.push({
+                team: st[2].team,
+                group: g,
+                pts: st[2].pts,
+                gd: st[2].gf - st[2].ga,
+                gf: st[2].gf
+            });
         }
-        thirds.sort((a,b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
-        return thirds.slice(0, 8);
     }
+    // Criterios oficiales FIFA:
+    // 1. Mayor número de puntos
+    // 2. Mayor diferencia de goles
+    // 3. Mayor número de goles a favor
+    thirds.sort((a, b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
+    return thirds.slice(0, 8);
+}
+
+    function assignBestThirdsToMatches(bestThirds) {
+    // Partidos que llevan tercero, con sus grupos elegibles (según reglamento FIFA sección 12.6)
+    const thirdSlots = [
+        { matchId: 74, eligibleGroups: ['A','B','C','D','F'] },
+        { matchId: 77, eligibleGroups: ['C','D','F','G','H'] },
+        { matchId: 79, eligibleGroups: ['C','E','F','H','I'] },
+        { matchId: 80, eligibleGroups: ['E','H','I','J','K'] },
+        { matchId: 81, eligibleGroups: ['B','E','F','I','J'] },
+        { matchId: 82, eligibleGroups: ['A','E','H','I','J'] },
+        { matchId: 85, eligibleGroups: ['E','F','G','I','J'] },
+        { matchId: 87, eligibleGroups: ['D','E','I','J','L'] }
+    ];
+
+    const assigned = {};  // resultado final: { 74: 'terceroX', 77: 'terceroY', ... }
+    const used = new Set(); // para no repetir terceros
+
+    for (const slot of thirdSlots) {
+        // Buscar el tercero con mejor ranking cuyo grupo esté entre los elegibles
+        const selected = bestThirds.find(t => slot.eligibleGroups.includes(t.group) && !used.has(t.team));
+        if (selected) {
+            assigned[slot.matchId] = selected.team;
+            used.add(selected.team);
+        } else {
+            assigned[slot.matchId] = 'Por definir';
+        }
+    }
+
+    return assigned;
+}
 
     function autoFillKO(preds, useOfficial = false) {
         if (preds._koLocked && !useOfficial) return preds;
@@ -1229,27 +1276,24 @@ function renderBracket() {
         return;
     }
 
-    // --- LÓGICA DE CLASIFICADOS (idéntica a la anterior) ---
+    // --- LÓGICA DE CLASIFICADOS (con reglamento FIFA) ---
     const qual = {};
     for (const g of Object.keys(GROUPS)) {
         const st = getGroupStandings(matches, g);
         qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
     }
-    const bestThirds = getBestThirds(matches).slice(0, 8);
-    const sortedThirds = [...bestThirds].sort((a, b) => a.group.localeCompare(b.group));
-    const thirdSlots = [74, 77, 79, 80, 81, 82, 85, 87];
-    const thirdMap = {};
-    thirdSlots.forEach((id, i) => { if (sortedThirds[i]) thirdMap[id] = sortedThirds[i].team; });
+    const bestThirds = getBestThirds(matches);
+    const thirdAssignment = assignBestThirdsToMatches(bestThirds);
 
     const r32 = {
-        73: [qual.A[1], qual.B[1]], 74: [qual.E[0], thirdMap[74] || '?'],
-        75: [qual.F[0], qual.C[1]], 76: [qual.C[0], qual.F[1]],
-        77: [qual.I[0], thirdMap[77] || '?'], 78: [qual.E[1], qual.I[1]],
-        79: [qual.A[0], thirdMap[79] || '?'], 80: [qual.L[0], thirdMap[80] || '?'],
-        81: [qual.D[0], thirdMap[81] || '?'], 82: [qual.G[0], thirdMap[82] || '?'],
-        83: [qual.K[1], qual.L[1]], 84: [qual.H[0], qual.J[1]],
-        85: [qual.B[0], thirdMap[85] || '?'], 86: [qual.J[0], qual.H[1]],
-        87: [qual.K[0], thirdMap[87] || '?'], 88: [qual.D[1], qual.G[1]]
+        73: [qual.A[1], qual.B[1]],          74: [qual.E[0], thirdAssignment[74] || '?'],
+        75: [qual.F[0], qual.C[1]],          76: [qual.C[0], qual.F[1]],
+        77: [qual.I[0], thirdAssignment[77] || '?'], 78: [qual.E[1], qual.I[1]],
+        79: [qual.A[0], thirdAssignment[79] || '?'], 80: [qual.L[0], thirdAssignment[80] || '?'],
+        81: [qual.D[0], thirdAssignment[81] || '?'], 82: [qual.G[0], thirdAssignment[82] || '?'],
+        83: [qual.K[1], qual.L[1]],          84: [qual.H[0], qual.J[1]],
+        85: [qual.B[0], thirdAssignment[85] || '?'], 86: [qual.J[0], qual.H[1]],
+        87: [qual.K[0], thirdAssignment[87] || '?'], 88: [qual.D[1], qual.G[1]]
     };
     const koMatches = matches.filter(m => m.group === 'KO');
     const findKo = (id) => koMatches.find(m => m.id === id) || { home: '?', away: '?', homeScore: null, awayScore: null };
@@ -1398,7 +1442,6 @@ koMatches.forEach(m => {
     updateWinnerVisibility();
 });
         renderSpecialPicks();
-        document.getElementById('generate-ko-btn').style.display = groupsComplete ? 'inline-flex' : 'none';
     }
     function renderStandings() {
         const scores = {}; for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
@@ -1634,7 +1677,7 @@ async function loginUser(name, code) {
         icon.classList.add('fa-chevron-up');
     }
     }
-    async function generateOfficialRoundOf32() {
+async function generateOfficialRoundOf32() {
     if (!adminLogged) return alert('Debes iniciar sesión como administrador.');
     if (!allGroupMatchesPlayed(matches)) {
         return alert('Aún no se han completado todos los partidos de la fase de grupos.');
@@ -1647,43 +1690,33 @@ async function loginUser(name, code) {
         qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
     }
 
-    // 2. Mejores 8 terceros, ya ordenados por puntos/goles
-    const bestThirds = getBestThirds(matches).slice(0, 8);
+    // 2. Mejores 8 terceros, ya ordenados por puntos/goles (según FIFA)
+    const bestThirds = getBestThirds(matches);
+    
+    // 3. Asignar terceros a los partidos según reglamento FIFA
+    const thirdAssignment = assignBestThirdsToMatches(bestThirds);
 
-    // 3. Ordenar los 8 terceros alfabéticamente por grupo (regla oficial)
-    const sortedThirds = [...bestThirds].sort((a, b) => a.group.localeCompare(b.group));
-    // 4. Asignar en orden fijo a los partidos que llevan tercero
-    const thirdSlots = [74, 77, 79, 80, 81, 82, 85, 87];  // orden obligatorio
-
-    // 5. Emparejamientos fijos (el resto no lleva tercero)
+    // 4. Emparejamientos completos de dieciseisavos
     const r32 = {
         73: [qual.A[1], qual.B[1]],
+        74: [qual.E[0], thirdAssignment[74] || 'Por definir'],
         75: [qual.F[0], qual.C[1]],
         76: [qual.C[0], qual.F[1]],
+        77: [qual.I[0], thirdAssignment[77] || 'Por definir'],
         78: [qual.E[1], qual.I[1]],
+        79: [qual.A[0], thirdAssignment[79] || 'Por definir'],
+        80: [qual.L[0], thirdAssignment[80] || 'Por definir'],
+        81: [qual.D[0], thirdAssignment[81] || 'Por definir'],
+        82: [qual.G[0], thirdAssignment[82] || 'Por definir'],
         83: [qual.K[1], qual.L[1]],
         84: [qual.H[0], qual.J[1]],
+        85: [qual.B[0], thirdAssignment[85] || 'Por definir'],
         86: [qual.J[0], qual.H[1]],
+        87: [qual.K[0], thirdAssignment[87] || 'Por definir'],
         88: [qual.D[1], qual.G[1]]
     };
 
-    // Insertar los terceros en sus slots
-    thirdSlots.forEach((matchId, i) => {
-        if (sortedThirds[i]) {
-            r32[matchId] = [
-                qual[Object.keys(GROUPS)[Object.keys(GROUPS).indexOf(
-                    matchId === 74 ? 'E' : matchId === 77 ? 'I' : matchId === 79 ? 'A' :
-                    matchId === 80 ? 'L' : matchId === 81 ? 'D' : matchId === 82 ? 'G' :
-                    matchId === 85 ? 'B' : 'K'
-                )]][0],
-                sortedThirds[i].team
-            ];
-        } else {
-            r32[matchId] = [null, 'Por definir'];  // no debería ocurrir si hay 8 terceros
-        }
-    });
-
-    // 6. Guardar en Firestore los 16 partidos de Dieciseisavos
+    // 5. Guardar en Firestore los 16 partidos de Dieciseisavos
     for (const [id, teams] of Object.entries(r32)) {
         const baseMatch = matches.find(m => m.id == id);
         await setDoc(`matches/${id}`, {
@@ -1698,7 +1731,7 @@ async function loginUser(name, code) {
         });
     }
 
-    showToast('Dieciseisavos generados correctamente.');
+    showToast('Dieciseisavos generados correctamente (según reglamento FIFA).');
     await refreshAllData();
     renderAllPanels();
     if (adminLogged) renderAdmin();
