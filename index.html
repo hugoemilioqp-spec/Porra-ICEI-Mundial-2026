@@ -778,12 +778,19 @@
         await setDoc('config/winners', actualWinners);
     }
 
-    async function saveResults() {
+async function saveResults() {
     // 1. Guardar todos los resultados (fase de grupos y eliminatorias)
     for (const m of matches) {
-        await setDoc(`matches/${nextMatchWinId}`, {
-            home: nextMatch.home,
-            away: nextMatch.away
+        await setDoc(`matches/${m.id}`, {
+            group: m.group,
+            home: m.home,
+            away: m.away,
+            date: m.date,
+            venue: m.venue,
+            round: m.round,
+            homeScore: m.homeScore,
+            awayScore: m.awayScore,
+            winnerTeam: m.winnerTeam || null   // guardamos también el ganador en caso de empate
         });
     }
 
@@ -794,54 +801,71 @@
 
     for (const m of updatedMatches) {
         const advance = KO_ADVANCE_MAP[m.id];
-if (!advance) continue;
+        if (!advance) continue;
 
-const winner = m.homeScore > m.awayScore 
-    ? m.home 
-    : (m.homeScore < m.awayScore 
-        ? m.away 
-        : (m.winnerTeam || null));
-if (!winner) continue;
+        const winner = m.homeScore > m.awayScore 
+            ? m.home 
+            : (m.homeScore < m.awayScore 
+                ? m.away 
+                : (m.winnerTeam || null));
+        if (!winner) continue;  // empate sin ganador definido → no avanzamos todavía
 
-// --- Avanzar al ganador (siguiente partido) ---
-let nextMatchWinId = advance.nextMatchWin || advance.nextMatch;  // semis o partidos normales
-let positionWin = advance.positionWin || advance.position;
-if (nextMatchWinId) {
-    const nextMatch = matches.find(n => n.id === nextMatchWinId);
-    if (nextMatch) {
-        if (positionWin === 'home') nextMatch.home = winner;
-        else nextMatch.away = winner;
-        // Guardar el partido siguiente
-        await setDoc(`matches/${nextMatchWinId}`, {
-            group: 'KO',
-            round: nextMatch.round,
-            home: nextMatch.home,
-            away: nextMatch.away,
-            date: nextMatch.date,
-            venue: nextMatch.venue,
-            homeScore: nextMatch.homeScore,
-            awayScore: nextMatch.awayScore
+        // --- Avanzar al ganador (siguiente partido) ---
+        let nextMatchWinId = advance.nextMatchWin || advance.nextMatch;  // semis o partidos normales
+        let positionWin = advance.positionWin || advance.position;
+        if (nextMatchWinId) {
+            const nextMatch = matches.find(n => n.id === nextMatchWinId);
+            if (nextMatch) {
+                if (positionWin === 'home') nextMatch.home = winner;
+                else nextMatch.away = winner;
+
+                // Guardar solo los equipos del siguiente partido, sin tocar marcadores
+                await setDoc(`matches/${nextMatchWinId}`, {
+                    home: nextMatch.home,
+                    away: nextMatch.away
+                });
+            }
+        }
+
+        // --- Avanzar al perdedor (solo semifinales) ---
+        if (m.id === 101 || m.id === 102) {
+            const loser = winner === m.home ? m.away : m.home;
+            const thirdMatchId = advance.nextMatchLose;
+            const positionLose = advance.positionLose;
+            if (thirdMatchId) {
+                const thirdMatch = matches.find(n => n.id === thirdMatchId);
+                if (thirdMatch) {
+                    if (positionLose === 'home') thirdMatch.home = loser;
+                    else thirdMatch.away = loser;
+                    await setDoc(`matches/${thirdMatchId}`, {
+                        home: thirdMatch.home,
+                        away: thirdMatch.away
+                    });
+                }
+            }
+        }
+
+        // Si el admin seleccionó un ganador manual en caso de empate, lo guardamos
+        const winnerSel = document.getElementById('rw-' + m.id);
+        if (winnerSel && m.homeScore === m.awayScore) {
+            m.winnerTeam = winnerSel.value || null;
+        } else {
+            m.winnerTeam = null;
+        }
+
+        // Actualizar el partido actual con su winnerTeam definitivo
+        await setDoc(`matches/${m.id}`, {
+            group: m.group,
+            home: m.home,
+            away: m.away,
+            date: m.date,
+            venue: m.venue,
+            round: m.round,
+            homeScore: m.homeScore,
+            awayScore: m.awayScore,
+            winnerTeam: m.winnerTeam || null
         });
     }
-}
-
-// --- Avanzar al perdedor (solo semifinales) ---
-if (m.id === 101 || m.id === 102) {
-    const loser = winner === m.home ? m.away : m.home;
-    const thirdMatchId = advance.nextMatchLose;
-    const positionLose = advance.positionLose;
-    if (thirdMatchId) {
-        const thirdMatch = matches.find(n => n.id === thirdMatchId);
-        if (thirdMatch) {
-            if (positionLose === 'home') thirdMatch.home = loser;
-            else thirdMatch.away = loser;
-            await setDoc(`matches/${thirdMatchId}`, {
-                home: thirdMatch.home,
-                away: thirdMatch.away
-            });
-        }
-    }
-}
 
     await refreshAllData();
     showToast('Resultados guardados y siguientes rondas actualizadas');
@@ -1842,7 +1866,7 @@ async function generateOfficialRoundOf32() {
         });
 
         document.getElementById('export-btn').addEventListener('click', () => {
-            const data = { matches, predictions, pointsConfig, actualWinners };
+            const data = { matches, predictions, pointsConfig, actualWinners, accessCodes };
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'porra_backup.json'; a.click();
         });
@@ -1876,6 +1900,12 @@ document.getElementById('import-file').addEventListener('change', async (e) => {
         // Config
         await setDoc('config/points', data.pointsConfig);
         await setDoc('config/winners', data.actualWinners);
+        // Subir códigos de acceso
+if (data.accessCodes) {
+    for (const c of data.accessCodes) {
+        await setDoc(`accessCodes/${c.code}`, { usedBy: c.usedBy || null });
+    }
+}
         showToast('Backup importado correctamente. Recargando...');
         setTimeout(() => location.reload(), 1500);
     } catch (err) {
