@@ -1022,33 +1022,21 @@ async function saveResults() {
         div.innerHTML = html + '</table>';
     }
 
-    function renderPlayersList() {
-        const div = document.getElementById('players-list');
-        if (!div) return;
-        let html = '<table><tr><th>Jugador</th><th>Acción</th></tr>';
-        Object.keys(predictions).forEach(p => {
-            html += `<tr><td>${p}</td><td><button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button></td></tr>`;
-        });
-        div.innerHTML = html + '</table>';
-        html += `<td><button class="btn btn-sm btn-outline" onclick="selectPointsPlayer('${p}')">👁️ Ver</button></td>`;
-    }
-
-    window.deleteCode = deleteCode;
-    window.deletePlayer = deletePlayer;
-    window.selectPointsPlayer = function(name) {
-        selectedPointsPlayer = name;
-        const sel = document.getElementById('points-player-select');
-        if (sel) sel.value = name;
-        renderPointsDetail();
-        renderPlayerPicks(name);
-        document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
-        const btn = document.querySelector('[data-tab="mypoints"]');
-        if (btn) btn.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        const tab = document.getElementById('tab-mypoints');
-        if (tab) tab.classList.add('active');
-    };
-
+function renderPlayersList() {
+    const div = document.getElementById('players-list');
+    if (!div) return;
+    let html = '<table><tr><th>Jugador</th><th>Acción</th></tr>';
+    Object.keys(predictions).forEach(p => {
+        html += `<tr>
+            <td>${p}</td>
+            <td>
+                <button class="btn btn-sm btn-outline" onclick="selectPointsPlayer('${p}')">👁️ Ver</button>
+                <button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    div.innerHTML = html + '</table>';
+}
     function renderGroupPredictions() {
     const container = document.getElementById('predictions-groups-container');
     if (!container) return;
@@ -1854,10 +1842,11 @@ async function generateOfficialRoundOf32() {
 }
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
-        refreshAllData();
-        if (document.getElementById('tab-dashboard').classList.contains('active')) {
-    startCountdown();
-}
+        refreshAllData().then(() => {
+            if (document.getElementById('tab-dashboard').classList.contains('active')) {
+                startCountdown();
+            }
+        });
 
         currentPlayer = '';
         sessionValid = false;
@@ -1894,11 +1883,10 @@ async function generateOfficialRoundOf32() {
             // Al cambiar de pestaña se vuelve a renderizar todo
             renderAllPanels();
             if (btn.dataset.tab === 'matches') {
-                    setTimeout(() => {
+                setTimeout(() => {
                     renderMatchesFull();
-            console.log('Renderizando Partidos tras cambio de pestaña');
-        }, 50);
-    }
+                }, 50);
+            }
             if (btn.dataset.tab === 'mypoints') { renderPointsDetail(); renderPlayerPicks(selectedPointsPlayer); }
             if (btn.dataset.tab === 'admin') renderAdmin();
             if (btn.dataset.tab === 'matches') {
