@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Outfit:wght@400..900&family=Space+Grotesk:wght@400..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons/css/flag-icons.min.css">
     <style>
         :root {
             --bg-deep: #05070d; --bg-primary: #0d1117; --bg-secondary: #161b24; --bg-card: #1a1f2c;
@@ -724,6 +725,28 @@
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
     const ALL_TEAMS = Object.values(GROUPS).flat();
+    const COUNTRY_FLAGS = {
+    'México': 'mx', 'Sudáfrica': 'za', 'Corea del Sur': 'kr', 'República Checa': 'cz',
+    'Canadá': 'ca', 'Bosnia': 'ba', 'Catar': 'qa', 'Suiza': 'ch',
+    'Brasil': 'br', 'Marruecos': 'ma', 'Escocia': 'gb-sct', 'Haití': 'ht',
+    'Estados Unidos': 'us', 'Australia': 'au', 'Paraguay': 'py', 'Turquía': 'tr',
+    'Alemania': 'de', 'Curazao': 'cw', 'Costa de Marfil': 'ci', 'Ecuador': 'ec',
+    'Países Bajos': 'nl', 'Japón': 'jp', 'Túnez': 'tn', 'Suecia': 'se',
+    'Bélgica': 'be', 'Irán': 'ir', 'Egipto': 'eg', 'Nueva Zelanda': 'nz',
+    'España': 'es', 'Uruguay': 'uy', 'Arabia Saudita': 'sa', 'Cabo Verde': 'cv',
+    'Francia': 'fr', 'Senegal': 'sn', 'Noruega': 'no', 'Irak': 'iq',
+    'Argentina': 'ar', 'Austria': 'at', 'Argelia': 'dz', 'Jordania': 'jo',
+    'Portugal': 'pt', 'Colombia': 'co', 'Uzbekistán': 'uz', 'RD Congo': 'cd',
+    'Inglaterra': 'gb-eng', 'Croacia': 'hr', 'Panamá': 'pa', 'Ghana': 'gh'
+};
+
+function teamFlag(teamName) {
+    const code = COUNTRY_FLAGS[teamName];
+    if (code) {
+        return `<span class="fi fi-${code}" style="margin-right:4px;"></span>${teamName}`;
+    }
+    return teamName;
+}
     const VENUES = [
         { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
         { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
@@ -1203,7 +1226,7 @@ window.changePlayerCode = changePlayerCode;
             html += `<td>${player}</td>`;
             standings.forEach((team, idx) => {
                 const className = idx < 2 ? 'pred-qualified' : '';
-                html += `<td class="${className}">${team.team}</td>`;
+                html += `<td class="${className}">${teamFlag(team.team)}</td>`;
             });
             html += '</tr>';
         }
@@ -1426,7 +1449,7 @@ function renderDashboard() {
     function renderUpcoming() {
         const upcoming = matches.filter(m => m.homeScore === null).sort((a,b) => new Date(a.date)-new Date(b.date)).slice(0,8);
         let html = '<table><tr><th>Fecha</th><th>Ronda</th><th>Partido</th><th>Sede</th></tr>';
-        upcoming.forEach(m => { const d = new Date(m.date); const ds = isNaN(d) ? '??' : d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}); html += `<tr><td>${ds}</td><td>${m.group==='KO'?m.round:'J'+m.round}</td><td>${m.home} vs ${m.away}</td><td class="venue-info">${m.venue||''}</td></tr>`; });
+        upcoming.forEach(m => { const d = new Date(m.date); const ds = isNaN(d) ? '??' : d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}); html += `<tr><td>${ds}</td><td>${m.group==='KO'?m.round:'J'+m.round}</td><td>${teamFlag(m.home)} vs ${teamFlag(m.away)}</td><td class="venue-info">${m.venue||''}</td></tr>`; });
         const el = document.getElementById('upcoming-matches'); if (el) el.innerHTML = html+'</table>';
     }
 function renderMatchesFull() {
@@ -1443,7 +1466,7 @@ function renderMatchesFull() {
                 const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
                 html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;">
                     <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
-                    <span>${m.home} vs ${m.away}</span>
+                    <span>${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>
                     <span class="score-display">${sc}</span>
                     <span class="venue-info">${m.venue||''}</span>
                 </div>`;
@@ -1456,7 +1479,7 @@ function renderMatchesFull() {
         const sc = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : '-:-';
         html += `<div style="display:flex;gap:8px;padding:6px 0;font-size:0.8rem;">
             <span>${new Date(m.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
-            <span>${m.home} vs ${m.away}</span>
+            <span>${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>
             <span class="score-display">${sc}</span>
             <span class="venue-info">${m.venue||''}</span>
         </div>`;
@@ -1476,7 +1499,7 @@ function renderMatchesFull() {
         for (const [g, teams] of Object.entries(GROUPS)) {
             const st = getGroupStandings(matches, g);
             html += `<div class="panel"><h3>Grupo ${g}</h3><table><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr>`;
-            st.forEach((s,i) => html += `<tr><td>${i+1}</td><td>${s.team}</td><td>${s.pj}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gf-s.ga}</td><td class="pts-highlight">${s.pts}</td></tr>`);
+            st.forEach((s,i) => html += `<tr><td>${i+1}</td><td>${teamFlag(s.team)}</td><td>${s.pj}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gf-s.ga}</td><td class="pts-highlight">${s.pts}</td></tr>`);
             html += '</table></div>';
         }
         const el = document.getElementById('groups-container'); if (el) el.innerHTML = html;
@@ -1526,14 +1549,14 @@ function renderBracket() {
     html += '<div class="bracket-column round-16">';
     [89, 90, 91, 92].forEach(id => {
         const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
     });
     html += '</div>';
 
     html += '<div class="bracket-column round-qf">';
     [97, 98].forEach(id => {
         const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
     });
     html += '</div>';
 
@@ -1560,14 +1583,14 @@ function renderBracket() {
     html += '<div class="bracket-column round-qf">';
     [99, 100].forEach(id => {
         const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
     });
     html += '</div>';
 
     html += '<div class="bracket-column round-16">';
     [93, 94, 95, 96].forEach(id => {
         const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home} vs ${m.away}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
     });
     html += '</div>';
 
@@ -1622,7 +1645,7 @@ rounds.forEach(r => {
         const p = preds[m.id] || {};
         const matchDate = new Date(m.date);
         const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
-        html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home || ''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away || ''}" ${dis}></td></tr>`;
+        html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${teamFlag(m.home)} vs ${teamFlag(m.away)}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home || ''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away || ''}" ${dis}></td></tr>`;
     });
     html += '</table></div>';
 });
@@ -1773,7 +1796,7 @@ function renderStandings() {
     html += '<h4>Fase de grupos</h4><table><tr><th>Ronda</th><th>Partido</th><th>Pronóstico</th></tr>';
     matches.filter(m => m.group !== 'KO').forEach(m => {
         const p = preds[m.id] || {};
-        html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td>${p.home||'-'} - ${p.away||'-'}</td></tr>`;
+        html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${teamFlag(m.home)} vs ${teamFlag(m.away)}</td><td>${p.home||'-'} - ${p.away||'-'}</td></tr>`;
     });
     html += '</table>';
 
@@ -1829,7 +1852,7 @@ function renderStandings() {
         let html = '<table><tr><th>Ronda</th><th>Partido</th><th>Resultado</th></tr>';
         matches.forEach(m => {
             const isKO = m.group === 'KO';
-            html += `<tr><td>${isKO ? m.round : 'Grupo '+m.group+' J'+m.round}</td><td>${m.home} vs ${m.away}</td>`;
+            html += `<tr><td>${isKO ? m.round : 'Grupo '+m.group+' J'+m.round}</td><td>${teamFlag(m.home)} vs ${teamFlag(m.away)}</td>`;
             html += `<td style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 <input class="small-input" id="rh-${m.id}" value="${m.homeScore??''}" placeholder="-">
                 <span>-</span>
@@ -1837,8 +1860,8 @@ function renderStandings() {
             if (isKO) {
                 html += `<select id="rw-${m.id}" style="width:130px;margin-left:6px;display:none;">
                     <option value="">Ganador</option>
-                    <option value="${m.home}">${m.home}</option>
-                    <option value="${m.away}">${m.away}</option>
+                    <option value="${teamFlag(m.home)}">${teamFlag(m.home)}</option>
+                    <option value="${teamFlag(m.away)}">${teamFlag(m.away)}</option>
                 </select>`;
             }
             html += `</td></tr>`;
