@@ -1040,6 +1040,26 @@ async function saveResults() {
         renderAccessCodes();
         renderPlayersList();
     }
+    async function editPlayerPicks(player) {
+    const preds = predictions[player] || {};
+    const newBoot = prompt('Bota de Oro (actual: ' + (preds.goldenBoot || 'sin definir') + ')', preds.goldenBoot || '');
+    if (newBoot === null) return; // Cancelar
+    const newBall = prompt('Balón de Oro (actual: ' + (preds.goldenBall || 'sin definir') + ')', preds.goldenBall || '');
+    if (newBall === null) return;
+    const newChamp = prompt('Campeón (actual: ' + (preds.champion || 'sin definir') + ')', preds.champion || '');
+    if (newChamp === null) return;
+    preds.goldenBoot = newBoot.trim();
+    preds.goldenBall = newBall.trim();
+    preds.champion = newChamp.trim();
+    await guardarPrediccion(player, preds);
+    predictions[player] = preds;
+    showToast(`Premios de ${player} actualizados`);
+    await refreshAllData();
+    renderPlayersList();
+}
+
+// Exponer al ámbito global para los onclick
+window.editPlayerPicks = editPlayerPicks;
 window.deletePlayer = deletePlayer;  // ya lo tienes
 window.selectPointsPlayer = function(name) {
     selectedPointsPlayer = name;
@@ -1070,7 +1090,6 @@ window.selectPointsPlayer = function(name) {
 function renderPlayersList() {
     const div = document.getElementById('players-list');
     if (!div) return;
-    // Obtener el código actual de cada jugador (buscando en accessCodes)
     let html = '<table><tr><th>Jugador</th><th>Código actual</th><th>Acción</th></tr>';
     Object.keys(predictions).forEach(p => {
         const codeObj = accessCodes.find(c => c.usedBy === p);
@@ -1080,7 +1099,8 @@ function renderPlayersList() {
             <td style="font-family:monospace;">${currentCode}</td>
             <td>
                 <button class="btn btn-sm btn-outline" onclick="selectPointsPlayer('${p}')">👁️ Ver</button>
-                <button class="btn btn-sm btn-accent" onclick="changePlayerCode('${p}')">🔑 Cambiar código</button>
+                <button class="btn btn-sm btn-accent" onclick="changePlayerCode('${p}')">🔑 Código</button>
+                <button class="btn btn-sm btn-warning" onclick="editPlayerPicks('${p}')" style="background:#f59e0b;color:#000;">✏️ Premios</button>
                 <button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button>
             </td>
         </tr>`;
