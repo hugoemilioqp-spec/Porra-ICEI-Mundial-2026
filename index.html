@@ -247,6 +247,29 @@
             justify-content: center;
         }
     }
+
+        .pool-round-header {
+    background: rgba(240,185,11,0.08);
+    color: var(--gold-light);
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    border-radius: 6px;
+    margin-top: 10px;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.pool-round-header:hover {
+    background: rgba(240,185,11,0.15);
+}
+.pool-round-body {
+    display: none;
+}
+.pool-round-body.open {
+    display: block;
+}
     </style>
 </head>
 <body>
@@ -1047,18 +1070,47 @@ window.selectPointsPlayer = function(name) {
 function renderPlayersList() {
     const div = document.getElementById('players-list');
     if (!div) return;
-    let html = '<table><tr><th>Jugador</th><th>Acción</th></tr>';
+    // Obtener el código actual de cada jugador (buscando en accessCodes)
+    let html = '<table><tr><th>Jugador</th><th>Código actual</th><th>Acción</th></tr>';
     Object.keys(predictions).forEach(p => {
+        const codeObj = accessCodes.find(c => c.usedBy === p);
+        const currentCode = codeObj ? codeObj.code : '?';
         html += `<tr>
             <td>${p}</td>
+            <td style="font-family:monospace;">${currentCode}</td>
             <td>
                 <button class="btn btn-sm btn-outline" onclick="selectPointsPlayer('${p}')">👁️ Ver</button>
+                <button class="btn btn-sm btn-accent" onclick="changePlayerCode('${p}')">🔑 Cambiar código</button>
                 <button class="btn btn-sm btn-danger" onclick="deletePlayer('${p}')">🗑️</button>
             </td>
         </tr>`;
     });
     div.innerHTML = html + '</table>';
 }
+
+    async function changePlayerCode(player) {
+    const newCode = prompt(`Nuevo código para ${player}:`);
+    if (!newCode || newCode.trim() === '') return alert('Debes introducir un código.');
+    // Verificar que el nuevo código no exista ya
+    const existing = await getDoc(`accessCodes/${newCode}`);
+    if (existing && existing.usedBy !== player) return alert('Ese código ya está en uso. Elige otro.');
+    
+    // Buscar el código actual del jugador
+    const codeObj = accessCodes.find(c => c.usedBy === player);
+    if (codeObj) {
+        // Eliminar el código antiguo
+        await deleteDoc(`accessCodes/${codeObj.code}`);
+    }
+    // Crear el nuevo código
+    await setDoc(`accessCodes/${newCode}`, { usedBy: player });
+    showToast(`Código de ${player} actualizado a: ${newCode}`);
+    await refreshAllData();
+    renderAccessCodes();
+    renderPlayersList();
+}
+// Exponer al ámbito global
+window.changePlayerCode = changePlayerCode;
+    
     function renderGroupPredictions() {
     const container = document.getElementById('predictions-groups-container');
     if (!container) return;
@@ -1452,31 +1504,43 @@ function renderMyPool() {
     let html = '';
 
     // --- FASE DE GRUPOS (pendientes primero, luego bloqueados) ---
-    html += '<h3>Fase de grupos</h3><table><tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>';
-    const groupMatches = matches
-        .filter(m => m.group !== 'KO')
-        .sort((a, b) => {
-            const aLocked = (a.homeScore !== null || now >= new Date(a.date));
-            const bLocked = (b.homeScore !== null || now >= new Date(b.date));
-            if (aLocked !== bLocked) return aLocked ? 1 : -1; // pendientes primero
-            return new Date(a.date) - new Date(b.date);       // luego por fecha
-        });
+    // --- FASE DE GRUPOS (acordeón por jornada, pendientes primero) ---
+html += '<h3>Fase de grupos</h3>';
+const groupMatches = matches
+    .filter(m => m.group !== 'KO')
+    .sort((a, b) => {
+        const aLocked = (a.homeScore !== null || now >= new Date(a.date));
+        const bLocked = (b.homeScore !== null || now >= new Date(b.date));
+        if (aLocked !== bLocked) return aLocked ? 1 : -1; // pendientes primero
+        return new Date(a.date) - new Date(b.date);       // luego por fecha
+    });
 
-    let currentRound = null;
-    groupMatches.forEach(m => {
-        // Si cambia la jornada, insertamos una fila separadora
-        if (m.round !== currentRound) {
-            currentRound = m.round;
-            html += `<tr><td colspan="3" style="background:rgba(240,185,11,0.05); font-weight:600; color:var(--gold-light); padding:6px 8px;">
-                ⚽ Jornada ${m.round}
-            </td></tr>`;
-        }
+const rounds = [1, 2, 3];
+rounds.forEach(r => {
+    const roundMatches = groupMatches.filter(m => m.round == r);
+    if (roundMatches.length === 0) return;
+    html += `<div class="pool-round-header" onclick="togglePoolRound(this)">
+        <span>⚽ Jornada ${r}</span>
+        <i class="fa-solid fa-chevron-down"></i>
+    </div>`;
+    html += `<div class="pool-round-body">
+        <table style="width:100%;">
+            <tr><th>Ronda</th><th>Partido</th><th>Tu pronóstico</th></tr>`;
+    roundMatches.forEach(m => {
         const p = preds[m.id] || {};
         const matchDate = new Date(m.date);
         const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
         html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home || ''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away || ''}" ${dis}></td></tr>`;
     });
-    html += '</table>';  // ← CIERRE CORRECTO DE LA TABLA DE GRUPOS
+    html += '</table></div>';
+});
+    // Abrir automáticamente la primera jornada que tenga partidos no bloqueados
+const firstOpen = document.querySelector('.pool-round-body');
+if (firstOpen) {
+    firstOpen.classList.add('open');
+    const icon = firstOpen.previousElementSibling?.querySelector('i');
+    if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+}
     // --- ELIMINATORIAS (pendientes primero, luego bloqueadas) ---
     html += '<h3 class="mt-3">Eliminatorias</h3>';
     const koMatches = matches
@@ -1852,6 +1916,19 @@ async function loginUser(name, code) {
         icon.classList.add('fa-chevron-up');
     }
     }
+    function togglePoolRound(header) {
+    const body = header.nextElementSibling;
+    const icon = header.querySelector('i');
+    if (body.classList.contains('open')) {
+        body.classList.remove('open');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    } else {
+        body.classList.add('open');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    }
+}
 async function generateOfficialRoundOf32() {
     if (!adminLogged) return alert('Debes iniciar sesión como administrador.');
     if (!allGroupMatchesPlayed(matches)) {
