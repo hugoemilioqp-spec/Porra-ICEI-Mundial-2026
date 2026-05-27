@@ -340,7 +340,7 @@
             <p class="text-muted mt-2" id="picks-locked-msg" style="display:none;">Tus premios ya están bloqueados.</p>
             <button class="btn btn-outline btn-sm mt-2" id="save-special-picks-btn">🔒 Guardar y bloquear premios</button>
         </div>
-        <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;">
+        <div class="flex-row mt-2" style="gap:10px; flex-wrap:wrap;" id="pool-actions" style="display:none;"><span id="save-status" style="font-size:0.75rem; margin-left:8px; opacity:0; transition:opacity 0.3s;"></span>
             <button class="btn btn-accent" id="save-picks-btn"><i class="fa-solid fa-floppy-disk"></i> Guardar Todo</button>
         </div>
     </div>
@@ -798,16 +798,6 @@ function buildMatchDates() {
     const koHours = ['16:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','16:00','19:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','19:00','16:00','19:00','16:00','16:00','16:00','15:00'];
     const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15,14,9,15,0,8,7,11,4,13,5,12,10,8,11,12,15];
     const roundNames = ['Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Cuartos','Cuartos','Cuartos','Cuartos','Semifinales','Semifinales','3er Puesto','Final'];
-    const VENUES = [
-        { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
-        { city: 'Monterrey', stadium: 'Estadio BBVA' }, { city: 'Toronto', stadium: 'BMO Field' },
-        { city: 'Vancouver', stadium: 'BC Place' }, { city: 'Los Ángeles', stadium: 'SoFi Stadium' },
-        { city: 'San Francisco', stadium: "Levi's Stadium" }, { city: 'Seattle', stadium: 'Lumen Field' },
-        { city: 'Dallas', stadium: 'AT&T Stadium' }, { city: 'Houston', stadium: 'NRG Stadium' },
-        { city: 'Kansas City', stadium: 'Arrowhead Stadium' }, { city: 'Atlanta', stadium: 'Mercedes-Benz Stadium' },
-        { city: 'Miami', stadium: 'Hard Rock Stadium' }, { city: 'Boston', stadium: 'Gillette Stadium' },
-        { city: 'Filadelfia', stadium: 'Lincoln Financial Field' }, { city: 'Nueva York/NJ', stadium: 'MetLife Stadium' }
-    ];
 
     for (let i = 0; i < koDates.length; i++) {
         const v = VENUES[koVenues[i]];
@@ -1472,14 +1462,21 @@ function renderMyPool() {
             return new Date(a.date) - new Date(b.date);       // luego por fecha
         });
 
+    let currentRound = null;
     groupMatches.forEach(m => {
+        // Si cambia la jornada, insertamos una fila separadora
+        if (m.round !== currentRound) {
+            currentRound = m.round;
+            html += `<tr><td colspan="3" style="background:rgba(240,185,11,0.05); font-weight:600; color:var(--gold-light); padding:6px 8px;">
+                ⚽ Jornada ${m.round}
+            </td></tr>`;
+        }
         const p = preds[m.id] || {};
         const matchDate = new Date(m.date);
         const dis = (m.homeScore !== null || now >= matchDate) ? 'disabled' : '';
         html += `<tr><td>Grupo ${m.group} J${m.round}</td><td>${m.home} vs ${m.away}</td><td><input class="small-input" id="ph-${m.id}" value="${p.home || ''}" ${dis}> - <input class="small-input" id="pa-${m.id}" value="${p.away || ''}" ${dis}></td></tr>`;
     });
     html += '</table>';  // ← CIERRE CORRECTO DE LA TABLA DE GRUPOS
-
     // --- ELIMINATORIAS (pendientes primero, luego bloqueadas) ---
     html += '<h3 class="mt-3">Eliminatorias</h3>';
     const koMatches = matches
@@ -1562,8 +1559,9 @@ function renderMyPool() {
                 <td class="pts-highlight">${p}</td>
             </tr>`;
         });
+        html += '</table>'
         const el = document.getElementById('standings-table');
-        if (el) el.innerHTML = html + '</table>';
+        if (el) el.innerHTML = html;
     }
     function renderPointsDetail() {
         const select = document.getElementById('points-player-select');
@@ -2028,6 +2026,10 @@ document.getElementById('save-picks-btn').addEventListener('click', async () => 
         predictions[currentPlayer] = preds;
         await guardarPrediccion(currentPlayer, preds);
         showToast('Pronósticos guardados');
+        const status = document.getElementById('save-status');
+        status.textContent = '✅ Guardado';
+        status.style.opacity = '1';
+        setTimeout(() => { status.style.opacity = '0'; }, 2000);
     } catch (err) {
         alert('Error al guardar: ' + err.message);
     } finally {
