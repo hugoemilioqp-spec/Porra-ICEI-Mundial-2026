@@ -301,6 +301,12 @@
         <div class="weare26-logo"><span>⚽ WE ARE 26</span><span class="official-badge">FIFA WORLD CUP 2026™</span><span>🏆</span></div>
         <h1>🏆 Dashboard</h1><p class="subtitle" id="dashboard-subtitle"></p>
         <div class="flex-row" id="stats-row"></div>
+        <div class="panel" id="premios-panel">
+    <h2>💰 Reparto de premios</h2>
+    <div style="display:flex; gap:12px; justify-content:center; text-align:center;">
+        <span class="text-muted">Cargando...</span>
+    </div>
+</div>
         <div class="panel" id="countdown-panel">
     <h2><i class="fa-solid fa-hourglass-half"></i> Próximo partido</h2>
     <div id="countdown-display" style="font-size: 2rem; font-weight: 700; text-align: center; padding: 12px; font-family: 'Space Grotesk', monospace;">
@@ -484,6 +490,14 @@
                     <div><label>Balón</label><input type="number" id="pts-goldenball" value="30" style="width:50px;"></div>
                     <div><label>Campeón</label><input type="number" id="pts-champion" value="50" style="width:50px;"></div>
                     <div><label>Ganador KO</label><input type="number" id="pts-kowinner" value="5" style="width:50px;"></div>
+                </div>
+                                <hr>
+                <h3>Reparto de premios (%)</h3>
+                <div class="flex-row">
+                    <div><label>1er puesto</label><input type="number" id="prize-first" value="50" style="width:60px;"> %</div>
+                    <div><label>2do puesto</label><input type="number" id="prize-second" value="30" style="width:60px;"> %</div>
+                    <div><label>3er puesto</label><input type="number" id="prize-third" value="20" style="width:60px;"> %</div>
+                    <button class="btn btn-outline btn-sm" id="save-prizes-btn">Guardar reparto</button>
                 </div>
                 <button class="btn btn-outline btn-sm mt-2" id="save-config-btn">Guardar Config</button>
                 <div class="flex-row mt-2">
@@ -689,6 +703,9 @@
     let accessCodes = [];
     let dataLoaded = false;
     let countdownInterval = null;
+    let prizeDistribution = { first: 50, second: 30, third: 20 }; // porcentajes
+    
+    const PRECIO_POR_PARTICIPANTE = 4; // euros
 
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
@@ -879,6 +896,15 @@ function buildMatchDates() {
             pointsConfig.goldenBall = parseInt(pointsConfig.goldenBall) || 30;
             pointsConfig.champion = parseInt(pointsConfig.champion) || 50;
             pointsConfig.koWinnerBonus = parseInt(pointsConfig.koWinnerBonus) || 5;
+                            // Cargar distribución de premios
+                const prizeDoc = await getDoc('config/prizes');
+                if (prizeDoc) {
+                    prizeDistribution = {
+                        first: parseInt(prizeDistribution.first) || 50,
+                        second: parseInt(prizeDistribution.second) || 30,
+                        third: parseInt(prizeDistribution.third) || 20
+                    };
+                }
             actualWinners = (await getDoc('config/winners')) || actualWinners;
             const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
@@ -909,6 +935,15 @@ function buildMatchDates() {
         // Admin no se fuerza
     }
 
+    function calcularPremios() {
+    const total = Object.keys(predictions).length * PRECIO_POR_PARTICIPANTE;
+    return {
+        total: total,
+        first: Math.round(total * prizeDistribution.first / 100),
+        second: Math.round(total * prizeDistribution.second / 100),
+        third: Math.round(total * prizeDistribution.third / 100)
+    };
+}
     async function initDB() {
         for (const m of DEFAULT_MATCHES) {
             await setDoc(`matches/${m.id}`, { group: m.group, home: m.home, away: m.away, date: m.date, venue: m.venue, round: m.round, homeScore: null, awayScore: null });
@@ -1336,14 +1371,45 @@ window.changePlayerCode = changePlayerCode;
         document.getElementById('champion-pick').onchange = updateBtn;
     }
 
-    function renderDashboard() {
-        const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
-        const subtitle = document.getElementById('dashboard-subtitle');
-        if (subtitle) subtitle.textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
-        const statsRow = document.getElementById('stats-row');
-        if (statsRow) statsRow.innerHTML = `<div class="panel flex-col"><strong style="font-size:1.5rem;">${total}</strong><br><small>Partidos</small></div><div class="panel flex-col"><strong style="font-size:1.5rem;">${played}</strong><br><small>Jugados</small></div><div class="panel flex-col"><strong style="font-size:1.5rem;">${players}</strong><br><small>Participantes</small></div><div class="panel flex-col"><strong style="font-size:1.5rem;">${total-played}</strong><br><small>Pendientes</small></div>`;
-        renderTop5(); renderUpcoming();
-    }
+function renderDashboard() {
+    const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
+    const subtitle = document.getElementById('dashboard-subtitle');
+    if (subtitle) subtitle.textContent = `${total} partidos · ${played} jugados · ${players} participantes`;
+    
+    const premios = calcularPremios();
+    const statsRow = document.getElementById('stats-row');
+    if (statsRow) statsRow.innerHTML = `
+        <div class="panel flex-col"><strong style="font-size:1.5rem;">${total}</strong><br><small>Partidos</small></div>
+        <div class="panel flex-col"><strong style="font-size:1.5rem;">${played}</strong><br><small>Jugados</small></div>
+        <div class="panel flex-col"><strong style="font-size:1.5rem;">${players}</strong><br><small>Participantes</small></div>
+        <div class="panel flex-col"><strong style="font-size:1.5rem;">${total-played}</strong><br><small>Pendientes</small></div>
+        <div class="panel flex-col" style="background:rgba(240,185,11,0.1); border:1px solid rgba(240,185,11,0.3);">
+            <strong style="font-size:1.5rem; color:var(--gold-light);">${premios.total}€</strong><br><small>🏆 Bote total</small>
+        </div>`;
+    
+    // Panel de premios
+    const premiosPanel = document.getElementById('premios-panel');
+    if (premiosPanel) premiosPanel.innerHTML = `
+        <div style="display:flex; gap:12px; justify-content:center; text-align:center;">
+            <div style="flex:1; background:rgba(240,185,11,0.1); padding:10px; border-radius:8px;">
+                <div style="font-size:1.5rem;">🥇</div>
+                <strong style="color:var(--gold-light);">${premios.first}€</strong><br>
+                <small>1er puesto (${prizeDistribution.first}%)</small>
+            </div>
+            <div style="flex:1; background:rgba(148,163,184,0.1); padding:10px; border-radius:8px;">
+                <div style="font-size:1.5rem;">🥈</div>
+                <strong style="color:#94a3b8;">${premios.second}€</strong><br>
+                <small>2do puesto (${prizeDistribution.second}%)</small>
+            </div>
+            <div style="flex:1; background:rgba(205,133,63,0.1); padding:10px; border-radius:8px;">
+                <div style="font-size:1.5rem;">🥉</div>
+                <strong style="color:#cd853f;">${premios.third}€</strong><br>
+                <small>3er puesto (${prizeDistribution.third}%)</small>
+            </div>
+        </div>`;
+    
+    renderTop5(); renderUpcoming();
+}
     function renderTop5() {
         const scores = {}; for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
         const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0,5);
@@ -1633,6 +1699,12 @@ if (firstOpen) {
         const scores = {};
         for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
         const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+        const premios = calcularPremios();
+        let html = `<div style="text-align:center; margin-bottom:12px; padding:8px; background:rgba(240,185,11,0.08); border-radius:8px;">
+            <span style="font-size:1.2rem; font-weight:700; color:var(--gold-light);">🏆 Bote: ${premios.total}€</span>
+            <br><small class="text-muted">${Object.keys(predictions).length} participantes × ${PRECIO_POR_PARTICIPANTE}€</small>
+            <br><small style="color:var(--gold-light);">🥇 ${premios.first}€ · 🥈 ${premios.second}€ · 🥉 ${premios.third}€</small>
+        </div>`;
         let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
         sorted.forEach(([n, p], i) => {
             const rc = i === 0 ? 'rank1' : (i === 1 ? 'rank2' : (i === 2 ? 'rank3' : 'rank-other'));
@@ -1797,6 +1869,13 @@ if (firstOpen) {
         document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
         document.getElementById('real-champion').value = actualWinners.champion || '';
         document.getElementById('pts-kowinner').value = pointsConfig.koWinnerBonus || 5;
+        // En renderAdmin, después de los inputs de puntuación
+        const prizeFirst = document.getElementById('prize-first');
+        const prizeSecond = document.getElementById('prize-second');
+        const prizeThird = document.getElementById('prize-third');
+        if (prizeFirst) prizeFirst.value = prizeDistribution.first;
+        if (prizeSecond) prizeSecond.value = prizeDistribution.second;
+        if (prizeThird) prizeThird.value = prizeDistribution.third;
         // Sugerencias para premios del admin
         const botaSet = new Set();
         const balonSet = new Set();
@@ -2135,6 +2214,17 @@ document.getElementById('save-picks-btn').addEventListener('click', async () => 
     }
 });
 
+document.getElementById('save-prizes-btn').addEventListener('click', async () => {
+    const first = parseInt(document.getElementById('prize-first').value) || 50;
+    const second = parseInt(document.getElementById('prize-second').value) || 30;
+    const third = parseInt(document.getElementById('prize-third').value) || 20;
+    if (first + second + third !== 100) return alert('Los porcentajes deben sumar 100%.');
+    prizeDistribution = { first, second, third };
+    await setDoc('config/prizes', prizeDistribution);
+    showToast('Reparto de premios actualizado');
+    renderAllPanels();
+});
+        
 document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
     if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
     if (!confirm('¿Estás seguro? Una vez bloqueados no podrás modificarlos.')) return;
