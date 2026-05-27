@@ -741,11 +741,17 @@
 };
 
 function teamFlag(teamName) {
-    const code = COUNTRY_FLAGS[teamName];
+    // Limpia emojis, banderas y espacios extra que puedan venir de Firestore
+    const clean = teamName
+        .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')  // quita caracteres de banderas
+        .replace(/[^\wáéíóúüñÁÉÍÓÚÜÑ \-]/gu, '') // deja solo letras, espacios y guiones
+        .trim();
+    const code = COUNTRY_FLAGS[clean];
     if (code) {
-        return `<span class="fi fi-${code}" style="margin-right:4px;"></span>${teamName}`;
+        return `<span class="fi fi-${code}" style="margin-right:4px;"></span>${clean}`;
     }
-    return teamName;
+    // Si no encuentra, devuelve el texto limpio
+    return clean;
 }
     const VENUES = [
         { city: 'Ciudad de México', stadium: 'Estadio Azteca' }, { city: 'Guadalajara', stadium: 'Estadio Akron' },
@@ -1542,7 +1548,7 @@ function renderBracket() {
     html += '<div class="bracket-column round-32">';
     [73, 74, 75, 76, 77, 78, 79, 80].forEach(id => {
         const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home || r32[id][0]} vs ${m.away || r32[id][1]}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home || r32[id][0]} vs ${teamFlag(m.away || r32[id][1]}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
     });
     html += '</div>';
 
@@ -1860,8 +1866,8 @@ function renderStandings() {
             if (isKO) {
                 html += `<select id="rw-${m.id}" style="width:130px;margin-left:6px;display:none;">
                     <option value="">Ganador</option>
-                    <option value="${teamFlag(m.home)}">${teamFlag(m.home)}</option>
-                    <option value="${teamFlag(m.away)}">${teamFlag(m.away)}</option>
+                    <option value="${m.home}">${m.home}</option>
+                    <option value="${m.away}">${m.away}</option>
                 </select>`;
             }
             html += `</td></tr>`;
