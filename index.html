@@ -1010,7 +1010,21 @@ async function saveResults() {
         renderAccessCodes();
         renderPlayersList();
     }
-
+window.deletePlayer = deletePlayer;  // ya lo tienes
+window.selectPointsPlayer = function(name) {
+    selectedPointsPlayer = name;
+    const sel = document.getElementById('points-player-select');
+    if (sel) sel.value = name;
+    renderPointsDetail();
+    renderPlayerPicks(name);
+    document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector('[data-tab="mypoints"]');
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    const tab = document.getElementById('tab-mypoints');
+    if (tab) tab.classList.add('active');
+};
+    
     function renderAccessCodes() {
         const div = document.getElementById('codes-list');
         if (!div) return;
@@ -1524,7 +1538,7 @@ function renderMyPool() {
         sorted.forEach(([n, p], i) => {
             const rc = i === 0 ? 'rank1' : (i === 1 ? 'rank2' : (i === 2 ? 'rank3' : 'rank-other'));
             const isMe = (n === currentPlayer);
-            html += `<tr style="cursor:pointer;${isMe ? 'background:rgba(240,185,11,0.1);' : ''}" onclick="selectPointsPlayer('${n}')">
+            html += `<tr style="cursor:pointer;${isMe ? 'background:rgba(240,185,11,0.1);' : ''}" onclick="window.selectPointsPlayer('${n}')">
                 <td><span class="rank-circle ${rc}">${i + 1}</span></td>
                 <td>${n}</td>
                 <td class="pts-highlight">${p}</td>
