@@ -897,14 +897,15 @@ function buildMatchDates() {
             pointsConfig.champion = parseInt(pointsConfig.champion) || 50;
             pointsConfig.koWinnerBonus = parseInt(pointsConfig.koWinnerBonus) || 5;
                             // Cargar distribución de premios
-                const prizeDoc = await getDoc('config/prizes');
-                if (prizeDoc) {
-                    prizeDistribution = {
-                        first: parseInt(prizeDistribution.first) || 50,
-                        second: parseInt(prizeDistribution.second) || 30,
-                        third: parseInt(prizeDistribution.third) || 20
-                    };
-                }
+            // Cargar distribución de premios
+            const prizeDoc = await getDoc('config/prizes');
+            if (prizeDoc) {
+                prizeDistribution = {
+                    first: parseInt(prizeDoc.first) || 50,
+                    second: parseInt(prizeDoc.second) || 30,
+                    third: parseInt(prizeDoc.third) || 20
+                };
+            }
             actualWinners = (await getDoc('config/winners')) || actualWinners;
             const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
@@ -1695,30 +1696,33 @@ if (firstOpen) {
 
     renderSpecialPicks();
 }
-    function renderStandings() {
-        const scores = {};
-        for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
-        const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-        const premios = calcularPremios();
-        let html = `<div style="text-align:center; margin-bottom:12px; padding:8px; background:rgba(240,185,11,0.08); border-radius:8px;">
-            <span style="font-size:1.2rem; font-weight:700; color:var(--gold-light);">🏆 Bote: ${premios.total}€</span>
-            <br><small class="text-muted">${Object.keys(predictions).length} participantes × ${PRECIO_POR_PARTICIPANTE}€</small>
-            <br><small style="color:var(--gold-light);">🥇 ${premios.first}€ · 🥈 ${premios.second}€ · 🥉 ${premios.third}€</small>
-        </div>`;
-        let html = '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
-        sorted.forEach(([n, p], i) => {
-            const rc = i === 0 ? 'rank1' : (i === 1 ? 'rank2' : (i === 2 ? 'rank3' : 'rank-other'));
-            const isMe = (n === currentPlayer);
-            html += `<tr style="cursor:pointer;${isMe ? 'background:rgba(240,185,11,0.1);' : ''}" onclick="window.selectPointsPlayer('${n}')">
-                <td><span class="rank-circle ${rc}">${i + 1}</span></td>
-                <td>${n}</td>
-                <td class="pts-highlight">${p}</td>
-            </tr>`;
-        });
-        html += '</table>'
-        const el = document.getElementById('standings-table');
-        if (el) el.innerHTML = html;
-    }
+function renderStandings() {
+    const scores = {};
+    for (const [n] of Object.entries(predictions)) scores[n] = calculatePointsDetail(n).total;
+    const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+    const premios = calcularPremios();
+    let html = `<div style="text-align:center; margin-bottom:12px; padding:8px; background:rgba(240,185,11,0.08); border-radius:8px;">
+        <span style="font-size:1.2rem; font-weight:700; color:var(--gold-light);">🏆 Bote: ${premios.total}€</span>
+        <br><small class="text-muted">${Object.keys(predictions).length} participantes × ${PRECIO_POR_PARTICIPANTE}€</small>
+        <br><small style="color:var(--gold-light);">🥇 ${premios.first}€ · 🥈 ${premios.second}€ · 🥉 ${premios.third}€</small>
+    </div>`;
+
+    html += '<table><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr>';
+    sorted.forEach(([n, p], i) => {
+        const rc = i === 0 ? 'rank1' : (i === 1 ? 'rank2' : (i === 2 ? 'rank3' : 'rank-other'));
+        const isMe = (n === currentPlayer);
+        html += `<tr style="cursor:pointer;${isMe ? 'background:rgba(240,185,11,0.1);' : ''}" onclick="window.selectPointsPlayer('${n}')">
+            <td><span class="rank-circle ${rc}">${i + 1}</span></td>
+            <td>${n}</td>
+            <td class="pts-highlight">${p}</td>
+        </tr>`;
+    });
+    html += '</table>';
+
+    const el = document.getElementById('standings-table');
+    if (el) el.innerHTML = html;
+}
     function renderPointsDetail() {
         const select = document.getElementById('points-player-select');
         if (select) select.innerHTML = Object.keys(predictions).map(p => `<option value="${p}" ${p===selectedPointsPlayer?'selected':''}>${p}</option>`).join('');
