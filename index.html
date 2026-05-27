@@ -272,7 +272,6 @@
     display: block;
 }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@1.0.2/index.js"></script>
 
 </head>
 <body>
@@ -943,9 +942,6 @@ function buildMatchDates() {
             dataLoaded = true;
             renderAllPanels();
             updateGenerateKOButton();
-            if (typeof countryFlagEmojiPolyfill === 'function') {
-                setTimeout(() => countryFlagEmojiPolyfill(), 100);
-            }
             updateBotaBalonSuggestions();
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); renderAdmin();}
         } catch (err) {
@@ -1548,8 +1544,7 @@ function renderBracket() {
     html += '<div class="bracket-column round-32">';
     [73, 74, 75, 76, 77, 78, 79, 80].forEach(id => {
         const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home || r32[id][0]} vs ${teamFlag(m.away || r32[id][1]}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
-    });
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home || r32[id][0])} vs ${teamFlag(m.away || r32[id][1])}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;    });
     html += '</div>';
 
     html += '<div class="bracket-column round-16">';
@@ -1603,7 +1598,7 @@ function renderBracket() {
     html += '<div class="bracket-column round-32">';
     [81, 82, 83, 84, 85, 86, 87, 88].forEach(id => {
         const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${m.home || r32[id][0]} vs ${m.away || r32[id][1]}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
+        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home || r32[id][0])} vs ${teamFlag(m.away || r32[id][1])}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
     });
     html += '</div>';
 
@@ -2137,9 +2132,7 @@ async function generateOfficialRoundOf32() {
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
             // Aplicar polyfill de banderas
-    if (typeof countryFlagEmojiPolyfill === 'function') {
-        countryFlagEmojiPolyfill();
-    }
+
         refreshAllData().then(() => {
             if (document.getElementById('tab-dashboard').classList.contains('active')) {
                 startCountdown();
@@ -2180,9 +2173,7 @@ async function generateOfficialRoundOf32() {
             }
             // Al cambiar de pestaña se vuelve a renderizar todo
             renderAllPanels();
-            if (typeof countryFlagEmojiPolyfill === 'function') {
-                setTimeout(() => countryFlagEmojiPolyfill(), 100);
-            }
+
             if (btn.dataset.tab === 'matches') {
                 setTimeout(() => {
                     renderMatchesFull();
