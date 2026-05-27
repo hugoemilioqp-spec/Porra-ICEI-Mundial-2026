@@ -271,6 +271,7 @@
     display: block;
 }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@1.0.2/dist/country-flag-emoji-polyfill.min.js"></script>
 </head>
 <body>
 <aside class="sidebar">
@@ -2102,6 +2103,10 @@ async function generateOfficialRoundOf32() {
 }
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
+            // Aplicar polyfill de banderas
+    if (typeof countryFlagEmojiPolyfill === 'function') {
+        countryFlagEmojiPolyfill();
+    }
         refreshAllData().then(() => {
             if (document.getElementById('tab-dashboard').classList.contains('active')) {
                 startCountdown();
