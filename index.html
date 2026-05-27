@@ -464,8 +464,18 @@
                 </div>
                 <button class="btn btn-outline btn-sm mt-2" id="save-config-btn">Guardar Config</button>
                 <div class="flex-row mt-2">
-                    <div><label>Bota real</label><input type="text" id="real-golden-boot" placeholder="Nombre"></div>
-                    <div><label>Balón real</label><input type="text" id="real-golden-ball" placeholder="Nombre"></div>
+                    <div>
+                        <label>Bota real</label>
+                        <input type="text" id="real-golden-boot" placeholder="Nombre" list="admin-bota-suggestions">
+                        <datalist id="admin-bota-suggestions"></datalist>
+                        <small id="admin-bota-preview" class="text-muted" style="display:block;"></small>
+                    </div>
+                    <div>
+                        <label>Balón real</label>
+                        <input type="text" id="real-golden-ball" placeholder="Nombre" list="admin-balon-suggestions">
+                        <datalist id="admin-balon-suggestions"></datalist>
+                        <small id="admin-balon-preview" class="text-muted" style="display:block;"></small>
+                    </div>
                     <div><label>Campeón real</label><select id="real-champion"><option value="">--</option></select></div>
                     <button class="btn btn-outline btn-sm" id="save-winners-btn">Guardar Ganadores</button>
                 </div>
@@ -580,7 +590,14 @@
         }
         return docs;
     }
-
+    function normalizeName(str) {
+        return str
+            .trim()                           // quita espacios al principio y final
+            .toLowerCase()                    // convierte a minúsculas
+            .normalize('NFD')                 // separa letras de acentos
+            .replace(/[\u0300-\u036f]/g, '') // elimina acentos
+            .replace(/\s+/g, ' ');           // colapsa múltiples espacios en uno solo
+    }
     async function getDoc(path) {
         try {
             const data = await firestoreRequest('GET', path);
@@ -1024,6 +1041,7 @@ window.selectPointsPlayer = function(name) {
     const tab = document.getElementById('tab-mypoints');
     if (tab) tab.classList.add('active');
 };
+    window.deleteCode = deleteCode;
     
     function renderAccessCodes() {
         const div = document.getElementById('codes-list');
@@ -1225,8 +1243,8 @@ function renderPlayersList() {
             const correct = userQual.filter(t => realQual.includes(t));
             correct.forEach(team => { details.push({type:'Clasificado', team, points: pointsConfig.qualify}); total += pointsConfig.qualify; });
         }
-        if (actualWinners.goldenBoot && preds.goldenBoot === actualWinners.goldenBoot) { details.push({type:'Bota de Oro', name: actualWinners.goldenBoot, points: pointsConfig.goldenBoot}); total += pointsConfig.goldenBoot; }
-        if (actualWinners.goldenBall && preds.goldenBall === actualWinners.goldenBall) { details.push({type:'Balón de Oro', name: actualWinners.goldenBall, points: pointsConfig.goldenBall}); total += pointsConfig.goldenBall; }
+        if (actualWinners.goldenBoot && normalizeName(preds.goldenBoot) === normalizeName(actualWinners.goldenBoot)) { details.push({type:'Bota de Oro', name: actualWinners.goldenBoot, points: pointsConfig.goldenBoot}); total += pointsConfig.goldenBoot; }
+        if (actualWinners.goldenBall && normalizeName(preds.goldenBall) === normalizeName(actualWinners.goldenBall)) { details.push({type:'Balón de Oro', name: actualWinners.goldenBall, points: pointsConfig.goldenBall}); total += pointsConfig.goldenBall; }
         if (actualWinners.champion && preds.champion === actualWinners.champion) { details.push({type:'Campeón', name: actualWinners.champion, points: pointsConfig.champion}); total += pointsConfig.champion; }
         return { total, details };
     }
@@ -1697,6 +1715,21 @@ function renderMyPool() {
         document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
         document.getElementById('real-champion').value = actualWinners.champion || '';
         document.getElementById('pts-kowinner').value = pointsConfig.koWinnerBonus || 5;
+        // Sugerencias para premios del admin
+        const botaSet = new Set();
+        const balonSet = new Set();
+        Object.values(predictions).forEach(p => {
+            if (p.goldenBoot) botaSet.add(p.goldenBoot);
+            if (p.goldenBall) balonSet.add(p.goldenBall);
+        });
+        const adminBotaList = document.getElementById('admin-bota-suggestions');
+        const adminBalonList = document.getElementById('admin-balon-suggestions');
+        if (adminBotaList) adminBotaList.innerHTML = [...botaSet].map(n => `<option value="${n}">`).join('');
+        if (adminBalonList) adminBalonList.innerHTML = [...balonSet].map(n => `<option value="${n}">`).join('');
+        const botaPreview = document.getElementById('admin-bota-preview');
+        const balonPreview = document.getElementById('admin-balon-preview');
+        if (botaPreview) botaPreview.textContent = [...botaSet].slice(0, 5).join(', ') || 'Nadie ha votado aún';
+        if (balonPreview) balonPreview.textContent = [...balonSet].slice(0, 5).join(', ') || 'Nadie ha votado aún';
         renderAccessCodes(); renderPlayersList();
     }
 function updateGenerateKOButton() {
@@ -1938,11 +1971,6 @@ async function generateOfficialRoundOf32() {
             }
             if (btn.dataset.tab === 'mypoints') { renderPointsDetail(); renderPlayerPicks(selectedPointsPlayer); }
             if (btn.dataset.tab === 'admin') renderAdmin();
-            if (btn.dataset.tab === 'matches') {
-    setTimeout(() => {
-        renderMatchesFull();
-    }, 50);
-}
         }));
 
         document.getElementById('login-btn-user').addEventListener('click', async () => {
