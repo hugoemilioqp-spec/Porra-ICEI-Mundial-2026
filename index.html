@@ -914,6 +914,9 @@ function buildMatchDates() {
             dataLoaded = true;
             renderAllPanels();
             updateGenerateKOButton();
+            if (typeof countryFlagEmojiPolyfill === 'function') {
+                setTimeout(() => countryFlagEmojiPolyfill(), 100);
+            }
             updateBotaBalonSuggestions();
             if (adminLogged) { renderAccessCodes(); renderPlayersList(); renderAdmin();}
         } catch (err) {
@@ -2148,6 +2151,9 @@ async function generateOfficialRoundOf32() {
             }
             // Al cambiar de pestaña se vuelve a renderizar todo
             renderAllPanels();
+            if (typeof countryFlagEmojiPolyfill === 'function') {
+                setTimeout(() => countryFlagEmojiPolyfill(), 100);
+            }
             if (btn.dataset.tab === 'matches') {
                 setTimeout(() => {
                     renderMatchesFull();
