@@ -740,16 +740,15 @@
 };
 
 function teamFlag(teamName) {
-    // Limpia emojis, banderas y espacios extra que puedan venir de Firestore
+    if (!teamName || typeof teamName !== 'string') return 'Por definir';
     const clean = teamName
-        .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')  // quita caracteres de banderas
-        .replace(/[^\wáéíóúüñÁÉÍÓÚÜÑ \-]/gu, '') // deja solo letras, espacios y guiones
+        .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+        .replace(/[^\wáéíóúüñÁÉÍÓÚÜÑ \-]/gu, '')
         .trim();
     const code = COUNTRY_FLAGS[clean];
     if (code) {
         return `<span class="fi fi-${code}" style="margin-right:4px;"></span>${clean}`;
     }
-    // Si no encuentra, devuelve el texto limpio
     return clean;
 }
     const VENUES = [
