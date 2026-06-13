@@ -539,21 +539,25 @@
         </div>
     </div>
 </div>
-
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script>
     // ==================== API REST DE FIRESTORE ====================
     const API_KEY = "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU";
     const PROJECT_ID = "porra-mundial-2026-7fb4c";
     const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-    async function firestoreRequest(method, path, body = null) {
-        const url = `${BASE_URL}/${path}`;
-        const options = { method, headers: { 'Content-Type': 'application/json' } };
-        if (body) options.body = JSON.stringify(body);
-        const response = await fetch(url, options);
-        if (!response.ok) throw new Error(`Error ${response.status}: ${await response.text()}`);
-        return response.json();
+async function firestoreRequest(method, path, body = null) {
+    const url = `${BASE_URL}/${path}`;
+    const headers = { 'Content-Type': 'application/json' };
+    if (window.adminToken) {
+        headers['Authorization'] = 'Bearer ' + window.adminToken;
     }
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+    const response = await fetch(url, options);
+    if (!response.ok) throw new Error(`Error ${response.status}: ${await response.text()}`);
+    return response.json();
+}
 
     const KO_ADVANCE_MAP = {
     // Dieciseisavos -> Octavos
@@ -2117,19 +2121,45 @@ async function generateOfficialRoundOf32() {
     renderAllPanels();
     if (adminLogged) renderAdmin();
 }
-    function adminLogin() {
-    if (document.getElementById('admin-pass').value === 'admin2026') {
+async function adminLogin() {
+    const email = "admin@miporra.com";   // el correo que creaste
+    const password = document.getElementById('admin-pass').value;
+
+    try {
+        // Inicializa Firebase Auth si no lo has hecho antes (solo una vez)
+        if (!firebase.apps.length) {
+            firebase.initializeApp({
+                apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
+                authDomain: "porra-mundial-2026-7fb4c.firebaseapp.com",
+                projectId: "porra-mundial-2026-7fb4c"
+            });
+        }
+
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        const token = await userCredential.user.getIdToken();
+
+        // Guarda el token en una variable global
+        window.adminToken = token;
+        localStorage.setItem('adminToken', token);
         adminLogged = true;
         document.getElementById('admin-panel').style.display = 'block';
         renderAdmin();
-    } else {
-        alert('Contraseña incorrecta');
+    } catch (error) {
+        alert('Error de autenticación: ' + error.message);
     }
 }
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
             // Aplicar polyfill de banderas
 
+        const savedAdminToken = localStorage.getItem('adminToken');
+if (savedAdminToken) {
+    window.adminToken = savedAdminToken;
+    adminLogged = true;
+    // Si quieres que el panel de admin aparezca directamente al cargar la página:
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) adminPanel.style.display = 'block';
+}
         refreshAllData().then(() => {
             if (document.getElementById('tab-dashboard').classList.contains('active')) {
                 startCountdown();
