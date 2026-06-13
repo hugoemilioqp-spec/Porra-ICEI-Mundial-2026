@@ -862,11 +862,10 @@ const groupStage = [
 
     // --- FASE DE ELIMINATORIAS (IDs 73 a 104) ---
     // (La lógica de esta sección no cambia)
-    const koDates = ['2026-06-28','2026-06-28','2026-06-29','2026-06-29','2026-06-30','2026-06-30','2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-03','2026-07-04','2026-07-04','2026-07-05','2026-07-05','2026-07-06','2026-07-06','2026-07-07','2026-07-07','2026-07-09','2026-07-09','2026-07-10','2026-07-10','2026-07-14','2026-07-15','2026-07-18','2026-07-19'];
-    const koHours = ['16:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','16:00','19:00','19:00','13:00','16:00','13:00','16:00','13:00','16:00','13:00','16:00','16:00','19:00','16:00','19:00','16:00','16:00','16:00','15:00'];
-    const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15,14,9,15,0,8,7,11,4,13,5,12,10,8,11,12,15];
-    const roundNames = ['Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Cuartos','Cuartos','Cuartos','Cuartos','Semifinales','Semifinales','3er Puesto','Final'];
-
+    const koDates = ['2026-06-28','2026-06-29','2026-06-30','2026-06-30','2026-07-01','2026-07-01','2026-07-01','2026-07-01','2026-07-02','2026-07-02','2026-07-02','2026-07-03','2026-07-03','2026-07-04','2026-07-03','2026-07-03','2026-07-04','2026-07-04','2026-07-05','2026-07-06','2026-07-06','2026-07-07','2026-07-07','2026-07-07','2026-07-09','2026-07-10','2026-07-11','2026-07-12','2026-07-14','2026-07-15','2026-07-18','2026-07-19'];
+    const koHours = ['19:00','20:30','01:00','21:00','01:00','16:00','20:00','23:00','23:00','19:00','03:00','01:30','18:00','19:00','21:00','17:00','20:00','00:00','19:00','00:00','16:00','20:00','00:00','16:00','20:00','19:00','21:00','01:00','19:00','19:00','21:00','20:00'];
+    const koVenues = [5,13,2,9,15,6,0,7,8,14,3,4,10,11,12,15,14,9,15,0,8,7,11,4,13,5,12,10,8,11,12,15]; // esta no cambia
+    const roundNames = ['Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Dieciseisavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Octavos','Cuartos','Cuartos','Cuartos','Cuartos','Semifinales','Semifinales','3er Puesto','Final']; // esta no cambia
     for (let i = 0; i < koDates.length; i++) {
         const v = VENUES[koVenues[i]];
         matches.push({
