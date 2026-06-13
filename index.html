@@ -478,7 +478,9 @@
     <div id="tab-admin" class="tab-content">
         <h1>🔐 Admin</h1>
         <div class="panel">
-            <input type="password" id="admin-pass" placeholder="Contraseña"><button class="btn btn-accent" id="login-btn-admin" onclick="adminLogin()">Acceder</button>
+            <input type="email" id="admin-email" placeholder="Correo electrónico" style="max-width:200px;">
+            <input type="password" id="admin-pass" placeholder="Contraseña">
+            <button class="btn btn-accent" id="login-btn-admin" onclick="adminLogin()">Acceder</button>
             <div id="admin-panel" style="display:none;">
                 <h3>Resultados</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
                 <button class="btn btn-gold mt-2" id="save-results-btn">Guardar Resultados</button>
@@ -2122,11 +2124,15 @@ async function generateOfficialRoundOf32() {
     if (adminLogged) renderAdmin();
 }
 async function adminLogin() {
-    const email = "admin@miporra.com";   // el correo que creaste
+    const email = document.getElementById('admin-email').value.trim();
     const password = document.getElementById('admin-pass').value;
 
+    if (!email || !password) {
+        alert('Introduce correo y contraseña.');
+        return;
+    }
+
     try {
-        // Inicializa Firebase Auth si no lo has hecho antes (solo una vez)
         if (!firebase.apps.length) {
             firebase.initializeApp({
                 apiKey: "AIzaSyDPlhQ1bhQrOT7UgQ6dZq-mMe2rSYKotUU",
@@ -2138,7 +2144,6 @@ async function adminLogin() {
         const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
         const token = await userCredential.user.getIdToken();
 
-        // Guarda el token en una variable global
         window.adminToken = token;
         localStorage.setItem('adminToken', token);
         adminLogged = true;
