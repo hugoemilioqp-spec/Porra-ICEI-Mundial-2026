@@ -1814,8 +1814,8 @@ function renderStandings() {
         html += `<div class="group-header">🏟️ ${round}</div>`;
         roundMatches.forEach(m => {
             const p = preds[m.id] || {};
-            const homeTeam = p.homeTeam || m.home;
-            const awayTeam = p.awayTeam || m.away;
+            const homeTeam = teamFlag(p.homeTeam || m.home);
+            const awayTeam = teamFlag(p.awayTeam || m.away);
             html += `<div style="padding:2px 0;font-size:0.8rem;">${homeTeam} vs ${awayTeam} → ${p.homeScore||'-'} - ${p.awayScore||'-'}</div>`;
         });
     });
