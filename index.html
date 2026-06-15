@@ -913,7 +913,11 @@ const groupStage = [
                     venue: doc.venue,
                     round: doc.round,
                     homeScore: doc.homeScore != null ? parseInt(doc.homeScore) : null,
-                    awayScore: doc.awayScore != null ? parseInt(doc.awayScore) : null
+                    awayScore: doc.awayScore != null ? parseInt(doc.awayScore) : null,
+                    matchStatus: doc.matchStatus || null,
+                    liveMinute: doc.liveMinute != null ? parseInt(doc.liveMinute) : null,
+                    extraTime: doc.extraTime === true || doc.extraTime === 'true',
+                    penalties: doc.penalties || null
                 };
             });
                 matches.sort((a,b)=>a.id-b.id);
