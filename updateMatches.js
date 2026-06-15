@@ -73,6 +73,15 @@ const translateToSpanish = (apiName) => {
   return TEAM_MAP[lower] || apiName;
 };
 
+// Helper para convertir valores a formato Firestore
+const toFirestoreValue = (val) => {
+  if (val === null || val === undefined) return { nullValue: null };
+  if (typeof val === 'number') return { integerValue: val };
+  if (typeof val === 'string') return { stringValue: val };
+  if (typeof val === 'boolean') return { booleanValue: val };
+  return { stringValue: String(val) };
+};
+
 async function getAccessToken() {
   const key = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
   const email = process.env.FIREBASE_CLIENT_EMAIL;
@@ -157,20 +166,21 @@ async function getAccessToken() {
         continue;
       }
 
-      const mHomeClean = match.homeClean;
-      if (mHomeClean !== apiHomeClean) {
+      // Invertir goles si el orden está intercambiado
+      if (match.homeClean !== apiHomeClean) {
         if (homeScore !== null && awayScore !== null) {
           [homeScore, awayScore] = [awayScore, homeScore];
         }
       }
 
+      // Evitar actualizaciones innecesarias
       if (match.homeScore === homeScore && match.awayScore === awayScore && match.matchStatus === status) continue;
 
       const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties`;
       const body = {
         fields: {
-          homeScore: { integerValue: homeScore },
-          awayScore: { integerValue: awayScore },
+          homeScore: toFirestoreValue(homeScore),
+          awayScore: toFirestoreValue(awayScore),
           matchStatus: { stringValue: status },
           liveMinute: { integerValue: liveMinute },
           extraTime: { booleanValue: extraTime },
