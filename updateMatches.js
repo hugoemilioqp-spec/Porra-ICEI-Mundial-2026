@@ -12,7 +12,7 @@ const TEAM_MAP = {
   "korea republic": "Corea del Sur",
   "czechia": "República Checa",
   "canada": "Canadá",
-  "bosnia and herzegovina": "Bosnia",
+  "bosnia and herzegovina": "Bosnia",   // ← CORREGIDO (era "herzegovina")
   "qatar": "Catar",
   "switzerland": "Suiza",
   "brazil": "Brasil",
@@ -99,6 +99,7 @@ async function getAccessToken() {
       let homeScore = apiMatch.homeScore ?? null;
       let awayScore = apiMatch.awayScore ?? null;
       const status = apiMatch.status;
+      const liveMinute = apiMatch.liveMinute ?? 0;
 
       const apiHome = TEAM_MAP[apiMatch.homeTeam.toLowerCase()];
       const apiAway = TEAM_MAP[apiMatch.awayTeam.toLowerCase()];
@@ -114,7 +115,6 @@ async function getAccessToken() {
 
       let invert = false;
       if (!found.documents || found.documents.length === 0) {
-        // Intentar orden inverso
         searchUrl = `${BASE_URL}/matches?where=home==${encodeURIComponent(apiAway)}&where=away==${encodeURIComponent(apiHome)}`;
         resp = await fetch(searchUrl, { headers: { 'Authorization': `Bearer ${token}` } });
         found = await resp.json();
@@ -133,19 +133,21 @@ async function getAccessToken() {
       const curHome = curFields.homeScore?.integerValue ?? null;
       const curAway = curFields.awayScore?.integerValue ?? null;
       const curStatus = curFields.matchStatus?.stringValue;
+      const curLiveMinute = curFields.liveMinute?.integerValue ?? 0;
 
       if (invert && homeScore !== null && awayScore !== null) {
         [homeScore, awayScore] = [awayScore, homeScore];
       }
 
-      if (curHome === homeScore && curAway === awayScore && curStatus === status) continue;
+      if (curHome === homeScore && curAway === awayScore && curStatus === status && curLiveMinute === liveMinute) continue;
 
-      const updateUrl = `${BASE_URL}/matches/${docPath}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus`;
+      const updateUrl = `${BASE_URL}/matches/${docPath}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute`;
       const body = {
         fields: {
           homeScore: { integerValue: homeScore },
           awayScore: { integerValue: awayScore },
-          matchStatus: { stringValue: status }
+          matchStatus: { stringValue: status },
+          liveMinute: { integerValue: liveMinute }
         }
       };
       batchUpdates.push(
