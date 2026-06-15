@@ -2497,10 +2497,7 @@ if (data.accessCodes) {
             ALL_TEAMS.forEach(t => { champ.innerHTML += `<option value="${t}">${t}</option>`; realChamp.innerHTML += `<option value="${t}">${t}</option>`; });
         }
     });
-    // Refrescar la página cada 60 segundos para obtener la última actualización de Firestore
-setInterval(() => {
-    location.reload();
-}, 60000);
+
 </script>
 </body>
 </html>
