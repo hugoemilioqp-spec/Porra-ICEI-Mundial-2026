@@ -6,13 +6,14 @@ const API_URL = 'https://api.zafronix.com/fifa/worldcup/v1/matches?year=2026';
 const PROJECT_ID = 'porra-mundial-2026-7fb4c';
 const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
+// Mapeo completo API -> español (sin banderas)
 const TEAM_MAP = {
   "mexico": "México",
   "south africa": "Sudáfrica",
   "korea republic": "Corea del Sur",
   "czechia": "República Checa",
   "canada": "Canadá",
-  "bosnia and herzegovina": "Bosnia",   // ← CORREGIDO
+  "bosnia and herzegovina": "Bosnia",   // ← sin la 'e' extra
   "qatar": "Catar",
   "switzerland": "Suiza",
   "brazil": "Brasil",
@@ -57,6 +58,25 @@ const TEAM_MAP = {
   "ghana": "Ghana"
 };
 
+// Función para limpiar nombres (quitar banderas y acentos)
+const cleanName = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')   // quitar banderas
+    .replace(/[^\wáéíóúüñÁÉÍÓÚÜÑ \-]/gu, '')   // solo letras, espacios y guiones
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');          // quitar acentos
+};
+
+// Traducir nombre de la API a español
+const translateToSpanish = (apiName) => {
+  const lower = apiName.toLowerCase().trim();
+  return TEAM_MAP[lower] || apiName;   // si no está, devuelve el original (raro)
+};
+
+// Obtener token de acceso con cuenta de servicio
 async function getAccessToken() {
   const key = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
   const email = process.env.FIREBASE_CLIENT_EMAIL;
@@ -86,85 +106,78 @@ async function getAccessToken() {
   try {
     const token = await getAccessToken();
 
+    // 1. Obtener todos los partidos de Firestore (una sola petición)
+    console.log('⏳ Leyendo Firestore...');
+    const matchesResp = await fetch(`${BASE_URL}/matches?pageSize=200`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!matchesResp.ok) throw new Error(`Firestore error: ${matchesResp.status}`);
+    const matchesData = await matchesResp.json();
+    const firestoreMatches = (matchesData.documents || []).map(doc => {
+      const f = doc.fields || {};
+      return {
+        id: doc.name.split('/').pop(),
+        homeRaw: f.home?.stringValue || '',
+        awayRaw: f.away?.stringValue || '',
+        // Campos limpios (sin banderas) para comparación
+        homeClean: cleanName(f.home?.stringValue || ''),
+        awayClean: cleanName(f.away?.stringValue || ''),
+        round: f.round?.stringValue || f.round?.integerValue?.toString() || '',
+        group: f.group?.stringValue || '',
+        homeScore: f.homeScore?.integerValue ?? null,
+        awayScore: f.awayScore?.integerValue ?? null
+      };
+    });
+
+    // 2. Consultar API
+    console.log('⏳ Consultando API...');
     const apiResp = await fetch(API_URL, { headers: { 'X-API-Key': API_KEY } });
     if (!apiResp.ok) throw new Error(`API error: ${apiResp.status}`);
-    const data = await apiResp.json();
-    if (!data.data) throw new Error('Formato inesperado');
+    const apiData = await apiResp.json();
+    if (!apiData.data) throw new Error('Formato inesperado');
 
     const batchUpdates = [];
-    for (const apiMatch of data.data) {
+    for (const apiMatch of apiData.data) {
       if (apiMatch.status !== 'finished' && apiMatch.status !== 'live') continue;
       if (!apiMatch.homeTeam || !apiMatch.awayTeam) continue;
+
+      // Traducir nombres de la API a español y limpiarlos (sin banderas ya que vienen limpias)
+      const apiHome = translateToSpanish(apiMatch.homeTeam);
+      const apiAway = translateToSpanish(apiMatch.awayTeam);
+      const apiHomeClean = cleanName(apiHome);
+      const apiAwayClean = cleanName(apiAway);
 
       let homeScore = apiMatch.homeScore ?? null;
       let awayScore = apiMatch.awayScore ?? null;
       const status = apiMatch.status;
       const liveMinute = apiMatch.liveMinute ?? 0;
-      const extraTime = apiMatch.extraTime || false;          // prórroga
-      const penalties = apiMatch.penalties || null;           // objeto { home, away } o null
+      const extraTime = apiMatch.extraTime || false;
+      const penalties = apiMatch.penalties || null;
 
-      const apiHome = TEAM_MAP[apiMatch.homeTeam.toLowerCase()];
-      const apiAway = TEAM_MAP[apiMatch.awayTeam.toLowerCase()];
-      if (!apiHome || !apiAway) {
-        console.warn(`Equipo no encontrado: ${apiMatch.homeTeam} o ${apiMatch.awayTeam}`);
+      // Buscar en Firestore (ignorando banderas)
+      let match = firestoreMatches.find(m => {
+        return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
+               (m.homeClean === apiAwayClean && m.awayClean === apiHomeClean);
+      });
+
+      if (!match) {
+        console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`);
         continue;
       }
 
-      // Buscar match exacto
-      let searchUrl = `${BASE_URL}/matches?where=home==${encodeURIComponent(apiHome)}&where=away==${encodeURIComponent(apiAway)}`;
-      let resp = await fetch(searchUrl, { headers: { 'Authorization': `Bearer ${token}` } });
-      let found = await resp.json();
-
-      let invert = false;
-      if (!found.documents || found.documents.length === 0) {
-        searchUrl = `${BASE_URL}/matches?where=home==${encodeURIComponent(apiAway)}&where=away==${encodeURIComponent(apiHome)}`;
-        resp = await fetch(searchUrl, { headers: { 'Authorization': `Bearer ${token}` } });
-        found = await resp.json();
-        if (found.documents && found.documents.length > 0) {
-          invert = true;
+      // Invertir goles si el orden de los equipos está al revés
+      const mHomeClean = match.homeClean;
+      if (mHomeClean !== apiHomeClean) {
+        // El local en Firestore es el visitante de la API → invertir
+        if (homeScore !== null && awayScore !== null) {
+          [homeScore, awayScore] = [awayScore, homeScore];
         }
       }
 
-      if (!found.documents || found.documents.length === 0) {
-        console.warn(`No se encontró: ${apiHome} vs ${apiAway}`);
-        continue;
-      }
+      if (match.homeScore === homeScore && match.awayScore === awayScore &&
+          status === (match.homeScore !== null ? 'finished' : 'scheduled')) continue;
 
-      const docPath = found.documents[0].name.split('/').pop();
-      const curFields = found.documents[0].fields || {};
-      const curHome = curFields.homeScore?.integerValue ?? null;
-      const curAway = curFields.awayScore?.integerValue ?? null;
-      const curStatus = curFields.matchStatus?.stringValue;
-      const curLiveMinute = curFields.liveMinute?.integerValue ?? 0;
-      const curExtraTime = curFields.extraTime?.booleanValue || false;
-
-      if (invert && homeScore !== null && awayScore !== null) {
-        [homeScore, awayScore] = [awayScore, homeScore];
-      }
-
-      // Preparar campos de penalización (si existen)
-      let penaltiesData = {};
-      if (penalties && typeof penalties === 'object' && penalties.home !== undefined && penalties.away !== undefined) {
-        penaltiesData = {
-          home: { integerValue: penalties.home },
-          away: { integerValue: penalties.away }
-        };
-      } else {
-        penaltiesData = null;
-      }
-
-      // Solo actualizar si algo cambió
-      if (curHome === homeScore && curAway === awayScore && curStatus === status &&
-          curLiveMinute === liveMinute && curExtraTime === extraTime) {
-        // También comprobar penaltis (si ya están guardados)
-        const curPenalties = curFields.penalties?.mapValue?.fields;
-        if (curPenalties && penaltiesData &&
-            curPenalties.home?.integerValue === penaltiesData.home.integerValue &&
-            curPenalties.away?.integerValue === penaltiesData.away.integerValue) continue;
-        if (!curPenalties && !penaltiesData) continue;
-      }
-
-      const updateUrl = `${BASE_URL}/matches/${docPath}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties`;
+      const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties`;
       const body = {
         fields: {
           homeScore: { integerValue: homeScore },
@@ -172,7 +185,14 @@ async function getAccessToken() {
           matchStatus: { stringValue: status },
           liveMinute: { integerValue: liveMinute },
           extraTime: { booleanValue: extraTime },
-          penalties: penaltiesData ? { mapValue: { fields: penaltiesData } } : { nullValue: null }
+          penalties: penalties ? {
+            mapValue: {
+              fields: {
+                home: { integerValue: penalties.home || 0 },
+                away: { integerValue: penalties.away || 0 }
+              }
+            }
+          } : { nullValue: null }
         }
       };
       batchUpdates.push(
@@ -182,6 +202,7 @@ async function getAccessToken() {
           body: JSON.stringify(body)
         })
       );
+      console.log(`✔ ${apiHome} vs ${apiAway} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}]`);
     }
 
     if (batchUpdates.length > 0) {
