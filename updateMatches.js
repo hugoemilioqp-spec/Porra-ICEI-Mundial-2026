@@ -73,7 +73,6 @@ const translateToSpanish = (apiName) => {
   return TEAM_MAP[lower] || apiName;
 };
 
-// Helper para convertir valores a formato Firestore
 const toFirestoreValue = (val) => {
   if (val === null || val === undefined) return { nullValue: null };
   if (typeof val === 'number') return { integerValue: val };
@@ -152,7 +151,7 @@ async function getAccessToken() {
       let homeScore = apiMatch.homeScore ?? null;
       let awayScore = apiMatch.awayScore ?? null;
       const status = apiMatch.status;
-      const liveMinute = apiMatch.liveMinute ?? 0;
+      const liveMinute = apiMatch.liveMinute ?? null;   // <-- ahora null, no 0
       const extraTime = apiMatch.extraTime || false;
       const penalties = apiMatch.penalties || null;
 
@@ -166,14 +165,12 @@ async function getAccessToken() {
         continue;
       }
 
-      // Invertir goles si el orden está intercambiado
       if (match.homeClean !== apiHomeClean) {
         if (homeScore !== null && awayScore !== null) {
           [homeScore, awayScore] = [awayScore, homeScore];
         }
       }
 
-      // Evitar actualizaciones innecesarias
       if (match.homeScore === homeScore && match.awayScore === awayScore && match.matchStatus === status) continue;
 
       const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties`;
@@ -182,7 +179,7 @@ async function getAccessToken() {
           homeScore: toFirestoreValue(homeScore),
           awayScore: toFirestoreValue(awayScore),
           matchStatus: { stringValue: status },
-          liveMinute: { integerValue: liveMinute },
+          liveMinute: toFirestoreValue(liveMinute),   // puede ser null
           extraTime: { booleanValue: extraTime },
           penalties: penalties ? {
             mapValue: {
