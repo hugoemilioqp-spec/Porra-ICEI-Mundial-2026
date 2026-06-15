@@ -1945,6 +1945,8 @@ function updateGenerateKOButton() {
 }
 
 
+let liveTimerInterval = null;
+
 function updateCountdown() {
     const now = new Date();
     const upcoming = matches
@@ -1955,6 +1957,12 @@ function updateCountdown() {
     const info = document.getElementById('countdown-match-info');
     if (!display || !info) return;
 
+    // Limpiar cronómetro anterior
+    if (liveTimerInterval) {
+        clearInterval(liveTimerInterval);
+        liveTimerInterval = null;
+    }
+
     if (upcoming.length === 0) {
         display.textContent = 'Todos los partidos han finalizado';
         info.textContent = '';
@@ -1963,22 +1971,50 @@ function updateCountdown() {
 
     const nextMatch = upcoming[0];
 
-    // 1. Partido en vivo: mostrar marcador y minuto
+    // 1. Partido en vivo
     if (nextMatch.matchStatus === 'live') {
-        const minuto = nextMatch.liveMinute ?? 0;
-        display.innerHTML = `⚽ EN VIVO ${minuto}': ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0}`;
-        info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
+        const matchDate = new Date(nextMatch.date);
+        const extraTime = nextMatch.extraTime || false;
+        const penalties = nextMatch.penalties;   // objeto { home, away } o null
+        const apiLiveMinute = nextMatch.liveMinute;
+
+        function updateLiveDisplay() {
+            let minute;
+            if (apiLiveMinute !== null && apiLiveMinute !== undefined) {
+                minute = apiLiveMinute;
+            } else {
+                const diff = Math.floor((new Date() - matchDate) / 1000);
+                minute = Math.floor(diff / 60);
+            }
+
+            let prefix = '⚽ EN VIVO ';
+            if (extraTime) prefix = '⏱️ PRÓRROGA ';
+            if (penalties) {
+                // Si hay penaltis, mostramos el marcador de penaltis
+                const penHome = penalties.home ?? 0;
+                const penAway = penalties.away ?? 0;
+                display.innerHTML = `⚽ PENALTIS: ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0} (${penHome}-${penAway})`;
+                info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
+                return;
+            }
+
+            display.innerHTML = `${prefix}${minute}': ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0}`;
+            info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
+        }
+
+        updateLiveDisplay();
+        liveTimerInterval = setInterval(updateLiveDisplay, 1000);
         return;
     }
 
-    // 2. Partido finalizado pero no en vivo (puede ocurrir al recargar)
+    // 2. Partido finalizado
     if (nextMatch.homeScore !== null && nextMatch.awayScore !== null) {
         display.innerHTML = `⚽ Finalizado: ${nextMatch.homeScore} - ${nextMatch.awayScore}`;
         info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
         return;
     }
 
-    // 3. Cuenta regresiva normal
+    // 3. Cuenta regresiva
     const matchDate = new Date(nextMatch.date);
     const diff = matchDate - now;
     if (diff <= 0) {
@@ -2474,6 +2510,10 @@ if (data.accessCodes) {
             ALL_TEAMS.forEach(t => { champ.innerHTML += `<option value="${t}">${t}</option>`; realChamp.innerHTML += `<option value="${t}">${t}</option>`; });
         }
     });
+    // Refrescar la página cada 60 segundos para obtener la última actualización de Firestore
+setInterval(() => {
+    location.reload();
+}, 60000);
 </script>
 </body>
 </html>
