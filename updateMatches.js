@@ -12,7 +12,7 @@ const TEAM_MAP = {
   "korea republic": "Corea del Sur",
   "czechia": "República Checa",
   "canada": "Canadá",
-  "bosnia and herzegovina": "Bosnia",   // ← CORREGIDO (era "herzegovina")
+  "bosnia and herzegovina": "Bosnia",   // ← CORREGIDO
   "qatar": "Catar",
   "switzerland": "Suiza",
   "brazil": "Brasil",
@@ -100,6 +100,8 @@ async function getAccessToken() {
       let awayScore = apiMatch.awayScore ?? null;
       const status = apiMatch.status;
       const liveMinute = apiMatch.liveMinute ?? 0;
+      const extraTime = apiMatch.extraTime || false;          // prórroga
+      const penalties = apiMatch.penalties || null;           // objeto { home, away } o null
 
       const apiHome = TEAM_MAP[apiMatch.homeTeam.toLowerCase()];
       const apiAway = TEAM_MAP[apiMatch.awayTeam.toLowerCase()];
@@ -134,20 +136,43 @@ async function getAccessToken() {
       const curAway = curFields.awayScore?.integerValue ?? null;
       const curStatus = curFields.matchStatus?.stringValue;
       const curLiveMinute = curFields.liveMinute?.integerValue ?? 0;
+      const curExtraTime = curFields.extraTime?.booleanValue || false;
 
       if (invert && homeScore !== null && awayScore !== null) {
         [homeScore, awayScore] = [awayScore, homeScore];
       }
 
-      if (curHome === homeScore && curAway === awayScore && curStatus === status && curLiveMinute === liveMinute) continue;
+      // Preparar campos de penalización (si existen)
+      let penaltiesData = {};
+      if (penalties && typeof penalties === 'object' && penalties.home !== undefined && penalties.away !== undefined) {
+        penaltiesData = {
+          home: { integerValue: penalties.home },
+          away: { integerValue: penalties.away }
+        };
+      } else {
+        penaltiesData = null;
+      }
 
-      const updateUrl = `${BASE_URL}/matches/${docPath}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute`;
+      // Solo actualizar si algo cambió
+      if (curHome === homeScore && curAway === awayScore && curStatus === status &&
+          curLiveMinute === liveMinute && curExtraTime === extraTime) {
+        // También comprobar penaltis (si ya están guardados)
+        const curPenalties = curFields.penalties?.mapValue?.fields;
+        if (curPenalties && penaltiesData &&
+            curPenalties.home?.integerValue === penaltiesData.home.integerValue &&
+            curPenalties.away?.integerValue === penaltiesData.away.integerValue) continue;
+        if (!curPenalties && !penaltiesData) continue;
+      }
+
+      const updateUrl = `${BASE_URL}/matches/${docPath}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties`;
       const body = {
         fields: {
           homeScore: { integerValue: homeScore },
           awayScore: { integerValue: awayScore },
           matchStatus: { stringValue: status },
-          liveMinute: { integerValue: liveMinute }
+          liveMinute: { integerValue: liveMinute },
+          extraTime: { booleanValue: extraTime },
+          penalties: penaltiesData ? { mapValue: { fields: penaltiesData } } : { nullValue: null }
         }
       };
       batchUpdates.push(
