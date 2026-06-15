@@ -482,6 +482,9 @@
             <input type="password" id="admin-pass" placeholder="Contraseña">
             <button class="btn btn-accent" id="login-btn-admin" onclick="adminLogin()">Acceder</button>
             <div id="admin-panel" style="display:none;">
+                <button class="btn btn-outline btn-sm" onclick="logoutAdmin()" style="margin-bottom:10px;">
+    🔒 Cerrar sesión admin
+</button>
                 <h3>Resultados</h3><div id="admin-matches" style="max-height:400px;overflow-y:auto;"></div>
                 <button class="btn btn-gold mt-2" id="save-results-btn">Guardar Resultados</button>
                 <button class="btn btn-accent mt-2" id="generate-ko-admin-btn" onclick="generateOfficialRoundOf32()">🏟️ Generar Dieciseisavos</button>
@@ -2157,6 +2160,23 @@ async function adminLogin() {
         alert('Error de autenticación: ' + error.message);
     }
 }
+    function logoutAdmin() {
+    // Eliminar token almacenado
+    window.adminToken = null;
+    adminLogged = false;
+    localStorage.removeItem('adminToken');
+    // Ocultar panel de administración
+    const panel = document.getElementById('admin-panel');
+    if (panel) panel.style.display = 'none';
+    // Cerrar sesión en Firebase Auth (si está configurado)
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().signOut();
+    }
+    // Recargar la página para volver al estado normal
+    location.reload();
+}
+// Exponer al ámbito global
+window.logoutAdmin = logoutAdmin;
     // ========== EVENTOS ==========
     document.addEventListener('DOMContentLoaded', () => {
             // Aplicar polyfill de banderas
