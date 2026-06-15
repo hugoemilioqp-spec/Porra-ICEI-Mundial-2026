@@ -1945,8 +1945,6 @@ function updateGenerateKOButton() {
 }
 
 
-let liveTimerInterval = null;
-
 function updateCountdown() {
     const now = new Date();
     const upcoming = matches
@@ -1956,12 +1954,6 @@ function updateCountdown() {
     const display = document.getElementById('countdown-display');
     const info = document.getElementById('countdown-match-info');
     if (!display || !info) return;
-
-    // Limpiar cronómetro anterior
-    if (liveTimerInterval) {
-        clearInterval(liveTimerInterval);
-        liveTimerInterval = null;
-    }
 
     if (upcoming.length === 0) {
         display.textContent = 'Todos los partidos han finalizado';
@@ -1975,35 +1967,30 @@ function updateCountdown() {
     if (nextMatch.matchStatus === 'live') {
         const matchDate = new Date(nextMatch.date);
         const extraTime = nextMatch.extraTime || false;
-        const penalties = nextMatch.penalties;   // objeto { home, away } o null
+        const penalties = nextMatch.penalties;
         const apiLiveMinute = nextMatch.liveMinute;
 
-        function updateLiveDisplay() {
-            let minute;
-            if (apiLiveMinute !== null && apiLiveMinute !== undefined) {
-                minute = apiLiveMinute;
-            } else {
-                const diff = Math.floor((new Date() - matchDate) / 1000);
-                minute = Math.floor(diff / 60);
-            }
-
-            let prefix = '⚽ EN VIVO ';
-            if (extraTime) prefix = '⏱️ PRÓRROGA ';
-            if (penalties) {
-                // Si hay penaltis, mostramos el marcador de penaltis
-                const penHome = penalties.home ?? 0;
-                const penAway = penalties.away ?? 0;
-                display.innerHTML = `⚽ PENALTIS: ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0} (${penHome}-${penAway})`;
-                info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
-                return;
-            }
-
-            display.innerHTML = `${prefix}${minute}': ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0}`;
+        // Si hay penaltis, mostramos el marcador de penaltis
+        if (penalties) {
+            const penHome = penalties.home ?? 0;
+            const penAway = penalties.away ?? 0;
+            display.innerHTML = `⚽ PENALTIS: ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0} (${penHome}-${penAway})`;
             info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
+            return;
         }
 
-        updateLiveDisplay();
-        liveTimerInterval = setInterval(updateLiveDisplay, 1000);
+        // Calcular minuto actual
+        let minute;
+        if (apiLiveMinute !== null && apiLiveMinute !== undefined) {
+            minute = apiLiveMinute;
+        } else {
+            const diff = Math.floor((now - matchDate) / 1000);
+            minute = Math.floor(diff / 60);
+        }
+
+        const prefix = extraTime ? '⏱️ PRÓRROGA ' : '⚽ EN VIVO ';
+        display.innerHTML = `${prefix}${minute}': ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0}`;
+        info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
         return;
     }
 
