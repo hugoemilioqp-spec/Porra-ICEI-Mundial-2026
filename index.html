@@ -1945,10 +1945,10 @@ function updateGenerateKOButton() {
 }
 
 
-    function updateCountdown() {
-    const now = new Date(); // fecha actual en UTC
+function updateCountdown() {
+    const now = new Date();
     const upcoming = matches
-        .filter(m => m.homeScore === null && m.awayScore === null)
+        .filter(m => (m.homeScore === null && m.awayScore === null) || m.matchStatus === 'live')
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const display = document.getElementById('countdown-display');
@@ -1962,9 +1962,25 @@ function updateGenerateKOButton() {
     }
 
     const nextMatch = upcoming[0];
+
+    // 1. Partido en vivo: mostrar marcador y minuto
+    if (nextMatch.matchStatus === 'live') {
+        const minuto = nextMatch.liveMinute ?? 0;
+        display.innerHTML = `⚽ EN VIVO ${minuto}': ${nextMatch.homeScore ?? 0} - ${nextMatch.awayScore ?? 0}`;
+        info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
+        return;
+    }
+
+    // 2. Partido finalizado pero no en vivo (puede ocurrir al recargar)
+    if (nextMatch.homeScore !== null && nextMatch.awayScore !== null) {
+        display.innerHTML = `⚽ Finalizado: ${nextMatch.homeScore} - ${nextMatch.awayScore}`;
+        info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
+        return;
+    }
+
+    // 3. Cuenta regresiva normal
     const matchDate = new Date(nextMatch.date);
     const diff = matchDate - now;
-
     if (diff <= 0) {
         display.innerHTML = '⚽ ¡En juego!';
         info.textContent = `${nextMatch.home} vs ${nextMatch.away}`;
