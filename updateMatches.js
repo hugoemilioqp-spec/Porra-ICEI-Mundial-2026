@@ -52,6 +52,7 @@ const TEAM_MAP = {
   "colombia": "Colombia",
   "uzbekistan": "Uzbekistán",
   "dr congo": "RD Congo",
+  "congo dr": "RD Congo",   // ← nueva entrada para la variante de la API
   "england": "Inglaterra",
   "croatia": "Croacia",
   "panama": "Panamá",
