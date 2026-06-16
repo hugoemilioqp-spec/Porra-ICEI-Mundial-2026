@@ -2,7 +2,7 @@ name: Actualizar resultados
 
 on:
   schedule:
-    - cron: '*/6 * * * *'   # cada 30 minutos
+    - cron: '*/6* * * *'   # cada 6 minutos
   workflow_dispatch:          # permite ejecutar manualmente
 
 jobs:
