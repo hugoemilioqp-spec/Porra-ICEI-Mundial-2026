@@ -2,7 +2,7 @@ name: Actualizar resultados
 
 on:
   schedule:
-    - cron: */3 16-23,0-4 * * *'   # cada 3 minutos
+    - cron: '*/3 16-23,0-4 * * *'   # cada 3 minutos
   workflow_dispatch:          # permite ejecutar manualmente
 
 jobs:
