@@ -33,6 +33,7 @@ const TEAM_MAP = {
   "tunisia": "Túnez",
   "belgium": "Bélgica",
   "iran": "Irán",
+  "ir iran": "Irán",   // ← nueva línea para la variante "IR Iran"
   "egypt": "Egipto",
   "new zealand": "Nueva Zelanda",
   "spain": "España",
