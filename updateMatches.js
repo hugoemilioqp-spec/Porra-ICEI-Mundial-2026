@@ -358,7 +358,50 @@ for (const [idStr, getTeams] of Object.entries(r32Map)) {
         if (upd.ok) console.log(`✔ R32 ${matchId}: ${newHome} vs ${newAway}`);
     } catch (err) { console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`); }
 }
+// --- Placeholders para octavos, cuartos, semis y final ---
+const KO_PLACEHOLDERS = {
+    89: { home: 'Ganador M73', away: 'Ganador M75' },
+    90: { home: 'Ganador M74', away: 'Ganador M77' },
+    91: { home: 'Ganador M76', away: 'Ganador M78' },
+    92: { home: 'Ganador M79', away: 'Ganador M80' },
+    93: { home: 'Ganador M83', away: 'Ganador M84' },
+    94: { home: 'Ganador M81', away: 'Ganador M82' },
+    95: { home: 'Ganador M86', away: 'Ganador M88' },
+    96: { home: 'Ganador M85', away: 'Ganador M87' },
+    97: { home: 'Ganador M89', away: 'Ganador M90' },
+    98: { home: 'Ganador M93', away: 'Ganador M94' },
+    99: { home: 'Ganador M91', away: 'Ganador M92' },
+    100: { home: 'Ganador M95', away: 'Ganador M96' },
+    101: { home: 'Ganador M97', away: 'Ganador M98' },
+    102: { home: 'Ganador M99', away: 'Ganador M100' },
+    103: { home: 'Perdedor M101', away: 'Perdedor M102' },
+    104: { home: 'Ganador M101', away: 'Ganador M102' }
+};
 
+for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
+    const matchId = parseInt(idStr);
+    const match = firestoreMatches.find(m => m.id == matchId);
+    if (!match) continue;
+    // Solo actualizar si está completamente vacío (evitar sobrescribir equipos reales)
+    if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') continue;
+    if (match.homeRaw === teams.home && match.awayRaw === teams.away) continue;
+
+    const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+    const body = {
+        fields: {
+            home: { stringValue: teams.home },
+            away: { stringValue: teams.away }
+        }
+    };
+    try {
+        const upd = await fetch(url, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body)
+        });
+        if (upd.ok) console.log(`✔ KO ${matchId}: ${teams.home} vs ${teams.away} (placeholder)`);
+    } catch (err) { console.warn(`No se pudo actualizar KO ${matchId}`); }
+}
     console.log(`Actualizados ${updatedCount} partidos.`);
 
     // --- Generar automáticamente los dieciseisavos cuando termine la fase de grupos ---
