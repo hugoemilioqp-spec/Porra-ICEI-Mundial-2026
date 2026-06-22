@@ -33,7 +33,7 @@ const TEAM_MAP = {
   "tunisia": "Túnez",
   "belgium": "Bélgica",
   "iran": "Irán",
-  "ir iran": "Irán",   // ← nueva línea para la variante "IR Iran"
+  "ir iran": "Irán",
   "egypt": "Egipto",
   "new zealand": "Nueva Zelanda",
   "spain": "España",
@@ -52,7 +52,7 @@ const TEAM_MAP = {
   "colombia": "Colombia",
   "uzbekistan": "Uzbekistán",
   "dr congo": "RD Congo",
-  "congo dr": "RD Congo",   // ← nueva entrada para la variante de la API
+  "congo dr": "RD Congo",
   "england": "Inglaterra",
   "croatia": "Croacia",
   "panama": "Panamá",
@@ -153,9 +153,15 @@ async function getAccessToken() {
       let homeScore = apiMatch.homeScore ?? null;
       let awayScore = apiMatch.awayScore ?? null;
       const status = apiMatch.status;
-      const liveMinute = apiMatch.liveMinute ?? null;   // <-- ahora null, no 0
+      const liveMinute = apiMatch.liveMinute ?? null;
       const extraTime = apiMatch.extraTime || false;
       const penalties = apiMatch.penalties || null;
+
+      // Ganador automático si hay penaltis
+      let winnerTeam = null;
+      if (penalties && penalties.home !== undefined && penalties.away !== undefined) {
+          winnerTeam = (penalties.home > penalties.away) ? apiHome : apiAway;
+      }
 
       let match = firestoreMatches.find(m => {
         return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
@@ -175,13 +181,13 @@ async function getAccessToken() {
 
       if (match.homeScore === homeScore && match.awayScore === awayScore && match.matchStatus === status) continue;
 
-      const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties`;
+      const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties&updateMask.fieldPaths=winnerTeam`;
       const body = {
         fields: {
           homeScore: toFirestoreValue(homeScore),
           awayScore: toFirestoreValue(awayScore),
           matchStatus: { stringValue: status },
-          liveMinute: toFirestoreValue(liveMinute),   // puede ser null
+          liveMinute: toFirestoreValue(liveMinute),
           extraTime: { booleanValue: extraTime },
           penalties: penalties ? {
             mapValue: {
@@ -190,7 +196,8 @@ async function getAccessToken() {
                 away: { integerValue: penalties.away || 0 }
               }
             }
-          } : { nullValue: null }
+          } : { nullValue: null },
+          winnerTeam: winnerTeam ? { stringValue: winnerTeam } : { nullValue: null }
         }
       };
 
@@ -211,7 +218,209 @@ async function getAccessToken() {
       }
     }
 
+    // --- Actualización continua del cuadro de dieciseisavos ---
+    const GROUPS = {
+        A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
+        B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
+        C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
+        D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
+        E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
+        F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
+        G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
+        H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
+        I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
+        J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
+        K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
+        L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
+    };
+
+    const getGroupStandingsLocal = (matches, group) => {
+        const teams = GROUPS[group];
+        const stats = {};
+        teams.forEach(t => stats[t] = {team:t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0});
+        matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+            const h = stats[m.home], a = stats[m.away];
+            if (!h || !a) return;
+            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+            else { h.d++; a.d++; h.pts++; a.pts++; }
+        });
+        return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+    };
+
+    const currentStandings = {};
+    for (const g of Object.keys(GROUPS)) {
+        currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
+    }
+
+    const r32Map = {
+        73: () => {
+            const firstA = currentStandings.A[0]?.team;
+            const secondB = currentStandings.B[1]?.team;
+            return (firstA && secondB) ? [firstA, secondB] : null;
+        },
+        74: () => null,
+        75: () => {
+            const firstF = currentStandings.F[0]?.team;
+            const secondC = currentStandings.C[1]?.team;
+            return (firstF && secondC) ? [firstF, secondC] : null;
+        },
+        76: () => {
+            const firstC = currentStandings.C[0]?.team;
+            const secondF = currentStandings.F[1]?.team;
+            return (firstC && secondF) ? [firstC, secondF] : null;
+        },
+        77: () => null,
+        78: () => {
+            const secondE = currentStandings.E[1]?.team;
+            const secondI = currentStandings.I[1]?.team;
+            return (secondE && secondI) ? [secondE, secondI] : null;
+        },
+        79: () => null,
+        80: () => null,
+        81: () => null,
+        82: () => null,
+        83: () => {
+            const secondK = currentStandings.K[1]?.team;
+            const secondL = currentStandings.L[1]?.team;
+            return (secondK && secondL) ? [secondK, secondL] : null;
+        },
+        84: () => {
+            const firstH = currentStandings.H[0]?.team;
+            const secondJ = currentStandings.J[1]?.team;
+            return (firstH && secondJ) ? [firstH, secondJ] : null;
+        },
+        85: () => null,
+        86: () => {
+            const firstJ = currentStandings.J[0]?.team;
+            const secondH = currentStandings.H[1]?.team;
+            return (firstJ && secondH) ? [firstJ, secondH] : null;
+        },
+        87: () => null,
+        88: () => {
+            const secondD = currentStandings.D[1]?.team;
+            const secondG = currentStandings.G[1]?.team;
+            return (secondD && secondG) ? [secondD, secondG] : null;
+        }
+    };
+
+    for (const [idStr, getTeams] of Object.entries(r32Map)) {
+        const teams = getTeams();
+        if (!teams) continue;
+
+        const matchId = parseInt(idStr);
+        const match = firestoreMatches.find(m => m.id == matchId);
+        if (!match) continue;
+
+        if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') {
+            if (match.homeRaw === teams[0] && match.awayRaw === teams[1]) continue;
+        }
+
+        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+        const body = {
+            fields: {
+                home: { stringValue: teams[0] },
+                away: { stringValue: teams[1] }
+            }
+        };
+        try {
+            const upd = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            if (upd.ok) console.log(`✔ R32 ${matchId}: ${teams[0]} vs ${teams[1]} (actualizado en vivo)`);
+        } catch (err) {
+            console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`);
+        }
+    }
+
     console.log(`Actualizados ${updatedCount} partidos.`);
+
+    // --- Generar automáticamente los dieciseisavos cuando termine la fase de grupos ---
+    const allGroupMatches = firestoreMatches.filter(m => m.group !== 'KO');
+    const allPlayed = allGroupMatches.every(m => m.homeScore !== null);
+
+    if (allPlayed) {
+        console.log('⏳ Todos los partidos de grupo finalizados. Generando dieciseisavos...');
+
+        // Calcular clasificados (usamos la misma función y GROUPS ya declarados)
+        const qual = {};
+        for (const g of Object.keys(GROUPS)) {
+            const st = getGroupStandingsLocal(firestoreMatches, g);
+            qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
+        }
+
+        // Mejores terceros
+        const thirds = [];
+        for (const g of Object.keys(GROUPS)) {
+            if (qual[g][2]) {
+                const st = getGroupStandingsLocal(firestoreMatches, g);
+                thirds.push({ team: qual[g][2], group: g, pts: st[2].pts, gd: st[2].gf - st[2].ga, gf: st[2].gf });
+            }
+        }
+        thirds.sort((a, b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
+        const bestThirds = thirds.slice(0, 8).map(t => t.team);
+
+        const thirdSlots = [
+            { matchId: 74, eligible: ['A','B','C','D','F'] },
+            { matchId: 77, eligible: ['C','D','F','G','H'] },
+            { matchId: 79, eligible: ['C','E','F','H','I'] },
+            { matchId: 80, eligible: ['E','H','I','J','K'] },
+            { matchId: 81, eligible: ['B','E','F','I','J'] },
+            { matchId: 82, eligible: ['A','E','H','I','J'] },
+            { matchId: 85, eligible: ['E','F','G','I','J'] },
+            { matchId: 87, eligible: ['D','E','I','J','L'] }
+        ];
+        const assigned = {};
+        const used = new Set();
+        for (const slot of thirdSlots) {
+            const selected = bestThirds.find(t => slot.eligible.includes(t.group) && !used.has(t));
+            if (selected) {
+                assigned[slot.matchId] = selected;
+                used.add(selected);
+            } else {
+                assigned[slot.matchId] = 'Por definir';
+            }
+        }
+
+        const r32 = {
+            73: [qual.A[1], qual.B[1]],
+            74: [qual.E[0], assigned[74] || 'Por definir'],
+            75: [qual.F[0], qual.C[1]],
+            76: [qual.C[0], qual.F[1]],
+            77: [qual.I[0], assigned[77] || 'Por definir'],
+            78: [qual.E[1], qual.I[1]],
+            79: [qual.A[0], assigned[79] || 'Por definir'],
+            80: [qual.L[0], assigned[80] || 'Por definir'],
+            81: [qual.D[0], assigned[81] || 'Por definir'],
+            82: [qual.G[0], assigned[82] || 'Por definir'],
+            83: [qual.K[1], qual.L[1]],
+            84: [qual.H[0], qual.J[1]],
+            85: [qual.B[0], assigned[85] || 'Por definir'],
+            86: [qual.J[0], qual.H[1]],
+            87: [qual.K[0], assigned[87] || 'Por definir'],
+            88: [qual.D[1], qual.G[1]]
+        };
+
+        for (const [id, teams] of Object.entries(r32)) {
+            const url = `${BASE_URL}/matches/${id}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+            const body = {
+                fields: {
+                    home: { stringValue: teams[0] },
+                    away: { stringValue: teams[1] }
+                }
+            };
+            await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            console.log(`✔ R32 ${id}: ${teams[0]} vs ${teams[1]}`);
+        }
+        console.log('✅ Dieciseisavos generados automáticamente.');
+    }
   } catch (error) {
     console.error('Error general:', error);
     process.exit(1);
