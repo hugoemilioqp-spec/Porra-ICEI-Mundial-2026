@@ -269,126 +269,48 @@ async function getAccessToken() {
     };
 
 const r32Map = {
-    73: () => {
-        const firstA = currentStandings.A[0]?.team;
-        const secondB = currentStandings.B[1]?.team;
-        return {
-            home: firstA && isPositionSecure(firstA, 'A', 1) ? firstA : null,
-            away: secondB && isPositionSecure(secondB, 'B', 2) ? secondB : null
-        };
-    },
-    74: () => null,
-    75: () => {
-        const firstF = currentStandings.F[0]?.team;
-        const secondC = currentStandings.C[1]?.team;
-        return {
-            home: firstF && isPositionSecure(firstF, 'F', 1) ? firstF : null,
-            away: secondC && isPositionSecure(secondC, 'C', 2) ? secondC : null
-        };
-    },
-    76: () => {
-        const firstC = currentStandings.C[0]?.team;
-        const secondF = currentStandings.F[1]?.team;
-        return {
-            home: firstC && isPositionSecure(firstC, 'C', 1) ? firstC : null,
-            away: secondF && isPositionSecure(secondF, 'F', 2) ? secondF : null
-        };
-    },
-    77: () => null,
-    78: () => {
-        const secondE = currentStandings.E[1]?.team;
-        const secondI = currentStandings.I[1]?.team;
-        return {
-            home: secondE && isPositionSecure(secondE, 'E', 2) ? secondE : null,
-            away: secondI && isPositionSecure(secondI, 'I', 2) ? secondI : null
-        };
-    },
-    79: () => null,
-    80: () => null,
-    81: () => null,
-    82: () => null,
-    83: () => {
-        const secondK = currentStandings.K[1]?.team;
-        const secondL = currentStandings.L[1]?.team;
-        return {
-            home: secondK && isPositionSecure(secondK, 'K', 2) ? secondK : null,
-            away: secondL && isPositionSecure(secondL, 'L', 2) ? secondL : null
-        };
-    },
-    84: () => {
-        const firstH = currentStandings.H[0]?.team;
-        const secondJ = currentStandings.J[1]?.team;
-        return {
-            home: firstH && isPositionSecure(firstH, 'H', 1) ? firstH : null,
-            away: secondJ && isPositionSecure(secondJ, 'J', 2) ? secondJ : null
-        };
-    },
-    85: () => null,
-    86: () => {
-        const firstJ = currentStandings.J[0]?.team;
-        const secondH = currentStandings.H[1]?.team;
-        return {
-            home: firstJ && isPositionSecure(firstJ, 'J', 1) ? firstJ : null,
-            away: secondH && isPositionSecure(secondH, 'H', 2) ? secondH : null
-        };
-    },
-    87: () => null,
-    88: () => {
-        const secondD = currentStandings.D[1]?.team;
-        const secondG = currentStandings.G[1]?.team;
-        return {
-            home: secondD && isPositionSecure(secondD, 'D', 2) ? secondD : null,
-            away: secondG && isPositionSecure(secondG, 'G', 2) ? secondG : null
-        };
-    }
+    // Fijos (sin terceros)
+    73: () => ({   // 2A vs 2B
+        home: currentStandings.A[1]?.team && isPositionSecure(currentStandings.A[1].team, 'A', 2) ? currentStandings.A[1].team : null,
+        away: currentStandings.B[1]?.team && isPositionSecure(currentStandings.B[1].team, 'B', 2) ? currentStandings.B[1].team : null
+    }),
+    74: () => ({   // 1C vs 2F
+        home: currentStandings.C[0]?.team && isPositionSecure(currentStandings.C[0].team, 'C', 1) ? currentStandings.C[0].team : null,
+        away: currentStandings.F[1]?.team && isPositionSecure(currentStandings.F[1].team, 'F', 2) ? currentStandings.F[1].team : null
+    }),
+    75: () => null,   // 1E vs 3ABCDF (tercero)
+    76: () => ({   // 1F vs 2C
+        home: currentStandings.F[0]?.team && isPositionSecure(currentStandings.F[0].team, 'F', 1) ? currentStandings.F[0].team : null,
+        away: currentStandings.C[1]?.team && isPositionSecure(currentStandings.C[1].team, 'C', 2) ? currentStandings.C[1].team : null
+    }),
+    77: () => ({   // 2E vs 2I
+        home: currentStandings.E[1]?.team && isPositionSecure(currentStandings.E[1].team, 'E', 2) ? currentStandings.E[1].team : null,
+        away: currentStandings.I[1]?.team && isPositionSecure(currentStandings.I[1].team, 'I', 2) ? currentStandings.I[1].team : null
+    }),
+    78: () => null,   // 1I vs 3CDFGH
+    79: () => null,   // 1A vs 3CEFHI
+    80: () => null,   // 1L vs 3EHIJK
+    81: () => null,   // 1G vs 3AEHIJ
+    82: () => null,   // 1D vs 3BEFIJ
+    83: () => ({   // 1H vs 2J
+        home: currentStandings.H[0]?.team && isPositionSecure(currentStandings.H[0].team, 'H', 1) ? currentStandings.H[0].team : null,
+        away: currentStandings.J[1]?.team && isPositionSecure(currentStandings.J[1].team, 'J', 2) ? currentStandings.J[1].team : null
+    }),
+    84: () => ({   // 2K vs 2L
+        home: currentStandings.K[1]?.team && isPositionSecure(currentStandings.K[1].team, 'K', 2) ? currentStandings.K[1].team : null,
+        away: currentStandings.L[1]?.team && isPositionSecure(currentStandings.L[1].team, 'L', 2) ? currentStandings.L[1].team : null
+    }),
+    85: () => null,   // 1B vs 3EFGIJ
+    86: () => ({   // 2D vs 2G
+        home: currentStandings.D[1]?.team && isPositionSecure(currentStandings.D[1].team, 'D', 2) ? currentStandings.D[1].team : null,
+        away: currentStandings.G[1]?.team && isPositionSecure(currentStandings.G[1].team, 'G', 2) ? currentStandings.G[1].team : null
+    }),
+    87: () => ({   // 1J vs 2H
+        home: currentStandings.J[0]?.team && isPositionSecure(currentStandings.J[0].team, 'J', 1) ? currentStandings.J[0].team : null,
+        away: currentStandings.H[1]?.team && isPositionSecure(currentStandings.H[1].team, 'H', 2) ? currentStandings.H[1].team : null
+    }),
+    88: () => null    // 1K vs 3DEIJL
 };
-
-for (const [idStr, getTeams] of Object.entries(r32Map)) {
-    const teams = getTeams();
-    const matchId = parseInt(idStr);
-    const match = firestoreMatches.find(m => m.id == matchId);
-    if (!match) continue;
-
-    // Si el partido depende de terceros, mantener "Por definir"
-    if (!teams) {
-        if (match.homeRaw !== 'Por definir' || match.awayRaw !== 'Por definir') {
-            const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-            const body = { fields: { home: { stringValue: 'Por definir' }, away: { stringValue: 'Por definir' } } };
-            try {
-                const upd = await fetch(url, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify(body)
-                });
-                if (upd.ok) console.log(`🔄 R32 ${matchId} restablecido a Por definir`);
-            } catch (err) { console.warn(`No se pudo restablecer R32 ${matchId}`); }
-        }
-        continue;
-    }
-
-    // Para partidos con posiciones fijas, usar el equipo confirmado o "Por definir"
-    const newHome = teams.home || 'Por definir';
-    const newAway = teams.away || 'Por definir';
-
-    // Solo actualizar si ha cambiado algo
-    if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
-
-    const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-    const body = {
-        fields: {
-            home: { stringValue: newHome },
-            away: { stringValue: newAway }
-        }
-    };
-    try {
-        const upd = await fetch(url, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(body)
-        });
-        if (upd.ok) console.log(`✔ R32 ${matchId}: ${newHome} vs ${newAway} (parcial)`);
-    } catch (err) { console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`); }
-}
 
     console.log(`Actualizados ${updatedCount} partidos.`);
 
