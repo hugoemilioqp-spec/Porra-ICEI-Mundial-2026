@@ -268,72 +268,80 @@ async function getAccessToken() {
         return false;
     };
 
-    const r32Map = {
-        73: () => {
-            const firstA = currentStandings.A[0]?.team;
-            const secondB = currentStandings.B[1]?.team;
-            const secure1 = firstA && isPositionSecure(firstA, 'A', 1);
-            const secure2 = secondB && isPositionSecure(secondB, 'B', 2);
-            return (secure1 && secure2) ? [firstA, secondB] : null;
-        },
-        74: () => null,
-        75: () => {
-            const firstF = currentStandings.F[0]?.team;
-            const secondC = currentStandings.C[1]?.team;
-            const secure1 = firstF && isPositionSecure(firstF, 'F', 1);
-            const secure2 = secondC && isPositionSecure(secondC, 'C', 2);
-            return (secure1 && secure2) ? [firstF, secondC] : null;
-        },
-        76: () => {
-            const firstC = currentStandings.C[0]?.team;
-            const secondF = currentStandings.F[1]?.team;
-            const secure1 = firstC && isPositionSecure(firstC, 'C', 1);
-            const secure2 = secondF && isPositionSecure(secondF, 'F', 2);
-            return (secure1 && secure2) ? [firstC, secondF] : null;
-        },
-        77: () => null,
-        78: () => {
-            const secondE = currentStandings.E[1]?.team;
-            const secondI = currentStandings.I[1]?.team;
-            const secure1 = secondE && isPositionSecure(secondE, 'E', 2);
-            const secure2 = secondI && isPositionSecure(secondI, 'I', 2);
-            return (secure1 && secure2) ? [secondE, secondI] : null;
-        },
-        79: () => null,
-        80: () => null,
-        81: () => null,
-        82: () => null,
-        83: () => {
-            const secondK = currentStandings.K[1]?.team;
-            const secondL = currentStandings.L[1]?.team;
-            const secure1 = secondK && isPositionSecure(secondK, 'K', 2);
-            const secure2 = secondL && isPositionSecure(secondL, 'L', 2);
-            return (secure1 && secure2) ? [secondK, secondL] : null;
-        },
-        84: () => {
-            const firstH = currentStandings.H[0]?.team;
-            const secondJ = currentStandings.J[1]?.team;
-            const secure1 = firstH && isPositionSecure(firstH, 'H', 1);
-            const secure2 = secondJ && isPositionSecure(secondJ, 'J', 2);
-            return (secure1 && secure2) ? [firstH, secondJ] : null;
-        },
-        85: () => null,
-        86: () => {
-            const firstJ = currentStandings.J[0]?.team;
-            const secondH = currentStandings.H[1]?.team;
-            const secure1 = firstJ && isPositionSecure(firstJ, 'J', 1);
-            const secure2 = secondH && isPositionSecure(secondH, 'H', 2);
-            return (secure1 && secure2) ? [firstJ, secondH] : null;
-        },
-        87: () => null,
-        88: () => {
-            const secondD = currentStandings.D[1]?.team;
-            const secondG = currentStandings.G[1]?.team;
-            const secure1 = secondD && isPositionSecure(secondD, 'D', 2);
-            const secure2 = secondG && isPositionSecure(secondG, 'G', 2);
-            return (secure1 && secure2) ? [secondD, secondG] : null;
-        }
-    };
+const r32Map = {
+    73: () => {
+        const firstA = currentStandings.A[0]?.team;
+        const secondB = currentStandings.B[1]?.team;
+        return {
+            home: firstA && isPositionSecure(firstA, 'A', 1) ? firstA : null,
+            away: secondB && isPositionSecure(secondB, 'B', 2) ? secondB : null
+        };
+    },
+    74: () => null,
+    75: () => {
+        const firstF = currentStandings.F[0]?.team;
+        const secondC = currentStandings.C[1]?.team;
+        return {
+            home: firstF && isPositionSecure(firstF, 'F', 1) ? firstF : null,
+            away: secondC && isPositionSecure(secondC, 'C', 2) ? secondC : null
+        };
+    },
+    76: () => {
+        const firstC = currentStandings.C[0]?.team;
+        const secondF = currentStandings.F[1]?.team;
+        return {
+            home: firstC && isPositionSecure(firstC, 'C', 1) ? firstC : null,
+            away: secondF && isPositionSecure(secondF, 'F', 2) ? secondF : null
+        };
+    },
+    77: () => null,
+    78: () => {
+        const secondE = currentStandings.E[1]?.team;
+        const secondI = currentStandings.I[1]?.team;
+        return {
+            home: secondE && isPositionSecure(secondE, 'E', 2) ? secondE : null,
+            away: secondI && isPositionSecure(secondI, 'I', 2) ? secondI : null
+        };
+    },
+    79: () => null,
+    80: () => null,
+    81: () => null,
+    82: () => null,
+    83: () => {
+        const secondK = currentStandings.K[1]?.team;
+        const secondL = currentStandings.L[1]?.team;
+        return {
+            home: secondK && isPositionSecure(secondK, 'K', 2) ? secondK : null,
+            away: secondL && isPositionSecure(secondL, 'L', 2) ? secondL : null
+        };
+    },
+    84: () => {
+        const firstH = currentStandings.H[0]?.team;
+        const secondJ = currentStandings.J[1]?.team;
+        return {
+            home: firstH && isPositionSecure(firstH, 'H', 1) ? firstH : null,
+            away: secondJ && isPositionSecure(secondJ, 'J', 2) ? secondJ : null
+        };
+    },
+    85: () => null,
+    86: () => {
+        const firstJ = currentStandings.J[0]?.team;
+        const secondH = currentStandings.H[1]?.team;
+        return {
+            home: firstJ && isPositionSecure(firstJ, 'J', 1) ? firstJ : null,
+            away: secondH && isPositionSecure(secondH, 'H', 2) ? secondH : null
+        };
+    },
+    87: () => null,
+    88: () => {
+        const secondD = currentStandings.D[1]?.team;
+        const secondG = currentStandings.G[1]?.team;
+        return {
+            home: secondD && isPositionSecure(secondD, 'D', 2) ? secondD : null,
+            away: secondG && isPositionSecure(secondG, 'G', 2) ? secondG : null
+        };
+    }
+};
 
 for (const [idStr, getTeams] of Object.entries(r32Map)) {
     const teams = getTeams();
@@ -341,7 +349,7 @@ for (const [idStr, getTeams] of Object.entries(r32Map)) {
     const match = firestoreMatches.find(m => m.id == matchId);
     if (!match) continue;
 
-    // Si no hay pareja segura, restablecer a "Por definir"
+    // Si el partido depende de terceros, mantener "Por definir"
     if (!teams) {
         if (match.homeRaw !== 'Por definir' || match.awayRaw !== 'Por definir') {
             const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
@@ -353,30 +361,33 @@ for (const [idStr, getTeams] of Object.entries(r32Map)) {
                     body: JSON.stringify(body)
                 });
                 if (upd.ok) console.log(`🔄 R32 ${matchId} restablecido a Por definir`);
-            } catch (err) {
-                console.warn(`No se pudo restablecer R32 ${matchId}`);
-            }
+            } catch (err) { console.warn(`No se pudo restablecer R32 ${matchId}`); }
         }
         continue;
     }
 
-    // Si hay pareja segura, actualizar si ha cambiado
-    if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') {
-        if (match.homeRaw === teams[0] && match.awayRaw === teams[1]) continue;
-    }
+    // Para partidos con posiciones fijas, usar el equipo confirmado o "Por definir"
+    const newHome = teams.home || 'Por definir';
+    const newAway = teams.away || 'Por definir';
+
+    // Solo actualizar si ha cambiado algo
+    if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
 
     const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-    const body = { fields: { home: { stringValue: teams[0] }, away: { stringValue: teams[1] } } };
+    const body = {
+        fields: {
+            home: { stringValue: newHome },
+            away: { stringValue: newAway }
+        }
+    };
     try {
         const upd = await fetch(url, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(body)
         });
-        if (upd.ok) console.log(`✔ R32 ${matchId}: ${teams[0]} vs ${teams[1]} (actualizado en vivo)`);
-    } catch (err) {
-        console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`);
-    }
+        if (upd.ok) console.log(`✔ R32 ${matchId}: ${newHome} vs ${newAway} (parcial)`);
+    } catch (err) { console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`); }
 }
 
     console.log(`Actualizados ${updatedCount} partidos.`);
