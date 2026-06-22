@@ -335,36 +335,49 @@ async function getAccessToken() {
         }
     };
 
-    for (const [idStr, getTeams] of Object.entries(r32Map)) {
-        const teams = getTeams();
-        if (!teams) continue;
+for (const [idStr, getTeams] of Object.entries(r32Map)) {
+    const teams = getTeams();
+    const matchId = parseInt(idStr);
+    const match = firestoreMatches.find(m => m.id == matchId);
+    if (!match) continue;
 
-        const matchId = parseInt(idStr);
-        const match = firestoreMatches.find(m => m.id == matchId);
-        if (!match) continue;
-
-        if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') {
-            if (match.homeRaw === teams[0] && match.awayRaw === teams[1]) continue;
-        }
-
-        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-        const body = {
-            fields: {
-                home: { stringValue: teams[0] },
-                away: { stringValue: teams[1] }
+    // Si no hay pareja segura, restablecer a "Por definir"
+    if (!teams) {
+        if (match.homeRaw !== 'Por definir' || match.awayRaw !== 'Por definir') {
+            const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+            const body = { fields: { home: { stringValue: 'Por definir' }, away: { stringValue: 'Por definir' } } };
+            try {
+                const upd = await fetch(url, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(body)
+                });
+                if (upd.ok) console.log(`🔄 R32 ${matchId} restablecido a Por definir`);
+            } catch (err) {
+                console.warn(`No se pudo restablecer R32 ${matchId}`);
             }
-        };
-        try {
-            const upd = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-            if (upd.ok) console.log(`✔ R32 ${matchId}: ${teams[0]} vs ${teams[1]} (actualizado en vivo)`);
-        } catch (err) {
-            console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`);
         }
+        continue;
     }
+
+    // Si hay pareja segura, actualizar si ha cambiado
+    if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') {
+        if (match.homeRaw === teams[0] && match.awayRaw === teams[1]) continue;
+    }
+
+    const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+    const body = { fields: { home: { stringValue: teams[0] }, away: { stringValue: teams[1] } } };
+    try {
+        const upd = await fetch(url, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body)
+        });
+        if (upd.ok) console.log(`✔ R32 ${matchId}: ${teams[0]} vs ${teams[1]} (actualizado en vivo)`);
+    } catch (err) {
+        console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`);
+    }
+}
 
     console.log(`Actualizados ${updatedCount} partidos.`);
 
