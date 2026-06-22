@@ -254,56 +254,72 @@ async function getAccessToken() {
         currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
     }
 
-    const r32Map = {
-        73: () => {
-            const firstA = currentStandings.A[0]?.team;
-            const secondB = currentStandings.B[1]?.team;
-            return (firstA && secondB) ? [firstA, secondB] : null;
-        },
-        74: () => null,
-        75: () => {
-            const firstF = currentStandings.F[0]?.team;
-            const secondC = currentStandings.C[1]?.team;
-            return (firstF && secondC) ? [firstF, secondC] : null;
-        },
-        76: () => {
-            const firstC = currentStandings.C[0]?.team;
-            const secondF = currentStandings.F[1]?.team;
-            return (firstC && secondF) ? [firstC, secondF] : null;
-        },
-        77: () => null,
-        78: () => {
-            const secondE = currentStandings.E[1]?.team;
-            const secondI = currentStandings.I[1]?.team;
-            return (secondE && secondI) ? [secondE, secondI] : null;
-        },
-        79: () => null,
-        80: () => null,
-        81: () => null,
-        82: () => null,
-        83: () => {
-            const secondK = currentStandings.K[1]?.team;
-            const secondL = currentStandings.L[1]?.team;
-            return (secondK && secondL) ? [secondK, secondL] : null;
-        },
-        84: () => {
-            const firstH = currentStandings.H[0]?.team;
-            const secondJ = currentStandings.J[1]?.team;
-            return (firstH && secondJ) ? [firstH, secondJ] : null;
-        },
-        85: () => null,
-        86: () => {
-            const firstJ = currentStandings.J[0]?.team;
-            const secondH = currentStandings.H[1]?.team;
-            return (firstJ && secondH) ? [firstJ, secondH] : null;
-        },
-        87: () => null,
-        88: () => {
-            const secondD = currentStandings.D[1]?.team;
-            const secondG = currentStandings.G[1]?.team;
-            return (secondD && secondG) ? [secondD, secondG] : null;
-        }
-    };
+const r32Map = {
+    73: () => {
+        const firstA = currentStandings.A[0]?.team;
+        const secondB = currentStandings.B[1]?.team;
+        const secure1 = firstA && isPositionSecure(firstA, 'A', 1);
+        const secure2 = secondB && isPositionSecure(secondB, 'B', 2);
+        return (secure1 && secure2) ? [firstA, secondB] : null;
+    },
+    74: () => null,   // terceros
+    75: () => {
+        const firstF = currentStandings.F[0]?.team;
+        const secondC = currentStandings.C[1]?.team;
+        const secure1 = firstF && isPositionSecure(firstF, 'F', 1);
+        const secure2 = secondC && isPositionSecure(secondC, 'C', 2);
+        return (secure1 && secure2) ? [firstF, secondC] : null;
+    },
+    76: () => {
+        const firstC = currentStandings.C[0]?.team;
+        const secondF = currentStandings.F[1]?.team;
+        const secure1 = firstC && isPositionSecure(firstC, 'C', 1);
+        const secure2 = secondF && isPositionSecure(secondF, 'F', 2);
+        return (secure1 && secure2) ? [firstC, secondF] : null;
+    },
+    77: () => null,
+    78: () => {
+        const secondE = currentStandings.E[1]?.team;
+        const secondI = currentStandings.I[1]?.team;
+        const secure1 = secondE && isPositionSecure(secondE, 'E', 2);
+        const secure2 = secondI && isPositionSecure(secondI, 'I', 2);
+        return (secure1 && secure2) ? [secondE, secondI] : null;
+    },
+    79: () => null,
+    80: () => null,
+    81: () => null,
+    82: () => null,
+    83: () => {
+        const secondK = currentStandings.K[1]?.team;
+        const secondL = currentStandings.L[1]?.team;
+        const secure1 = secondK && isPositionSecure(secondK, 'K', 2);
+        const secure2 = secondL && isPositionSecure(secondL, 'L', 2);
+        return (secure1 && secure2) ? [secondK, secondL] : null;
+    },
+    84: () => {
+        const firstH = currentStandings.H[0]?.team;
+        const secondJ = currentStandings.J[1]?.team;
+        const secure1 = firstH && isPositionSecure(firstH, 'H', 1);
+        const secure2 = secondJ && isPositionSecure(secondJ, 'J', 2);
+        return (secure1 && secure2) ? [firstH, secondJ] : null;
+    },
+    85: () => null,
+    86: () => {
+        const firstJ = currentStandings.J[0]?.team;
+        const secondH = currentStandings.H[1]?.team;
+        const secure1 = firstJ && isPositionSecure(firstJ, 'J', 1);
+        const secure2 = secondH && isPositionSecure(secondH, 'H', 2);
+        return (secure1 && secure2) ? [firstJ, secondH] : null;
+    },
+    87: () => null,
+    88: () => {
+        const secondD = currentStandings.D[1]?.team;
+        const secondG = currentStandings.G[1]?.team;
+        const secure1 = secondD && isPositionSecure(secondD, 'D', 2);
+        const secure2 = secondG && isPositionSecure(secondG, 'G', 2);
+        return (secure1 && secure2) ? [secondD, secondG] : null;
+    }
+};
 
     for (const [idStr, getTeams] of Object.entries(r32Map)) {
         const teams = getTeams();
