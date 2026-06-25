@@ -253,20 +253,35 @@ async function getAccessToken() {
         currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
     }
 
-    // Función para saber si un equipo ya tiene asegurada su posición (1º o 2º)
-    const isPositionSecure = (team, group, position) => {
-        const st = currentStandings[group];
-        if (!st || st.length < 3) return false;
-        const idx = st.findIndex(t => t.team === team);
-        if (idx === -1) return false;
-        if (position === 1) {
-            return idx === 0 && (st[0].pts - st[2].pts > 3 || (st[0].pts - st[2].pts === 3 && (st[0].gf - st[0].ga) > (st[2].gf - st[2].ga)));
-        }
-        if (position === 2) {
-            return idx === 1 && (st[1].pts - st[2].pts > 3 || (st[1].pts - st[2].pts === 3 && (st[1].gf - st[1].ga) > (st[2].gf - st[2].ga)));
-        }
+// Función para saber si un equipo ya tiene asegurada su posición (1º o 2º)
+// Si el grupo ya terminó, la posición es segura automáticamente.
+const isPositionSecure = (team, group, position) => {
+    const st = currentStandings[group];
+    if (!st || st.length < 3) return false;
+    
+    // Verificar si el grupo ya ha terminado (todos los partidos jugados)
+    const groupMatches = firestoreMatches.filter(m => m.group === group);
+    const allPlayed = groupMatches.every(m => m.homeScore !== null);
+    
+    const idx = st.findIndex(t => t.team === team);
+    if (idx === -1) return false;
+    
+    // Si el grupo terminó, la posición es segura si coincide con la esperada
+    if (allPlayed) {
+        if (position === 1) return idx === 0;
+        if (position === 2) return idx === 1;
         return false;
-    };
+    }
+    
+    // Si el grupo no ha terminado, verificar diferencia de puntos y goles con el tercero
+    if (position === 1) {
+        return idx === 0 && (st[0].pts - st[2].pts > 3 || (st[0].pts - st[2].pts === 3 && (st[0].gf - st[0].ga) > (st[2].gf - st[2].ga)));
+    }
+    if (position === 2) {
+        return idx === 1 && (st[1].pts - st[2].pts > 3 || (st[1].pts - st[2].pts === 3 && (st[1].gf - st[1].ga) > (st[2].gf - st[2].ga)));
+    }
+    return false;
+};
 
 const r32Map = {
     // --- Partidos fijos (sin terceros) ---
