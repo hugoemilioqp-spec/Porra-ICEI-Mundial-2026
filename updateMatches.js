@@ -225,93 +225,86 @@ async function getAccessToken() {
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
 
-const getGroupStandingsLocal = (matches, group) => {
-    // 1. Obtener todos los equipos que aparecen en los partidos de este grupo
-    const cleanTeams = new Set();
-    matches.filter(m => m.group === group).forEach(m => {
-        if (m.homeRaw) cleanTeams.add(cleanName(m.homeRaw));
-        if (m.awayRaw) cleanTeams.add(cleanName(m.awayRaw));
-    });
+    const getGroupStandingsLocal = (matches, group) => {
+        // 1. Obtener todos los equipos que aparecen en los partidos de este grupo
+        const cleanTeams = new Set();
+        matches.filter(m => m.group === group).forEach(m => {
+            if (m.homeRaw) cleanTeams.add(cleanName(m.homeRaw));
+            if (m.awayRaw) cleanTeams.add(cleanName(m.awayRaw));
+        });
 
-    // 2. Crear un diccionario de stats con esos nombres limpios
-    const stats = {};
-    cleanTeams.forEach(clean => {
-        stats[clean] = { team: clean, original: null, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0 };
-    });
+        // 2. Crear un diccionario de stats con esos nombres limpios
+        const stats = {};
+        cleanTeams.forEach(clean => {
+            stats[clean] = { team: clean, original: null, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0 };
+        });
 
-    // 3. Llenar los datos con los partidos jugados
-    matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-        const homeClean = cleanName(m.homeRaw);
-        const awayClean = cleanName(m.awayRaw);
-        const h = stats[homeClean];
-        const a = stats[awayClean];
-        if (!h || !a) return;   // por seguridad
-        h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-        if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
-        else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
-        else { h.d++; a.d++; h.pts++; a.pts++; }
-    });
+        // 3. Llenar los datos con los partidos jugados
+        matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+            const homeClean = cleanName(m.homeRaw);
+            const awayClean = cleanName(m.awayRaw);
+            const h = stats[homeClean];
+            const a = stats[awayClean];
+            if (!h || !a) return;   // por seguridad
+            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+            else { h.d++; a.d++; h.pts++; a.pts++; }
+        });
 
-    // 4. Construir un mapa de nombre limpio → nombre original (con banderas)
-    //    usando el array GROUPS (que es nuestra fuente oficial de banderas)
-    const cleanToOriginal = {};
-    (GROUPS[group] || []).forEach(t => {
-        cleanToOriginal[cleanName(t)] = t;
-    });
+        // 4. Construir un mapa de nombre limpio → nombre original (con banderas)
+        const cleanToOriginal = {};
+        (GROUPS[group] || []).forEach(t => {
+            cleanToOriginal[cleanName(t)] = t;
+        });
 
-    // 5. Asignar a cada equipo su nombre original (con banderas) para mostrarlo
-    Object.values(stats).forEach(s => {
-        s.original = cleanToOriginal[s.team] || s.team;   // si no encuentra, deja el limpio
-        s.team = s.original;   // reemplazamos la propiedad 'team' por el nombre con banderas
-    });
+        // 5. Asignar a cada equipo su nombre original (con banderas) para mostrarlo
+        Object.values(stats).forEach(s => {
+            s.original = cleanToOriginal[s.team] || s.team;
+            s.team = s.original;
+        });
 
-    // 6. Ordenar por puntos, diferencia de goles y goles a favor
-    return Object.values(stats).sort((a,b) =>
-        (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
-    );
-};
+        // 6. Ordenar por puntos, diferencia de goles y goles a favor
+        return Object.values(stats).sort((a,b) =>
+            (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
+        );
+    };
 
     const currentStandings = {};
     for (const g of Object.keys(GROUPS)) {
         currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
     }
 
-const canTeamBeOvertaken = (teamOriginal, group, position) => {
-    const st = currentStandings[group];
-    if (!st || st.length < 3) return true;
+    // --- LÍNEA DE DEPURACIÓN ---
+    console.log('DEBUG grupo D 2º:', currentStandings.D[1]?.team);
 
-    const idx = st.findIndex(t => t.team === teamOriginal);
-    if (idx === -1) return true;
-
-    const groupMatches = firestoreMatches.filter(m => m.group === group);
-    const remainingMatches = groupMatches.filter(m => m.homeScore === null);
-    if (remainingMatches.length === 0) return false;   // grupo terminado
-
-    const teamPts = st[idx].pts;
-    let chaser;
-    if (position === 1 && st.length >= 2) chaser = st[1];
-    else if (position === 2 && st.length >= 3) chaser = st[2];
-    else return true;
-    if (!chaser) return true;
-
-    // --- CAMBIO CLAVE: comparar usando nombres limpios ---
-    const cleanTeam = cleanName(teamOriginal);
-    const cleanChaser = cleanName(chaser.team);
-
-    const chaserRemaining = remainingMatches.filter(m =>
-        cleanName(m.homeRaw) === cleanChaser || cleanName(m.awayRaw) === cleanChaser
-    ).length;
-    const maxChaserPts = chaser.pts + chaserRemaining * 3;
-
-    const teamRemaining = remainingMatches.filter(m =>
-        cleanName(m.homeRaw) === cleanTeam || cleanName(m.awayRaw) === cleanTeam
-    ).length;
-    const minTeamPts = teamPts;
-
-    if (minTeamPts > maxChaserPts) return false;
-    if (minTeamPts < maxChaserPts) return true;
-    return true;   // empate a puntos, podría decidirse por goles
-};
+    const canTeamBeOvertaken = (teamOriginal, group, position) => {
+        const st = currentStandings[group];
+        if (!st || st.length < 3) return true;
+        const idx = st.findIndex(t => t.team === teamOriginal);
+        if (idx === -1) return true;
+        const groupMatches = firestoreMatches.filter(m => m.group === group);
+        const remainingMatches = groupMatches.filter(m => m.homeScore === null);
+        if (remainingMatches.length === 0) return false;
+        const teamPts = st[idx].pts;
+        let chaser;
+        if (position === 1 && st.length >= 2) chaser = st[1];
+        else if (position === 2 && st.length >= 3) chaser = st[2];
+        else return true;
+        if (!chaser) return true;
+        const cleanChaser = cleanName(chaser.team);
+        const chaserRemaining = remainingMatches.filter(m =>
+            cleanName(m.homeRaw) === cleanChaser || cleanName(m.awayRaw) === cleanChaser
+        ).length;
+        const maxChaserPts = chaser.pts + chaserRemaining * 3;
+        const teamRemaining = remainingMatches.filter(m =>
+            cleanName(m.homeRaw) === cleanName(teamOriginal) || cleanName(m.awayRaw) === cleanName(teamOriginal)
+        ).length;
+        const minTeamPts = teamPts;
+        if (minTeamPts > maxChaserPts) return false;
+        if (minTeamPts < maxChaserPts) return true;
+        return true;
+    };
 
     const isPositionSecure = (teamOriginal, group, position) => {
         const st = currentStandings[group];
@@ -457,7 +450,7 @@ const canTeamBeOvertaken = (teamOriginal, group, position) => {
         const newHome = teams.home;
         const newAway = teams.away;
 
-        //if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
+        // if (match.homeRaw === newHome && match.awayRaw === newAway) continue;   // desactivado para forzar actualización
 
         const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
         const body = { fields: { home: { stringValue: newHome }, away: { stringValue: newAway } } };
@@ -495,7 +488,6 @@ const canTeamBeOvertaken = (teamOriginal, group, position) => {
         const matchId = parseInt(idStr);
         const match = firestoreMatches.find(m => m.id == matchId);
         if (!match) continue;
-        // Solo actualizar si está completamente vacío
         if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') continue;
         if (match.homeRaw === teams.home && match.awayRaw === teams.away) continue;
 
@@ -537,7 +529,7 @@ const canTeamBeOvertaken = (teamOriginal, group, position) => {
         const bestThirds = thirds.slice(0, 8).map(t => t.team);
 
         const thirdSlots = [
-            { matchId: 74, eligible: ['A','B','C','D','F'] },   // OJO: según calendario oficial, el 1E vs 3ABCDF es el partido 75, no 74
+            { matchId: 74, eligible: ['A','B','C','D','F'] },
             { matchId: 77, eligible: ['C','D','F','G','H'] },
             { matchId: 79, eligible: ['C','E','F','H','I'] },
             { matchId: 80, eligible: ['E','H','I','J','K'] },
@@ -561,7 +553,7 @@ const canTeamBeOvertaken = (teamOriginal, group, position) => {
 
         const r32 = {
             73: [qual.A[1], qual.B[1]],
-            74: [qual.E[0], assigned[74] || 'Por definir'],   // 1E vs 3ABCDF
+            74: [qual.E[0], assigned[74] || 'Por definir'],
             75: [qual.F[0], qual.C[1]],
             76: [qual.C[0], qual.F[1]],
             77: [qual.I[0], assigned[77] || 'Por definir'],
