@@ -233,20 +233,21 @@ async function getAccessToken() {
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
 
-    const getGroupStandingsLocal = (matches, group) => {
-        const teams = GROUPS[group];
-        const stats = {};
-        teams.forEach(t => stats[t] = {team:t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0});
-        matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-            const h = stats[m.home], a = stats[m.away];
-            if (!h || !a) return;
-            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
-            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
-            else { h.d++; a.d++; h.pts++; a.pts++; }
-        });
-        return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
-    };
+const getGroupStandingsLocal = (matches, group) => {
+    const teams = GROUPS[group].map(t => cleanName(t));   // equipos limpios
+    const stats = {};
+    teams.forEach(t => stats[t] = {team:t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0});
+    matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+        const h = stats[cleanName(m.homeRaw)];   // usar nombres limpios
+        const a = stats[cleanName(m.awayRaw)];
+        if (!h || !a) return;
+        h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+        if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+        else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+        else { h.d++; a.d++; h.pts++; a.pts++; }
+    });
+    return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+};
 
     const currentStandings = {};
     for (const g of Object.keys(GROUPS)) {
