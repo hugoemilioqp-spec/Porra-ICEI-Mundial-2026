@@ -322,10 +322,28 @@ console.log('DEBUG D - puntos y goles:', JSON.stringify(currentStandings.D.map(t
         const idx = st.findIndex(t => t.team === teamOriginal);
         if (idx === -1) return false;
         const groupMatches = firestoreMatches.filter(m => m.group === group);
+        // Grupo terminado → las posiciones son definitivas
         if (groupMatches.every(m => m.homeScore !== null)) {
             return (position === 1 && idx === 0) || (position === 2 && idx === 1);
         }
-        return !canTeamBeOvertaken(teamOriginal, group, position);
+
+        // Para ser primero, el equipo no debe poder ser superado por el segundo
+        if (position === 1) {
+            if (idx !== 0) return false;
+            return !canTeamBeOvertaken(teamOriginal, group, 1);
+        }
+
+        // Para ser segundo, debe cumplir dos condiciones:
+        // 1. No puede ser superado por el tercero.
+        // 2. No puede alcanzar al primero (porque entonces podría ser primero él y otro sería segundo).
+        if (position === 2) {
+            if (idx !== 1) return false;
+            if (canTeamBeOvertaken(teamOriginal, group, 2)) return false;          // el tercero le puede alcanzar
+            if (st.length >= 2 && canTeamBeOvertaken(st[0].team, group, 1)) return false; // él puede alcanzar al primero
+            return true;
+        }
+
+        return false;
     };
 
     const r32Map = {
