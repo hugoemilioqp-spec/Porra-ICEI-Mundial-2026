@@ -232,113 +232,247 @@ async function getAccessToken() {
         K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
-
 const getGroupStandingsLocal = (matches, group) => {
-    const teams = GROUPS[group].map(t => cleanName(t));   // equipos limpios
+    const teams = GROUPS[group];   // nombres con banderas
     const stats = {};
-    teams.forEach(t => stats[t] = {team:t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0});
+    teams.forEach(t => {
+        stats[t] = { team: t, pts: 0, gf: 0, ga: 0, pj: 0, w: 0, d: 0, l: 0 };
+    });
     matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-        const h = stats[cleanName(m.homeRaw)];   // usar nombres limpios
-        const a = stats[cleanName(m.awayRaw)];
+        const h = stats[m.homeRaw];   // usa el nombre original con banderas
+        const a = stats[m.awayRaw];
         if (!h || !a) return;
         h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
         if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
         else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
         else { h.d++; a.d++; h.pts++; a.pts++; }
     });
-    return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+    return Object.values(stats).sort((a, b) => (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf));
+};
+
+    // Devuelve true si el equipo puede perder su posición (1º o 2º) porque
+// el perseguidor aún tiene partidos y puede alcanzarle en puntos y goles.
+const canTeamBeOvertaken = (teamOriginal, group, position) => {
+    const st = currentStandings[group];
+    if (!st || st.length < 3) return true;
+
+    const idx = st.findIndex(t => t.team === teamOriginal);   // buscamos con banderas
+    if (idx === -1) return true;
+
+    const groupMatches = firestoreMatches.filter(m => m.group === group);
+    const remainingMatches = groupMatches.filter(m => m.homeScore === null);
+    if (remainingMatches.length === 0) return false;   // grupo terminado
+
+    const teamPts = st[idx].pts;
+    const teamGD = (st[idx].gf || 0) - (st[idx].ga || 0);
+
+    // Perseguidor: el que está justo debajo (2º si miramos 1º, 3º si miramos 2º)
+    let chaser;
+    if (position === 1 && st.length >= 2) chaser = st[1];
+    else if (position === 2 && st.length >= 3) chaser = st[2];
+    else return true;
+
+    if (!chaser) return true;
+
+    // Partidos restantes del perseguidor
+    const chaserRemaining = remainingMatches.filter(m =>
+        m.homeRaw === chaser.team || m.awayRaw === chaser.team
+    ).length;
+    const maxChaserPts = chaser.pts + chaserRemaining * 3;
+
+    // Partidos restantes del equipo actual
+    const teamRemaining = remainingMatches.filter(m =>
+        m.homeRaw === teamOriginal || m.awayRaw === teamOriginal
+    ).length;
+    const minTeamPts = teamPts;   // si pierde todos
+
+    if (minTeamPts > maxChaserPts) return false;   // imposible que le alcance en puntos
+    if (minTeamPts < maxChaserPts) return true;    // puede ser superado en puntos
+
+    // Si igualan a puntos, podría decidirse por goles; asumimos que sí es posible
+    return true;
 };
 
     const currentStandings = {};
+    // Mapa de nombre limpio → nombre original (con banderas)
+const cleanToOriginal = {};
+for (const g of Object.keys(GROUPS)) {
+    const originalTeams = GROUPS[g];
+    const cleanTeams = originalTeams.map(t => cleanName(t));
+    cleanTeams.forEach((ct, i) => {
+        cleanToOriginal[ct] = originalTeams[i];
+    });
+}
     for (const g of Object.keys(GROUPS)) {
         currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
     }
 
 // Función para saber si un equipo ya tiene asegurada su posición (1º o 2º)
 // Si el grupo ya terminó, la posición es segura automáticamente.
-const isPositionSecure = (team, group, position) => {
+const isPositionSecure = (teamOriginal, group, position) => {
     const st = currentStandings[group];
     if (!st || st.length < 3) return false;
-    
-    // Verificar si el grupo ya ha terminado (todos los partidos jugados)
-    const groupMatches = firestoreMatches.filter(m => m.group === group);
-    const allPlayed = groupMatches.every(m => m.homeScore !== null);
-    
-    const idx = st.findIndex(t => t.team === team);
+
+    const idx = st.findIndex(t => t.team === teamOriginal);
     if (idx === -1) return false;
-    
-    // Si el grupo terminó, la posición es segura si coincide con la esperada
-    if (allPlayed) {
-        if (position === 1) return idx === 0;
-        if (position === 2) return idx === 1;
-        return false;
+
+    // Grupo terminado → posición segura
+    const groupMatches = firestoreMatches.filter(m => m.group === group);
+    if (groupMatches.every(m => m.homeScore !== null)) {
+        return (position === 1 && idx === 0) || (position === 2 && idx === 1);
     }
-    
-    // Si el grupo no ha terminado, verificar diferencia de puntos y goles con el tercero
-    if (position === 1) {
-        return idx === 0 && (st[0].pts - st[2].pts > 3 || (st[0].pts - st[2].pts === 3 && (st[0].gf - st[0].ga) > (st[2].gf - st[2].ga)));
-    }
-    if (position === 2) {
-        return idx === 1 && (st[1].pts - st[2].pts > 3 || (st[1].pts - st[2].pts === 3 && (st[1].gf - st[1].ga) > (st[2].gf - st[2].ga)));
-    }
-    return false;
+
+    // Grupo no terminado → comprobar con canTeamBeOvertaken
+    return !canTeamBeOvertaken(teamOriginal, group, position);
 };
 
 const r32Map = {
-    // --- Partidos fijos (sin terceros) ---
-    73: () => ({   // 2°A vs 2°B
-        home: currentStandings.A[1]?.team && isPositionSecure(currentStandings.A[1].team, 'A', 2) ? currentStandings.A[1].team : '2°A',
-        away: currentStandings.B[1]?.team && isPositionSecure(currentStandings.B[1].team, 'B', 2) ? currentStandings.B[1].team : '2°B'
-    }),
-    74: () => ({   // 1°C vs 2°F
-        home: currentStandings.C[0]?.team && isPositionSecure(currentStandings.C[0].team, 'C', 1) ? currentStandings.C[0].team : '1°C',
-        away: currentStandings.F[1]?.team && isPositionSecure(currentStandings.F[1].team, 'F', 2) ? currentStandings.F[1].team : '2°F'
-    }),
-    75: () => null,   // 1°E vs 3°A/B/C/D/F (tercero) – lo tratamos abajo
-    76: () => ({   // 1°F vs 2°C
-        home: currentStandings.F[0]?.team && isPositionSecure(currentStandings.F[0].team, 'F', 1) ? currentStandings.F[0].team : '1°F',
-        away: currentStandings.C[1]?.team && isPositionSecure(currentStandings.C[1].team, 'C', 2) ? currentStandings.C[1].team : '2°C'
-    }),
-    77: () => ({   // 2°E vs 2°I
-        home: currentStandings.E[1]?.team && isPositionSecure(currentStandings.E[1].team, 'E', 2) ? currentStandings.E[1].team : '2°E',
-        away: currentStandings.I[1]?.team && isPositionSecure(currentStandings.I[1].team, 'I', 2) ? currentStandings.I[1].team : '2°I'
-    }),
-    78: () => null,   // 1°I vs 3°C/D/F/G/H
-    79: () => null,   // 1°A vs 3°C/E/F/H/I
-    80: () => null,   // 1°L vs 3°E/H/I/J/K
-    81: () => null,   // 1°G vs 3°A/E/H/I/J
-    82: () => null,   // 1°D vs 3°B/E/F/I/J
-    83: () => ({   // 1°H vs 2°J
-        home: currentStandings.H[0]?.team && isPositionSecure(currentStandings.H[0].team, 'H', 1) ? currentStandings.H[0].team : '1°H',
-        away: currentStandings.J[1]?.team && isPositionSecure(currentStandings.J[1].team, 'J', 2) ? currentStandings.J[1].team : '2°J'
-    }),
-    84: () => ({   // 2°K vs 2°L
-        home: currentStandings.K[1]?.team && isPositionSecure(currentStandings.K[1].team, 'K', 2) ? currentStandings.K[1].team : '2°K',
-        away: currentStandings.L[1]?.team && isPositionSecure(currentStandings.L[1].team, 'L', 2) ? currentStandings.L[1].team : '2°L'
-    }),
-    85: () => null,   // 1°B vs 3°E/F/G/I/J
-    86: () => ({   // 2°D vs 2°G
-        home: currentStandings.D[1]?.team && isPositionSecure(currentStandings.D[1].team, 'D', 2) ? currentStandings.D[1].team : '2°D',
-        away: currentStandings.G[1]?.team && isPositionSecure(currentStandings.G[1].team, 'G', 2) ? currentStandings.G[1].team : '2°G'
-    }),
-    87: () => ({   // 1°J vs 2°H
-        home: currentStandings.J[0]?.team && isPositionSecure(currentStandings.J[0].team, 'J', 1) ? currentStandings.J[0].team : '1°J',
-        away: currentStandings.H[1]?.team && isPositionSecure(currentStandings.H[1].team, 'H', 2) ? currentStandings.H[1].team : '2°H'
-    }),
-    88: () => null    // 1°K vs 3°D/E/I/J/L
+    73: () => {
+        const secondA = currentStandings.A[1]?.team;
+        const secondB = currentStandings.B[1]?.team;
+        const secureA = secondA && isPositionSecure(secondA, 'A', 2);
+        const secureB = secondB && isPositionSecure(secondB, 'B', 2);
+        return {
+            home: secureA ? secondA : '2°A',
+            away: secureB ? secondB : '2°B'
+        };
+    },
+    74: () => {
+        const firstC = currentStandings.C[0]?.team;
+        const secondF = currentStandings.F[1]?.team;
+        const secureC = firstC && isPositionSecure(firstC, 'C', 1);
+        const secureF = secondF && isPositionSecure(secondF, 'F', 2);
+        return {
+            home: secureC ? firstC : '1°C',
+            away: secureF ? secondF : '2°F'
+        };
+    },
+    75: () => {
+    const firstE = currentStandings.E[0]?.team;
+    const secureE = firstE && isPositionSecure(firstE, 'E', 1);
+    return {
+        home: secureE ? firstE : '1°E',
+        away: '3°A/B/C/D/F'
+    };
+},
+    76: () => {
+        const firstF = currentStandings.F[0]?.team;
+        const secondC = currentStandings.C[1]?.team;
+        const secureF = firstF && isPositionSecure(firstF, 'F', 1);
+        const secureC = secondC && isPositionSecure(secondC, 'C', 2);
+        return {
+            home: secureF ? firstF : '1°F',
+            away: secureC ? secondC : '2°C'
+        };
+    },
+    77: () => {
+        const secondE = currentStandings.E[1]?.team;
+        const secondI = currentStandings.I[1]?.team;
+        const secureE = secondE && isPositionSecure(secondE, 'E', 2);
+        const secureI = secondI && isPositionSecure(secondI, 'I', 2);
+        return {
+            home: secureE ? secondE : '2°E',
+            away: secureI ? secondI : '2°I'
+        };
+    },
+    78: () => {
+    const firstI = currentStandings.I[0]?.team;
+    const secureI = firstI && isPositionSecure(firstI, 'I', 1);
+    return {
+        home: secureI ? firstI : '1°I',
+        away: '3°C/D/F/G/H'
+    };
+},
+79: () => {
+    const firstA = currentStandings.A[0]?.team;
+    const secureA = firstA && isPositionSecure(firstA, 'A', 1);
+    return {
+        home: secureA ? firstA : '1°A',
+        away: '3°C/E/F/H/I'
+    };
+},
+80: () => {
+    const firstL = currentStandings.L[0]?.team;
+    const secureL = firstL && isPositionSecure(firstL, 'L', 1);
+    return {
+        home: secureL ? firstL : '1°L',
+        away: '3°E/H/I/J/K'
+    };
+},
+81: () => {
+    const firstG = currentStandings.G[0]?.team;
+    const secureG = firstG && isPositionSecure(firstG, 'G', 1);
+    return {
+        home: secureG ? firstG : '1°G',
+        away: '3°A/E/H/I/J'
+    };
+},
+82: () => {
+    const firstD = currentStandings.D[0]?.team;
+    const secureD = firstD && isPositionSecure(firstD, 'D', 1);
+    return {
+        home: secureD ? firstD : '1°D',
+        away: '3°B/E/F/I/J'
+    };
+},
+    83: () => {
+        const firstH = currentStandings.H[0]?.team;
+        const secondJ = currentStandings.J[1]?.team;
+        const secureH = firstH && isPositionSecure(firstH, 'H', 1);
+        const secureJ = secondJ && isPositionSecure(secondJ, 'J', 2);
+        return {
+            home: secureH ? firstH : '1°H',
+            away: secureJ ? secondJ : '2°J'
+        };
+    },
+    84: () => {
+        const secondK = currentStandings.K[1]?.team;
+        const secondL = currentStandings.L[1]?.team;
+        const secureK = secondK && isPositionSecure(secondK, 'K', 2);
+        const secureL = secondL && isPositionSecure(secondL, 'L', 2);
+        return {
+            home: secureK ? secondK : '2°K',
+            away: secureL ? secondL : '2°L'
+        };
+    },
+    85: () => {
+    const firstB = currentStandings.B[0]?.team;
+    const secureB = firstB && isPositionSecure(firstB, 'B', 1);
+    return {
+        home: secureB ? firstB : '1°B',
+        away: '3°E/F/G/I/J'
+    };
+},
+    86: () => {
+        const secondD = currentStandings.D[1]?.team;
+        const secondG = currentStandings.G[1]?.team;
+        const secureD = secondD && isPositionSecure(secondD, 'D', 2);
+        const secureG = secondG && isPositionSecure(secondG, 'G', 2);
+        return {
+            home: secureD ? secondD : '2°D',
+            away: secureG ? secondG : '2°G'
+        };
+    },
+    87: () => {
+        const firstJ = currentStandings.J[0]?.team;
+        const secondH = currentStandings.H[1]?.team;
+        const secureJ = firstJ && isPositionSecure(firstJ, 'J', 1);
+        const secureH = secondH && isPositionSecure(secondH, 'H', 2);
+        return {
+            home: secureJ ? firstJ : '1°J',
+            away: secureH ? secondH : '2°H'
+        };
+    },
+    88: () => {
+    const firstK = currentStandings.K[0]?.team;
+    const secureK = firstK && isPositionSecure(firstK, 'K', 1);
+    return {
+        home: secureK ? firstK : '1°K',
+        away: '3°D/E/I/J/L'
+    };
+}
 };
 
-// --- Partidos con terceros: mostramos siempre las posiciones ---
-const thirdPlaceholders = {
-    75: { home: '1°E', away: '3°A/B/C/D/F' },
-    78: { home: '1°I', away: '3°C/D/F/G/H' },
-    79: { home: '1°A', away: '3°C/E/F/H/I' },
-    80: { home: '1°L', away: '3°E/H/I/J/K' },
-    81: { home: '1°G', away: '3°A/E/H/I/J' },
-    82: { home: '1°D', away: '3°B/E/F/I/J' },
-    85: { home: '1°B', away: '3°E/F/G/I/J' },
-    88: { home: '1°K', away: '3°D/E/I/J/L' }
-};
 
 for (const [idStr, getTeams] of Object.entries(r32Map)) {
     const teams = getTeams();
