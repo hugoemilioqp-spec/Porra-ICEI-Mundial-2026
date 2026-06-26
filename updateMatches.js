@@ -265,28 +265,42 @@ const getGroupStandingsLocal = (matches, group) => {
         currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
     }
 
-    const canTeamBeOvertaken = (teamOriginal, group, position) => {
-        const st = currentStandings[group];
-        if (!st || st.length < 3) return true;
-        const idx = st.findIndex(t => t.team === teamOriginal);
-        if (idx === -1) return true;
-        const groupMatches = firestoreMatches.filter(m => m.group === group);
-        const remainingMatches = groupMatches.filter(m => m.homeScore === null);
-        if (remainingMatches.length === 0) return false;   // grupo terminado → seguro
-        const teamPts = st[idx].pts;
-        let chaser;
-        if (position === 1 && st.length >= 2) chaser = st[1];
-        else if (position === 2 && st.length >= 3) chaser = st[2];
-        else return true;
-        if (!chaser) return true;
-        const chaserRemaining = remainingMatches.filter(m => m.homeRaw === chaser.team || m.awayRaw === chaser.team).length;
-        const maxChaserPts = chaser.pts + chaserRemaining * 3;
-        const teamRemaining = remainingMatches.filter(m => m.homeRaw === teamOriginal || m.awayRaw === teamOriginal).length;
-        const minTeamPts = teamPts;
-        if (minTeamPts > maxChaserPts) return false;
-        if (minTeamPts < maxChaserPts) return true;
-        return true;   // empate a puntos, podría decidirse por goles
-    };
+const canTeamBeOvertaken = (teamOriginal, group, position) => {
+    const st = currentStandings[group];
+    if (!st || st.length < 3) return true;
+
+    const idx = st.findIndex(t => t.team === teamOriginal);
+    if (idx === -1) return true;
+
+    const groupMatches = firestoreMatches.filter(m => m.group === group);
+    const remainingMatches = groupMatches.filter(m => m.homeScore === null);
+    if (remainingMatches.length === 0) return false;   // grupo terminado
+
+    const teamPts = st[idx].pts;
+    let chaser;
+    if (position === 1 && st.length >= 2) chaser = st[1];
+    else if (position === 2 && st.length >= 3) chaser = st[2];
+    else return true;
+    if (!chaser) return true;
+
+    // --- CAMBIO CLAVE: comparar usando nombres limpios ---
+    const cleanTeam = cleanName(teamOriginal);
+    const cleanChaser = cleanName(chaser.team);
+
+    const chaserRemaining = remainingMatches.filter(m =>
+        cleanName(m.homeRaw) === cleanChaser || cleanName(m.awayRaw) === cleanChaser
+    ).length;
+    const maxChaserPts = chaser.pts + chaserRemaining * 3;
+
+    const teamRemaining = remainingMatches.filter(m =>
+        cleanName(m.homeRaw) === cleanTeam || cleanName(m.awayRaw) === cleanTeam
+    ).length;
+    const minTeamPts = teamPts;
+
+    if (minTeamPts > maxChaserPts) return false;
+    if (minTeamPts < maxChaserPts) return true;
+    return true;   // empate a puntos, podría decidirse por goles
+};
 
     const isPositionSecure = (teamOriginal, group, position) => {
         const st = currentStandings[group];
@@ -432,7 +446,7 @@ const getGroupStandingsLocal = (matches, group) => {
         const newHome = teams.home;
         const newAway = teams.away;
 
-        if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
+        //if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
 
         const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
         const body = { fields: { home: { stringValue: newHome }, away: { stringValue: newAway } } };
