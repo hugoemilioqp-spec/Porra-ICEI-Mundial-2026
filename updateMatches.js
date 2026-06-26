@@ -128,8 +128,8 @@ async function getAccessToken() {
         awayClean: cleanName(f.away?.stringValue || ''),
         round: f.round?.stringValue || f.round?.integerValue?.toString() || '',
         group: f.group?.stringValue || '',
-        homeScore: f.homeScore?.integerValue ?? null,
-        awayScore: f.awayScore?.integerValue ?? null,
+        homeScore: f.homeScore?.integerValue != null ? parseInt(f.homeScore.integerValue) : null,
+        awayScore: f.awayScore?.integerValue != null ? parseInt(f.awayScore.integerValue) : null,
         matchStatus: f.matchStatus?.stringValue || null
       };
     });
