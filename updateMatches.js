@@ -167,10 +167,7 @@ async function getAccessToken() {
                (m.homeClean === apiAwayClean && m.awayClean === apiHomeClean);
       });
 
-      if (!match) {
-        console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`);
-        continue;
-      }
+      if (!match) { console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`); continue; }
 
       if (match.homeClean !== apiHomeClean) {
         if (homeScore !== null && awayScore !== null) {
@@ -206,15 +203,10 @@ async function getAccessToken() {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(body)
         });
-        if (!updResp.ok) {
-          console.error(`❌ Error al actualizar ${match.id}: ${updResp.status} ${await updResp.text()}`);
-          continue;
-        }
+        if (!updResp.ok) { console.error(`❌ Error ${match.id}: ${updResp.status}`); continue; }
         console.log(`✔ ${apiHome} vs ${apiAway} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}]`);
         updatedCount++;
-      } catch (err) {
-        console.error(`❌ Excepción al actualizar ${match.id}: ${err.message}`);
-      }
+      } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
     }
 
     // --- Actualización continua del cuadro de dieciseisavos ---
@@ -232,326 +224,249 @@ async function getAccessToken() {
         K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
-const getGroupStandingsLocal = (matches, group) => {
-    const teams = GROUPS[group];   // nombres con banderas
-    const stats = {};
-    teams.forEach(t => {
-        stats[t] = { team: t, pts: 0, gf: 0, ga: 0, pj: 0, w: 0, d: 0, l: 0 };
-    });
-    matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-        const h = stats[m.homeRaw];   // usa el nombre original con banderas
-        const a = stats[m.awayRaw];
-        if (!h || !a) return;
-        h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-        if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
-        else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
-        else { h.d++; a.d++; h.pts++; a.pts++; }
-    });
-    return Object.values(stats).sort((a, b) => (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf));
-};
 
-    // Devuelve true si el equipo puede perder su posición (1º o 2º) porque
-// el perseguidor aún tiene partidos y puede alcanzarle en puntos y goles.
-const canTeamBeOvertaken = (teamOriginal, group, position) => {
-    const st = currentStandings[group];
-    if (!st || st.length < 3) return true;
-
-    const idx = st.findIndex(t => t.team === teamOriginal);   // buscamos con banderas
-    if (idx === -1) return true;
-
-    const groupMatches = firestoreMatches.filter(m => m.group === group);
-    const remainingMatches = groupMatches.filter(m => m.homeScore === null);
-    if (remainingMatches.length === 0) return false;   // grupo terminado
-
-    const teamPts = st[idx].pts;
-    const teamGD = (st[idx].gf || 0) - (st[idx].ga || 0);
-
-    // Perseguidor: el que está justo debajo (2º si miramos 1º, 3º si miramos 2º)
-    let chaser;
-    if (position === 1 && st.length >= 2) chaser = st[1];
-    else if (position === 2 && st.length >= 3) chaser = st[2];
-    else return true;
-
-    if (!chaser) return true;
-
-    // Partidos restantes del perseguidor
-    const chaserRemaining = remainingMatches.filter(m =>
-        m.homeRaw === chaser.team || m.awayRaw === chaser.team
-    ).length;
-    const maxChaserPts = chaser.pts + chaserRemaining * 3;
-
-    // Partidos restantes del equipo actual
-    const teamRemaining = remainingMatches.filter(m =>
-        m.homeRaw === teamOriginal || m.awayRaw === teamOriginal
-    ).length;
-    const minTeamPts = teamPts;   // si pierde todos
-
-    if (minTeamPts > maxChaserPts) return false;   // imposible que le alcance en puntos
-    if (minTeamPts < maxChaserPts) return true;    // puede ser superado en puntos
-
-    // Si igualan a puntos, podría decidirse por goles; asumimos que sí es posible
-    return true;
-};
+    const getGroupStandingsLocal = (matches, group) => {
+        const teams = GROUPS[group];   // nombres con banderas
+        const stats = {};
+        teams.forEach(t => { stats[t] = { team: t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0 }; });
+        matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+            const h = stats[m.homeRaw];
+            const a = stats[m.awayRaw];
+            if (!h || !a) return;
+            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+            else { h.d++; a.d++; h.pts++; a.pts++; }
+        });
+        return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+    };
 
     const currentStandings = {};
-    // Mapa de nombre limpio → nombre original (con banderas)
-const cleanToOriginal = {};
-for (const g of Object.keys(GROUPS)) {
-    const originalTeams = GROUPS[g];
-    const cleanTeams = originalTeams.map(t => cleanName(t));
-    cleanTeams.forEach((ct, i) => {
-        cleanToOriginal[ct] = originalTeams[i];
-    });
-}
     for (const g of Object.keys(GROUPS)) {
         currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
     }
 
-// Función para saber si un equipo ya tiene asegurada su posición (1º o 2º)
-// Si el grupo ya terminó, la posición es segura automáticamente.
-const isPositionSecure = (teamOriginal, group, position) => {
-    const st = currentStandings[group];
-    if (!st || st.length < 3) return false;
-
-    const idx = st.findIndex(t => t.team === teamOriginal);
-    if (idx === -1) return false;
-
-    // Grupo terminado → posición segura
-    const groupMatches = firestoreMatches.filter(m => m.group === group);
-    if (groupMatches.every(m => m.homeScore !== null)) {
-        return (position === 1 && idx === 0) || (position === 2 && idx === 1);
-    }
-
-    // Grupo no terminado → comprobar con canTeamBeOvertaken
-    return !canTeamBeOvertaken(teamOriginal, group, position);
-};
-
-const r32Map = {
-    73: () => {
-        const secondA = currentStandings.A[1]?.team;
-        const secondB = currentStandings.B[1]?.team;
-        const secureA = secondA && isPositionSecure(secondA, 'A', 2);
-        const secureB = secondB && isPositionSecure(secondB, 'B', 2);
-        return {
-            home: secureA ? secondA : '2°A',
-            away: secureB ? secondB : '2°B'
-        };
-    },
-    74: () => {
-        const firstC = currentStandings.C[0]?.team;
-        const secondF = currentStandings.F[1]?.team;
-        const secureC = firstC && isPositionSecure(firstC, 'C', 1);
-        const secureF = secondF && isPositionSecure(secondF, 'F', 2);
-        return {
-            home: secureC ? firstC : '1°C',
-            away: secureF ? secondF : '2°F'
-        };
-    },
-    75: () => {
-    const firstE = currentStandings.E[0]?.team;
-    const secureE = firstE && isPositionSecure(firstE, 'E', 1);
-    return {
-        home: secureE ? firstE : '1°E',
-        away: '3°A/B/C/D/F'
+    const canTeamBeOvertaken = (teamOriginal, group, position) => {
+        const st = currentStandings[group];
+        if (!st || st.length < 3) return true;
+        const idx = st.findIndex(t => t.team === teamOriginal);
+        if (idx === -1) return true;
+        const groupMatches = firestoreMatches.filter(m => m.group === group);
+        const remainingMatches = groupMatches.filter(m => m.homeScore === null);
+        if (remainingMatches.length === 0) return false;   // grupo terminado → seguro
+        const teamPts = st[idx].pts;
+        let chaser;
+        if (position === 1 && st.length >= 2) chaser = st[1];
+        else if (position === 2 && st.length >= 3) chaser = st[2];
+        else return true;
+        if (!chaser) return true;
+        const chaserRemaining = remainingMatches.filter(m => m.homeRaw === chaser.team || m.awayRaw === chaser.team).length;
+        const maxChaserPts = chaser.pts + chaserRemaining * 3;
+        const teamRemaining = remainingMatches.filter(m => m.homeRaw === teamOriginal || m.awayRaw === teamOriginal).length;
+        const minTeamPts = teamPts;
+        if (minTeamPts > maxChaserPts) return false;
+        if (minTeamPts < maxChaserPts) return true;
+        return true;   // empate a puntos, podría decidirse por goles
     };
-},
-    76: () => {
-        const firstF = currentStandings.F[0]?.team;
-        const secondC = currentStandings.C[1]?.team;
-        const secureF = firstF && isPositionSecure(firstF, 'F', 1);
-        const secureC = secondC && isPositionSecure(secondC, 'C', 2);
-        return {
-            home: secureF ? firstF : '1°F',
-            away: secureC ? secondC : '2°C'
-        };
-    },
-    77: () => {
-        const secondE = currentStandings.E[1]?.team;
-        const secondI = currentStandings.I[1]?.team;
-        const secureE = secondE && isPositionSecure(secondE, 'E', 2);
-        const secureI = secondI && isPositionSecure(secondI, 'I', 2);
-        return {
-            home: secureE ? secondE : '2°E',
-            away: secureI ? secondI : '2°I'
-        };
-    },
-    78: () => {
-    const firstI = currentStandings.I[0]?.team;
-    const secureI = firstI && isPositionSecure(firstI, 'I', 1);
-    return {
-        home: secureI ? firstI : '1°I',
-        away: '3°C/D/F/G/H'
-    };
-},
-79: () => {
-    const firstA = currentStandings.A[0]?.team;
-    const secureA = firstA && isPositionSecure(firstA, 'A', 1);
-    return {
-        home: secureA ? firstA : '1°A',
-        away: '3°C/E/F/H/I'
-    };
-},
-80: () => {
-    const firstL = currentStandings.L[0]?.team;
-    const secureL = firstL && isPositionSecure(firstL, 'L', 1);
-    return {
-        home: secureL ? firstL : '1°L',
-        away: '3°E/H/I/J/K'
-    };
-},
-81: () => {
-    const firstG = currentStandings.G[0]?.team;
-    const secureG = firstG && isPositionSecure(firstG, 'G', 1);
-    return {
-        home: secureG ? firstG : '1°G',
-        away: '3°A/E/H/I/J'
-    };
-},
-82: () => {
-    const firstD = currentStandings.D[0]?.team;
-    const secureD = firstD && isPositionSecure(firstD, 'D', 1);
-    return {
-        home: secureD ? firstD : '1°D',
-        away: '3°B/E/F/I/J'
-    };
-},
-    83: () => {
-        const firstH = currentStandings.H[0]?.team;
-        const secondJ = currentStandings.J[1]?.team;
-        const secureH = firstH && isPositionSecure(firstH, 'H', 1);
-        const secureJ = secondJ && isPositionSecure(secondJ, 'J', 2);
-        return {
-            home: secureH ? firstH : '1°H',
-            away: secureJ ? secondJ : '2°J'
-        };
-    },
-    84: () => {
-        const secondK = currentStandings.K[1]?.team;
-        const secondL = currentStandings.L[1]?.team;
-        const secureK = secondK && isPositionSecure(secondK, 'K', 2);
-        const secureL = secondL && isPositionSecure(secondL, 'L', 2);
-        return {
-            home: secureK ? secondK : '2°K',
-            away: secureL ? secondL : '2°L'
-        };
-    },
-    85: () => {
-    const firstB = currentStandings.B[0]?.team;
-    const secureB = firstB && isPositionSecure(firstB, 'B', 1);
-    return {
-        home: secureB ? firstB : '1°B',
-        away: '3°E/F/G/I/J'
-    };
-},
-    86: () => {
-        const secondD = currentStandings.D[1]?.team;
-        const secondG = currentStandings.G[1]?.team;
-        const secureD = secondD && isPositionSecure(secondD, 'D', 2);
-        const secureG = secondG && isPositionSecure(secondG, 'G', 2);
-        return {
-            home: secureD ? secondD : '2°D',
-            away: secureG ? secondG : '2°G'
-        };
-    },
-    87: () => {
-        const firstJ = currentStandings.J[0]?.team;
-        const secondH = currentStandings.H[1]?.team;
-        const secureJ = firstJ && isPositionSecure(firstJ, 'J', 1);
-        const secureH = secondH && isPositionSecure(secondH, 'H', 2);
-        return {
-            home: secureJ ? firstJ : '1°J',
-            away: secureH ? secondH : '2°H'
-        };
-    },
-    88: () => {
-    const firstK = currentStandings.K[0]?.team;
-    const secureK = firstK && isPositionSecure(firstK, 'K', 1);
-    return {
-        home: secureK ? firstK : '1°K',
-        away: '3°D/E/I/J/L'
-    };
-}
-};
 
+    const isPositionSecure = (teamOriginal, group, position) => {
+        const st = currentStandings[group];
+        if (!st || st.length < 3) return false;
+        const idx = st.findIndex(t => t.team === teamOriginal);
+        if (idx === -1) return false;
+        const groupMatches = firestoreMatches.filter(m => m.group === group);
+        if (groupMatches.every(m => m.homeScore !== null)) {
+            return (position === 1 && idx === 0) || (position === 2 && idx === 1);
+        }
+        return !canTeamBeOvertaken(teamOriginal, group, position);
+    };
 
-for (const [idStr, getTeams] of Object.entries(r32Map)) {
-    const teams = getTeams();
-    const matchId = parseInt(idStr);
-    const match = firestoreMatches.find(m => m.id == matchId);
-    if (!match) continue;
-
-    // Si el partido depende de terceros, usamos los placeholders fijos
-    let newHome, newAway;
-    if (teams === null) {
-        newHome = thirdPlaceholders[matchId]?.home || 'Por definir';
-        newAway = thirdPlaceholders[matchId]?.away || 'Por definir';
-    } else {
-        newHome = teams.home || 'Por definir';
-        newAway = teams.away || 'Por definir';
-    }
-
-    if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
-
-    const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-    const body = {
-        fields: {
-            home: { stringValue: newHome },
-            away: { stringValue: newAway }
+    const r32Map = {
+        73: () => {
+            const secondA = currentStandings.A[1]?.team;
+            const secondB = currentStandings.B[1]?.team;
+            return {
+                home: (secondA && isPositionSecure(secondA, 'A', 2)) ? secondA : '2°A',
+                away: (secondB && isPositionSecure(secondB, 'B', 2)) ? secondB : '2°B'
+            };
+        },
+        74: () => {
+            const firstC = currentStandings.C[0]?.team;
+            const secondF = currentStandings.F[1]?.team;
+            return {
+                home: (firstC && isPositionSecure(firstC, 'C', 1)) ? firstC : '1°C',
+                away: (secondF && isPositionSecure(secondF, 'F', 2)) ? secondF : '2°F'
+            };
+        },
+        75: () => {
+            const firstE = currentStandings.E[0]?.team;
+            return {
+                home: (firstE && isPositionSecure(firstE, 'E', 1)) ? firstE : '1°E',
+                away: '3°A/B/C/D/F'
+            };
+        },
+        76: () => {
+            const firstF = currentStandings.F[0]?.team;
+            const secondC = currentStandings.C[1]?.team;
+            return {
+                home: (firstF && isPositionSecure(firstF, 'F', 1)) ? firstF : '1°F',
+                away: (secondC && isPositionSecure(secondC, 'C', 2)) ? secondC : '2°C'
+            };
+        },
+        77: () => {
+            const secondE = currentStandings.E[1]?.team;
+            const secondI = currentStandings.I[1]?.team;
+            return {
+                home: (secondE && isPositionSecure(secondE, 'E', 2)) ? secondE : '2°E',
+                away: (secondI && isPositionSecure(secondI, 'I', 2)) ? secondI : '2°I'
+            };
+        },
+        78: () => {
+            const firstI = currentStandings.I[0]?.team;
+            return {
+                home: (firstI && isPositionSecure(firstI, 'I', 1)) ? firstI : '1°I',
+                away: '3°C/D/F/G/H'
+            };
+        },
+        79: () => {
+            const firstA = currentStandings.A[0]?.team;
+            return {
+                home: (firstA && isPositionSecure(firstA, 'A', 1)) ? firstA : '1°A',
+                away: '3°C/E/F/H/I'
+            };
+        },
+        80: () => {
+            const firstL = currentStandings.L[0]?.team;
+            return {
+                home: (firstL && isPositionSecure(firstL, 'L', 1)) ? firstL : '1°L',
+                away: '3°E/H/I/J/K'
+            };
+        },
+        81: () => {
+            const firstG = currentStandings.G[0]?.team;
+            return {
+                home: (firstG && isPositionSecure(firstG, 'G', 1)) ? firstG : '1°G',
+                away: '3°A/E/H/I/J'
+            };
+        },
+        82: () => {
+            const firstD = currentStandings.D[0]?.team;
+            return {
+                home: (firstD && isPositionSecure(firstD, 'D', 1)) ? firstD : '1°D',
+                away: '3°B/E/F/I/J'
+            };
+        },
+        83: () => {
+            const firstH = currentStandings.H[0]?.team;
+            const secondJ = currentStandings.J[1]?.team;
+            return {
+                home: (firstH && isPositionSecure(firstH, 'H', 1)) ? firstH : '1°H',
+                away: (secondJ && isPositionSecure(secondJ, 'J', 2)) ? secondJ : '2°J'
+            };
+        },
+        84: () => {
+            const secondK = currentStandings.K[1]?.team;
+            const secondL = currentStandings.L[1]?.team;
+            return {
+                home: (secondK && isPositionSecure(secondK, 'K', 2)) ? secondK : '2°K',
+                away: (secondL && isPositionSecure(secondL, 'L', 2)) ? secondL : '2°L'
+            };
+        },
+        85: () => {
+            const firstB = currentStandings.B[0]?.team;
+            return {
+                home: (firstB && isPositionSecure(firstB, 'B', 1)) ? firstB : '1°B',
+                away: '3°E/F/G/I/J'
+            };
+        },
+        86: () => {
+            const secondD = currentStandings.D[1]?.team;
+            const secondG = currentStandings.G[1]?.team;
+            return {
+                home: (secondD && isPositionSecure(secondD, 'D', 2)) ? secondD : '2°D',
+                away: (secondG && isPositionSecure(secondG, 'G', 2)) ? secondG : '2°G'
+            };
+        },
+        87: () => {
+            const firstJ = currentStandings.J[0]?.team;
+            const secondH = currentStandings.H[1]?.team;
+            return {
+                home: (firstJ && isPositionSecure(firstJ, 'J', 1)) ? firstJ : '1°J',
+                away: (secondH && isPositionSecure(secondH, 'H', 2)) ? secondH : '2°H'
+            };
+        },
+        88: () => {
+            const firstK = currentStandings.K[0]?.team;
+            return {
+                home: (firstK && isPositionSecure(firstK, 'K', 1)) ? firstK : '1°K',
+                away: '3°D/E/I/J/L'
+            };
         }
     };
-    try {
-        const upd = await fetch(url, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(body)
-        });
-        if (upd.ok) console.log(`✔ R32 ${matchId}: ${newHome} vs ${newAway}`);
-    } catch (err) { console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`); }
-}
-// --- Placeholders para octavos, cuartos, semis y final ---
-const KO_PLACEHOLDERS = {
-    89: { home: 'Ganador M73', away: 'Ganador M75' },
-    90: { home: 'Ganador M74', away: 'Ganador M77' },
-    91: { home: 'Ganador M76', away: 'Ganador M78' },
-    92: { home: 'Ganador M79', away: 'Ganador M80' },
-    93: { home: 'Ganador M83', away: 'Ganador M84' },
-    94: { home: 'Ganador M81', away: 'Ganador M82' },
-    95: { home: 'Ganador M86', away: 'Ganador M88' },
-    96: { home: 'Ganador M85', away: 'Ganador M87' },
-    97: { home: 'Ganador M89', away: 'Ganador M90' },
-    98: { home: 'Ganador M93', away: 'Ganador M94' },
-    99: { home: 'Ganador M91', away: 'Ganador M92' },
-    100: { home: 'Ganador M95', away: 'Ganador M96' },
-    101: { home: 'Ganador M97', away: 'Ganador M98' },
-    102: { home: 'Ganador M99', away: 'Ganador M100' },
-    103: { home: 'Perdedor M101', away: 'Perdedor M102' },
-    104: { home: 'Ganador M101', away: 'Ganador M102' }
-};
 
-for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
-    const matchId = parseInt(idStr);
-    const match = firestoreMatches.find(m => m.id == matchId);
-    if (!match) continue;
-    // Solo actualizar si está completamente vacío (evitar sobrescribir equipos reales)
-    if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') continue;
-    if (match.homeRaw === teams.home && match.awayRaw === teams.away) continue;
+    for (const [idStr, getTeams] of Object.entries(r32Map)) {
+        const teams = getTeams();
+        const matchId = parseInt(idStr);
+        const match = firestoreMatches.find(m => m.id == matchId);
+        if (!match) continue;
 
-    const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-    const body = {
-        fields: {
-            home: { stringValue: teams.home },
-            away: { stringValue: teams.away }
-        }
+        const newHome = teams.home;
+        const newAway = teams.away;
+
+        if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
+
+        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+        const body = { fields: { home: { stringValue: newHome }, away: { stringValue: newAway } } };
+        try {
+            const upd = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            if (upd.ok) console.log(`✔ R32 ${matchId}: ${newHome} vs ${newAway}`);
+        } catch (err) { console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`); }
+    }
+
+    // Placeholders para octavos, cuartos, semis y final
+    const KO_PLACEHOLDERS = {
+        89: { home: 'Ganador M73', away: 'Ganador M75' },
+        90: { home: 'Ganador M74', away: 'Ganador M77' },
+        91: { home: 'Ganador M76', away: 'Ganador M78' },
+        92: { home: 'Ganador M79', away: 'Ganador M80' },
+        93: { home: 'Ganador M83', away: 'Ganador M84' },
+        94: { home: 'Ganador M81', away: 'Ganador M82' },
+        95: { home: 'Ganador M86', away: 'Ganador M88' },
+        96: { home: 'Ganador M85', away: 'Ganador M87' },
+        97: { home: 'Ganador M89', away: 'Ganador M90' },
+        98: { home: 'Ganador M93', away: 'Ganador M94' },
+        99: { home: 'Ganador M91', away: 'Ganador M92' },
+        100: { home: 'Ganador M95', away: 'Ganador M96' },
+        101: { home: 'Ganador M97', away: 'Ganador M98' },
+        102: { home: 'Ganador M99', away: 'Ganador M100' },
+        103: { home: 'Perdedor M101', away: 'Perdedor M102' },
+        104: { home: 'Ganador M101', away: 'Ganador M102' }
     };
-    try {
-        const upd = await fetch(url, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(body)
-        });
-        if (upd.ok) console.log(`✔ KO ${matchId}: ${teams.home} vs ${teams.away} (placeholder)`);
-    } catch (err) { console.warn(`No se pudo actualizar KO ${matchId}`); }
-}
+
+    for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
+        const matchId = parseInt(idStr);
+        const match = firestoreMatches.find(m => m.id == matchId);
+        if (!match) continue;
+        // Solo actualizar si está completamente vacío
+        if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') continue;
+        if (match.homeRaw === teams.home && match.awayRaw === teams.away) continue;
+
+        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+        const body = { fields: { home: { stringValue: teams.home }, away: { stringValue: teams.away } } };
+        try {
+            const upd = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            if (upd.ok) console.log(`✔ KO ${matchId}: ${teams.home} vs ${teams.away}`);
+        } catch (err) { console.warn(`No se pudo actualizar KO ${matchId}`); }
+    }
+
     console.log(`Actualizados ${updatedCount} partidos.`);
 
     // --- Generar automáticamente los dieciseisavos cuando termine la fase de grupos ---
@@ -578,7 +493,7 @@ for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
         const bestThirds = thirds.slice(0, 8).map(t => t.team);
 
         const thirdSlots = [
-            { matchId: 74, eligible: ['A','B','C','D','F'] },
+            { matchId: 74, eligible: ['A','B','C','D','F'] },   // OJO: según calendario oficial, el 1E vs 3ABCDF es el partido 75, no 74
             { matchId: 77, eligible: ['C','D','F','G','H'] },
             { matchId: 79, eligible: ['C','E','F','H','I'] },
             { matchId: 80, eligible: ['E','H','I','J','K'] },
@@ -587,6 +502,7 @@ for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
             { matchId: 85, eligible: ['E','F','G','I','J'] },
             { matchId: 87, eligible: ['D','E','I','J','L'] }
         ];
+
         const assigned = {};
         const used = new Set();
         for (const slot of thirdSlots) {
@@ -601,7 +517,7 @@ for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
 
         const r32 = {
             73: [qual.A[1], qual.B[1]],
-            74: [qual.E[0], assigned[74] || 'Por definir'],
+            74: [qual.E[0], assigned[74] || 'Por definir'],   // 1E vs 3ABCDF
             75: [qual.F[0], qual.C[1]],
             76: [qual.C[0], qual.F[1]],
             77: [qual.I[0], assigned[77] || 'Por definir'],
