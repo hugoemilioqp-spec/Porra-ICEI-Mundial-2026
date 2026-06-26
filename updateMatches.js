@@ -226,7 +226,6 @@ async function getAccessToken() {
     };
 
 const getGroupStandingsLocal = (matches, group) => {
-    // Usamos nombres limpios para las claves internas y un mapa para recuperar el original
     const teamsOriginal = GROUPS[group];
     const teamToClean = {};
     const cleanToOriginal = {};
@@ -237,31 +236,27 @@ const getGroupStandingsLocal = (matches, group) => {
     });
 
     const stats = {};
-    // Inicializar stats con nombres limpios
     teamsOriginal.forEach(t => {
         const c = teamToClean[t];
         stats[c] = { team: c, original: t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0 };
     });
 
     matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-        // Convertir los nombres del partido a limpios
         const homeClean = cleanName(m.homeRaw);
         const awayClean = cleanName(m.awayRaw);
         const h = stats[homeClean];
         const a = stats[awayClean];
-        if (!h || !a) return;   // si no se encuentra, saltar (no debería ocurrir)
+        if (!h || !a) return;
         h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
         if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
         else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
         else { h.d++; a.d++; h.pts++; a.pts++; }
     });
 
-    // Ordenar por puntos, diferencia de goles y goles a favor
     const sorted = Object.values(stats).sort((a,b) =>
         (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf)
     );
 
-    // Devolver los equipos con el nombre original (con banderas) para que se muestren correctamente
     return sorted.map(s => ({ ...s, team: s.original }));
 };
 
