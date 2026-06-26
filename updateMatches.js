@@ -224,51 +224,25 @@ async function getAccessToken() {
         K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
+    
 
-    const getGroupStandingsLocal = (matches, group) => {
-        // 1. Obtener todos los equipos que aparecen en los partidos de este grupo
-        const cleanTeams = new Set();
-        matches.filter(m => m.group === group).forEach(m => {
-            if (m.homeRaw) cleanTeams.add(cleanName(m.homeRaw));
-            if (m.awayRaw) cleanTeams.add(cleanName(m.awayRaw));
-        });
-
-        // 2. Crear un diccionario de stats con esos nombres limpios
-        const stats = {};
-        cleanTeams.forEach(clean => {
-            stats[clean] = { team: clean, original: null, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0 };
-        });
-
-        // 3. Llenar los datos con los partidos jugados
-        matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-            const homeClean = cleanName(m.homeRaw);
-            const awayClean = cleanName(m.awayRaw);
-            const h = stats[homeClean];
-            const a = stats[awayClean];
-            if (!h || !a) return;   // por seguridad
-            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
-            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
-            else { h.d++; a.d++; h.pts++; a.pts++; }
-        });
-
-        // 4. Construir un mapa de nombre limpio → nombre original (con banderas)
-        const cleanToOriginal = {};
-        (GROUPS[group] || []).forEach(t => {
-            cleanToOriginal[cleanName(t)] = t;
-        });
-
-        // 5. Asignar a cada equipo su nombre original (con banderas) para mostrarlo
-        Object.values(stats).forEach(s => {
-            s.original = cleanToOriginal[s.team] || s.team;
-            s.team = s.original;
-        });
-
-        // 6. Ordenar por puntos, diferencia de goles y goles a favor
-        return Object.values(stats).sort((a,b) =>
-            (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
-        );
-    };
+const getGroupStandingsLocal = (matches, group) => {
+    const teams = GROUPS[group];
+    const stats = {};
+    teams.forEach(t => stats[t] = { team: t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0 });
+    matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+        const h = stats[m.homeRaw];
+        const a = stats[m.awayRaw];
+        if (!h || !a) return;
+        h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+        if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+        else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+        else { h.d++; a.d++; h.pts++; a.pts++; }
+    });
+    return Object.values(stats).sort((a,b) =>
+        (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf)
+    );
+};
 
     const currentStandings = {};
     for (const g of Object.keys(GROUPS)) {
@@ -276,7 +250,7 @@ async function getAccessToken() {
     }
 
     // --- LÍNEA DE DEPURACIÓN ---
-    console.log('DEBUG grupo D 2º:', currentStandings.D[1]?.team);
+   // console.log('DEBUG grupo D 2º:', currentStandings.D[1]?.team);
 
     const canTeamBeOvertaken = (teamOriginal, group, position) => {
         const st = currentStandings[group];
