@@ -227,21 +227,48 @@ async function getAccessToken() {
     
 
 const getGroupStandingsLocal = (matches, group) => {
-    const teams = GROUPS[group];
+    // 1. Obtener todos los equipos únicos de este grupo (nombres limpios)
+    const cleanTeams = new Set();
+    matches.filter(m => m.group === group && m.homeRaw).forEach(m => {
+        cleanTeams.add(cleanName(m.homeRaw));
+        cleanTeams.add(cleanName(m.awayRaw));
+    });
+
+    // 2. Crear el diccionario de estadísticas usando esos nombres limpios
     const stats = {};
-    teams.forEach(t => stats[t] = { team: t, pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0 });
+    cleanTeams.forEach(clean => {
+        stats[clean] = { pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0, cleanName: clean };
+    });
+
+    // 3. Sumar los partidos ya jugados
     matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-        const h = stats[m.homeRaw];
-        const a = stats[m.awayRaw];
-        if (!h || !a) return;
+        const homeClean = cleanName(m.homeRaw);
+        const awayClean = cleanName(m.awayRaw);
+        const h = stats[homeClean];
+        const a = stats[awayClean];
+        if (!h || !a) return;   // no debería ocurrir
         h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
         if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
         else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
         else { h.d++; a.d++; h.pts++; a.pts++; }
     });
-    return Object.values(stats).sort((a,b) =>
-        (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf)
-    );
+
+    // 4. Construir un mapa de nombre limpio → nombre original (con banderas)
+    //    usando el array GROUPS (que es nuestra referencia visual)
+    const cleanToOriginal = {};
+    (GROUPS[group] || []).forEach(t => {
+        cleanToOriginal[cleanName(t)] = t;
+    });
+
+    // 5. Ordenar y devolver los equipos con sus nombres originales
+    return Object.values(stats)
+        .map(s => ({
+            ...s,
+            team: cleanToOriginal[s.cleanName] || s.cleanName   // si no encuentra bandera, usa el limpio
+        }))
+        .sort((a,b) =>
+            (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
+        );
 };
 
     const currentStandings = {};
