@@ -246,15 +246,14 @@ const getGroupStandingsLocal = (matches, group) => {
         const awayClean = cleanName(m.awayRaw);
         const h = stats[homeClean];
         const a = stats[awayClean];
-        if (!h || !a) return;   // no debería ocurrir
+        if (!h || !a) return;
         h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
         if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
         else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
         else { h.d++; a.d++; h.pts++; a.pts++; }
     });
 
-    // 4. Construir un mapa de nombre limpio → nombre original (con banderas)
-    //    usando el array GROUPS (que es nuestra referencia visual)
+    // 4. Mapa de nombre limpio → nombre original (con banderas)
     const cleanToOriginal = {};
     (GROUPS[group] || []).forEach(t => {
         cleanToOriginal[cleanName(t)] = t;
@@ -264,7 +263,7 @@ const getGroupStandingsLocal = (matches, group) => {
     return Object.values(stats)
         .map(s => ({
             ...s,
-            team: cleanToOriginal[s.cleanName] || s.cleanName   // si no encuentra bandera, usa el limpio
+            team: cleanToOriginal[s.cleanName] || s.cleanName
         }))
         .sort((a,b) =>
             (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
