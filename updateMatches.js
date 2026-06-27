@@ -274,18 +274,6 @@ const getGroupStandingsLocal = (matches, group) => {
     for (const g of Object.keys(GROUPS)) {
         currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
     }
-    // DEBUG: ver la clasificación del grupo D que calcula el servidor
-console.log('DEBUG D - equipo 2º:', currentStandings.D[1]?.team);
-console.log('DEBUG D - puntos y goles:', JSON.stringify(currentStandings.D.map(t => ({ 
-    team: t.team, 
-    pts: t.pts, 
-    gf: t.gf, 
-    ga: t.ga, 
-    gd: t.gf - t.ga 
-}))));
-
-    // --- LÍNEA DE DEPURACIÓN ---
-   // console.log('DEBUG grupo D 2º:', currentStandings.D[1]?.team);
 
     const canTeamBeOvertaken = (teamOriginal, group, position) => {
         const st = currentStandings[group];
