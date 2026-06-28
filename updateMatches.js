@@ -209,7 +209,7 @@ async function getAccessToken() {
       } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
     }
 
-    // --- Placeholders para octavos, cuartos, semis y final (sin tocar dieciseisavos) ---
+    // --- Placeholders para octavos en adelante ---
     const KO_PLACEHOLDERS = {
         89: { home: 'Ganador M73', away: 'Ganador M75' },
         90: { home: 'Ganador M74', away: 'Ganador M77' },
@@ -229,7 +229,6 @@ async function getAccessToken() {
         104: { home: 'Ganador M101', away: 'Ganador M102' }
     };
 
-    // Función para saber si un valor ya es un equipo real
     const isPlaceholder = (value) => {
         return !value || value === 'Por definir' || value.includes('°') || value.includes('Ganador') || value.includes('Perdedor');
     };
@@ -238,7 +237,6 @@ async function getAccessToken() {
         const matchId = parseInt(idStr);
         const match = firestoreMatches.find(m => m.id == matchId);
         if (!match) continue;
-        // Si ya tiene equipos reales, no los tocamos
         if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) continue;
 
         const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
@@ -255,7 +253,7 @@ async function getAccessToken() {
 
     console.log(`Actualizados ${updatedCount} partidos.`);
 
-    // --- Generar automáticamente los dieciseisavos (con terceros reales) cuando la fase de grupos termine ---
+    // --- Generar dieciseisavos completos (con terceros reales) ---
     const GROUPS = {
         A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
         B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
@@ -275,41 +273,73 @@ async function getAccessToken() {
     const allPlayed = allGroupMatches.every(m => m.homeScore !== null);
 
     if (allPlayed) {
-        console.log('⏳ Fase de grupos terminada. Generando dieciseisavos...');
+        console.log('⏳ Fase de grupos terminada. Calculando dieciseisavos...');
 
-        const getStandings = (group) => {
-            const teams = GROUPS[group];
-            const stats = {};
-            teams.forEach(t => stats[t] = { team: t, pts:0, gf:0, ga:0 });
-            firestoreMatches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-                const h = stats[m.homeRaw], a = stats[m.awayRaw];
-                if (!h || !a) return;
-                h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-                if (m.homeScore > m.awayScore) h.pts += 3;
-                else if (m.homeScore < m.awayScore) a.pts += 3;
-                else { h.pts += 1; a.pts += 1; }
+        // Función de clasificación robusta (misma que usa el frontend)
+        const getGroupStandingsLocal = (matches, group) => {
+            const cleanTeams = new Set();
+            matches.filter(m => m.group === group && m.homeRaw).forEach(m => {
+                cleanTeams.add(cleanName(m.homeRaw));
+                cleanTeams.add(cleanName(m.awayRaw));
             });
-            return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+
+            const stats = {};
+            cleanTeams.forEach(clean => {
+                stats[clean] = { pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0, cleanName: clean };
+            });
+
+            matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+                const homeClean = cleanName(m.homeRaw);
+                const awayClean = cleanName(m.awayRaw);
+                const h = stats[homeClean];
+                const a = stats[awayClean];
+                if (!h || !a) return;
+                h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+                if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+                else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+                else { h.d++; a.d++; h.pts++; a.pts++; }
+            });
+
+            const cleanToOriginal = {};
+            (GROUPS[group] || []).forEach(t => {
+                cleanToOriginal[cleanName(t)] = t;
+            });
+
+            return Object.values(stats)
+                .map(s => ({
+                    ...s,
+                    team: cleanToOriginal[s.cleanName] || s.cleanName
+                }))
+                .sort((a,b) =>
+                    (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
+                );
         };
 
+        // Calcular clasificados
         const qual = {};
         for (const g of Object.keys(GROUPS)) {
-            const st = getStandings(g);
+            const st = getGroupStandingsLocal(firestoreMatches, g);
             qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
         }
 
         // Mejores terceros
         const thirds = [];
         for (const g of Object.keys(GROUPS)) {
-            if (qual[g][2]) {
-                const st = getStandings(g);
-                thirds.push({ team: st[2].team, group: g, pts: st[2].pts, gd: (st[2].gf||0) - (st[2].ga||0), gf: st[2].gf||0 });
+            const st = getGroupStandingsLocal(firestoreMatches, g);
+            if (st[2] && st[2].pj > 0) {
+                thirds.push({
+                    team: st[2].team,
+                    group: g,
+                    pts: st[2].pts,
+                    gd: (st[2].gf || 0) - (st[2].ga || 0),
+                    gf: st[2].gf || 0
+                });
             }
         }
-        thirds.sort((a,b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
-        const bestThirds = thirds.slice(0,8).map(t => t.team);
+        thirds.sort((a, b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
+        const bestThirds = thirds.slice(0, 8).map(t => t.team);
 
-        // Asignación oficial FIFA de terceros
+        // Asignación de terceros según FIFA (slots correctos)
         const thirdSlots = [
             { matchId: 75, eligible: ['A','B','C','D','F'] },
             { matchId: 78, eligible: ['C','D','F','G','H'] },
@@ -318,37 +348,49 @@ async function getAccessToken() {
             { matchId: 81, eligible: ['B','E','F','I','J'] },
             { matchId: 82, eligible: ['A','E','H','I','J'] },
             { matchId: 85, eligible: ['E','F','G','I','J'] },
-            { matchId: 88, eligible: ['D','E','I','J','L'] }
+            { matchId: 87, eligible: ['D','E','I','J','L'] },   // ← FALTABA ESTE
+            { matchId: 88, eligible: [] }   // El 88 no lleva tercero (2D vs 2G)
         ];
+
         const assigned = {};
         const used = new Set();
         for (const slot of thirdSlots) {
-            const selected = bestThirds.find(t => slot.eligible.includes(t.group) && !used.has(t));
+            if (slot.matchId === 88) continue;   // no es partido con tercero
+            const selected = bestThirds.find(t => {
+                const info = thirds.find(d => d.team === t);
+                return info && slot.eligible.includes(info.group) && !used.has(t);
+            });
             assigned[slot.matchId] = selected || 'Por definir';
             if (selected) used.add(selected);
         }
 
-        // Emparejamientos oficiales
+        // Emparejamientos oficiales completos
         const r32 = {
             73: [qual.A[1], qual.B[1]],                     // 2A vs 2B
             74: [qual.C[0], qual.F[1]],                     // 1C vs 2F
-            75: [qual.E[0], assigned[75]],                  // 1E vs 3ABCDF
+            75: [qual.E[0], assigned[75] || 'Por definir'], // 1E vs 3ABCDF
             76: [qual.F[0], qual.C[1]],                     // 1F vs 2C
             77: [qual.E[1], qual.I[1]],                     // 2E vs 2I
-            78: [qual.I[0], assigned[78]],                  // 1I vs 3CDFGH
-            79: [qual.A[0], assigned[79]],                  // 1A vs 3CEFHI
-            80: [qual.L[0], assigned[80]],                  // 1L vs 3EHIJK
-            81: [qual.D[0], assigned[81]],                  // 1D vs 3BEFIJ
-            82: [qual.G[0], assigned[82]],                  // 1G vs 3AEHIJ
+            78: [qual.I[0], assigned[78] || 'Por definir'], // 1I vs 3CDFGH
+            79: [qual.A[0], assigned[79] || 'Por definir'], // 1A vs 3CEFHI
+            80: [qual.L[0], assigned[80] || 'Por definir'], // 1L vs 3EHIJK
+            81: [qual.D[0], assigned[81] || 'Por definir'], // 1D vs 3BEFIJ
+            82: [qual.G[0], assigned[82] || 'Por definir'], // 1G vs 3AEHIJ
             83: [qual.K[1], qual.L[1]],                     // 2K vs 2L
             84: [qual.H[0], qual.J[1]],                     // 1H vs 2J
-            85: [qual.B[0], assigned[85]],                  // 1B vs 3EFGIJ
+            85: [qual.B[0], assigned[85] || 'Por definir'], // 1B vs 3EFGIJ
             86: [qual.J[0], qual.H[1]],                     // 1J vs 2H
-            87: [qual.K[0], assigned[87]],                  // 1K vs 3DEIJL
+            87: [qual.K[0], assigned[87] || 'Por definir'], // 1K vs 3DEIJL
             88: [qual.D[1], qual.G[1]]                      // 2D vs 2G
         };
 
         for (const [id, teams] of Object.entries(r32)) {
+            const match = firestoreMatches.find(m => m.id == id);
+            if (!match) continue;
+
+            // Si el partido ya tiene equipos reales (no placeholders), lo respetamos
+            if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) continue;
+
             const url = `${BASE_URL}/matches/${id}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
             const body = {
                 fields: {
@@ -356,14 +398,16 @@ async function getAccessToken() {
                     away: { stringValue: teams[1] }
                 }
             };
-            await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-            console.log(`✔ R32 ${id}: ${teams[0]} vs ${teams[1]}`);
+            try {
+                const up = await fetch(url, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(body)
+                });
+                if (up.ok) console.log(`✔ R32 ${id}: ${teams[0]} vs ${teams[1]}`);
+            } catch (err) { console.error(`Error ${id}:`, err); }
         }
-        console.log('✅ Dieciseisavos generados con terceros reales.');
+        console.log('✅ Dieciseisavos actualizados con terceros reales.');
     }
   } catch (error) {
     console.error('Error general:', error);
