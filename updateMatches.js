@@ -224,51 +224,50 @@ async function getAccessToken() {
         K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
         L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
     };
-    
 
-const getGroupStandingsLocal = (matches, group) => {
-    // 1. Obtener todos los equipos únicos de este grupo (nombres limpios)
-    const cleanTeams = new Set();
-    matches.filter(m => m.group === group && m.homeRaw).forEach(m => {
-        cleanTeams.add(cleanName(m.homeRaw));
-        cleanTeams.add(cleanName(m.awayRaw));
-    });
+    const getGroupStandingsLocal = (matches, group) => {
+        // 1. Obtener todos los equipos únicos de este grupo (nombres limpios)
+        const cleanTeams = new Set();
+        matches.filter(m => m.group === group && m.homeRaw).forEach(m => {
+            cleanTeams.add(cleanName(m.homeRaw));
+            cleanTeams.add(cleanName(m.awayRaw));
+        });
 
-    // 2. Crear el diccionario de estadísticas usando esos nombres limpios
-    const stats = {};
-    cleanTeams.forEach(clean => {
-        stats[clean] = { pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0, cleanName: clean };
-    });
+        // 2. Crear el diccionario de estadísticas usando esos nombres limpios
+        const stats = {};
+        cleanTeams.forEach(clean => {
+            stats[clean] = { pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0, cleanName: clean };
+        });
 
-    // 3. Sumar los partidos ya jugados
-    matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-        const homeClean = cleanName(m.homeRaw);
-        const awayClean = cleanName(m.awayRaw);
-        const h = stats[homeClean];
-        const a = stats[awayClean];
-        if (!h || !a) return;
-        h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-        if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
-        else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
-        else { h.d++; a.d++; h.pts++; a.pts++; }
-    });
+        // 3. Sumar los partidos ya jugados
+        matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+            const homeClean = cleanName(m.homeRaw);
+            const awayClean = cleanName(m.awayRaw);
+            const h = stats[homeClean];
+            const a = stats[awayClean];
+            if (!h || !a) return;
+            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+            else { h.d++; a.d++; h.pts++; a.pts++; }
+        });
 
-    // 4. Mapa de nombre limpio → nombre original (con banderas)
-    const cleanToOriginal = {};
-    (GROUPS[group] || []).forEach(t => {
-        cleanToOriginal[cleanName(t)] = t;
-    });
+        // 4. Mapa de nombre limpio → nombre original (con banderas)
+        const cleanToOriginal = {};
+        (GROUPS[group] || []).forEach(t => {
+            cleanToOriginal[cleanName(t)] = t;
+        });
 
-    // 5. Ordenar y devolver los equipos con sus nombres originales
-    return Object.values(stats)
-        .map(s => ({
-            ...s,
-            team: cleanToOriginal[s.cleanName] || s.cleanName
-        }))
-        .sort((a,b) =>
-            (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
-        );
-};
+        // 5. Ordenar y devolver los equipos con sus nombres originales
+        return Object.values(stats)
+            .map(s => ({
+                ...s,
+                team: cleanToOriginal[s.cleanName] || s.cleanName
+            }))
+            .sort((a,b) =>
+                (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
+            );
+    };
 
     const currentStandings = {};
     for (const g of Object.keys(GROUPS)) {
@@ -465,7 +464,8 @@ const getGroupStandingsLocal = (matches, group) => {
         const newHome = teams.home;
         const newAway = teams.away;
 
-        // if (match.homeRaw === newHome && match.awayRaw === newAway) continue;   // desactivado para forzar actualización
+        // Solo actualizar si ha cambiado (respetamos los cruces fijados)
+        if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
 
         const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
         const body = { fields: { home: { stringValue: newHome }, away: { stringValue: newAway } } };
@@ -525,6 +525,15 @@ const getGroupStandingsLocal = (matches, group) => {
     const allPlayed = allGroupMatches.every(m => m.homeScore !== null);
 
     if (allPlayed) {
+        // Protección: si los dieciseisavos ya tienen equipos reales, no los regeneramos
+        const r32AlreadyFilled = firestoreMatches
+            .filter(m => m.group === 'KO' && m.round === 'Dieciseisavos')
+            .every(m => m.homeRaw !== 'Por definir' && m.awayRaw !== 'Por definir');
+        if (r32AlreadyFilled) {
+            console.log('✅ Dieciseisavos ya estaban generados (no se sobrescriben).');
+            return;
+        }
+
         console.log('⏳ Todos los partidos de grupo finalizados. Generando dieciseisavos...');
 
         const qual = {};
@@ -544,14 +553,14 @@ const getGroupStandingsLocal = (matches, group) => {
         const bestThirds = thirds.slice(0, 8).map(t => t.team);
 
         const thirdSlots = [
-            { matchId: 74, eligible: ['A','B','C','D','F'] },
-            { matchId: 77, eligible: ['C','D','F','G','H'] },
+            { matchId: 75, eligible: ['A','B','C','D','F'] },
+            { matchId: 78, eligible: ['C','D','F','G','H'] },
             { matchId: 79, eligible: ['C','E','F','H','I'] },
             { matchId: 80, eligible: ['E','H','I','J','K'] },
             { matchId: 81, eligible: ['B','E','F','I','J'] },
             { matchId: 82, eligible: ['A','E','H','I','J'] },
             { matchId: 85, eligible: ['E','F','G','I','J'] },
-            { matchId: 87, eligible: ['D','E','I','J','L'] }
+            { matchId: 88, eligible: ['D','E','I','J','L'] }
         ];
 
         const assigned = {};
@@ -568,20 +577,20 @@ const getGroupStandingsLocal = (matches, group) => {
 
         const r32 = {
             73: [qual.A[1], qual.B[1]],
-            74: [qual.E[0], assigned[74] || 'Por definir'],
-            75: [qual.F[0], qual.C[1]],
-            76: [qual.C[0], qual.F[1]],
-            77: [qual.I[0], assigned[77] || 'Por definir'],
-            78: [qual.E[1], qual.I[1]],
-            79: [qual.A[0], assigned[79] || 'Por definir'],
-            80: [qual.L[0], assigned[80] || 'Por definir'],
-            81: [qual.D[0], assigned[81] || 'Por definir'],
-            82: [qual.G[0], assigned[82] || 'Por definir'],
+            74: [qual.C[0], qual.F[1]],                     // 1C vs 2F
+            75: [qual.E[0], assigned[75]],
+            76: [qual.F[0], qual.C[1]],
+            77: [qual.E[1], qual.I[1]],                     // 2E vs 2I
+            78: [qual.I[0], assigned[78]],
+            79: [qual.A[0], assigned[79]],
+            80: [qual.L[0], assigned[80]],
+            81: [qual.D[0], assigned[81]],
+            82: [qual.G[0], assigned[82]],
             83: [qual.K[1], qual.L[1]],
             84: [qual.H[0], qual.J[1]],
-            85: [qual.B[0], assigned[85] || 'Por definir'],
+            85: [qual.B[0], assigned[85]],
             86: [qual.J[0], qual.H[1]],
-            87: [qual.K[0], assigned[87] || 'Por definir'],
+            87: [qual.K[0], assigned[87]],
             88: [qual.D[1], qual.G[1]]
         };
 
