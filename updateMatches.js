@@ -253,7 +253,7 @@ async function getAccessToken() {
 
     console.log(`Actualizados ${updatedCount} partidos.`);
 
-    // --- Emparejamientos oficiales de dieciseisavos (confirmados) ---
+    // --- Emparejamientos oficiales de dieciseisavos (siempre se verifican y corrigen) ---
     const OFFICIAL_R32 = {
         73: { home: '🇿🇦 Sudáfrica',      away: '🇨🇦 Canadá' },
         74: { home: '🇧🇷 Brasil',          away: '🇯🇵 Japón' },
@@ -273,37 +273,33 @@ async function getAccessToken() {
         88: { home: '🇦🇺 Australia',       away: '🇪🇬 Egipto' }
     };
 
-    const allGroupMatches = firestoreMatches.filter(m => m.group !== 'KO');
-    const allPlayed = allGroupMatches.every(m => m.homeScore !== null);
+    for (const [id, teams] of Object.entries(OFFICIAL_R32)) {
+        const matchId = parseInt(id);
+        const match = firestoreMatches.find(m => m.id == matchId);
+        if (!match) continue;
 
-    if (allPlayed) {
-        console.log('⏳ Fase de grupos terminada. Aplicando emparejamientos oficiales...');
-        for (const [id, teams] of Object.entries(OFFICIAL_R32)) {
-            const matchId = parseInt(id);
-            const match = firestoreMatches.find(m => m.id == matchId);
-            if (!match) continue;
-
-            // Respetar si ya tiene equipos reales
-            if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) continue;
-
-            const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-            const body = {
-                fields: {
-                    home: { stringValue: teams.home },
-                    away: { stringValue: teams.away }
-                }
-            };
-            try {
-                const up = await fetch(url, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify(body)
-                });
-                if (up.ok) console.log(`✔ R32 ${matchId}: ${teams.home} vs ${teams.away}`);
-            } catch (err) { console.error(`Error ${matchId}:`, err); }
+        // Solo actuamos si el partido tiene algún placeholder o si es diferente al oficial
+        if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) {
+            if (match.homeRaw === teams.home && match.awayRaw === teams.away) continue;   // ya está bien
         }
-        console.log('✅ Dieciseisavos actualizados con los emparejamientos oficiales.');
+
+        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+        const body = {
+            fields: {
+                home: { stringValue: teams.home },
+                away: { stringValue: teams.away }
+            }
+        };
+        try {
+            const up = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            if (up.ok) console.log(`✔ R32 ${matchId}: ${teams.home} vs ${teams.away}`);
+        } catch (err) { console.error(`Error ${matchId}:`, err); }
     }
+    console.log('✅ Dieciseisavos verificados/corregidos.');
   } catch (error) {
     console.error('Error general:', error);
     process.exit(1);
