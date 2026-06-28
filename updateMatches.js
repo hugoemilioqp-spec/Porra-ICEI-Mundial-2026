@@ -209,277 +209,7 @@ async function getAccessToken() {
       } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
     }
 
-    // --- Actualización continua del cuadro de dieciseisavos ---
-    const GROUPS = {
-        A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
-        B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
-        C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
-        D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
-        E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
-        F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
-        G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
-        H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
-        I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
-        J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
-        K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
-        L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
-    };
-
-    const getGroupStandingsLocal = (matches, group) => {
-        // 1. Obtener todos los equipos únicos de este grupo (nombres limpios)
-        const cleanTeams = new Set();
-        matches.filter(m => m.group === group && m.homeRaw).forEach(m => {
-            cleanTeams.add(cleanName(m.homeRaw));
-            cleanTeams.add(cleanName(m.awayRaw));
-        });
-
-        // 2. Crear el diccionario de estadísticas usando esos nombres limpios
-        const stats = {};
-        cleanTeams.forEach(clean => {
-            stats[clean] = { pts:0, gf:0, ga:0, pj:0, w:0, d:0, l:0, cleanName: clean };
-        });
-
-        // 3. Sumar los partidos ya jugados
-        matches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
-            const homeClean = cleanName(m.homeRaw);
-            const awayClean = cleanName(m.awayRaw);
-            const h = stats[homeClean];
-            const a = stats[awayClean];
-            if (!h || !a) return;
-            h.pj++; a.pj++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
-            if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
-            else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
-            else { h.d++; a.d++; h.pts++; a.pts++; }
-        });
-
-        // 4. Mapa de nombre limpio → nombre original (con banderas)
-        const cleanToOriginal = {};
-        (GROUPS[group] || []).forEach(t => {
-            cleanToOriginal[cleanName(t)] = t;
-        });
-
-        // 5. Ordenar y devolver los equipos con sus nombres originales
-        return Object.values(stats)
-            .map(s => ({
-                ...s,
-                team: cleanToOriginal[s.cleanName] || s.cleanName
-            }))
-            .sort((a,b) =>
-                (b.pts - a.pts) || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf)
-            );
-    };
-
-    const currentStandings = {};
-    for (const g of Object.keys(GROUPS)) {
-        currentStandings[g] = getGroupStandingsLocal(firestoreMatches, g);
-    }
-
-    const canTeamBeOvertaken = (teamOriginal, group, position) => {
-        const st = currentStandings[group];
-        if (!st || st.length < 3) return true;
-        const idx = st.findIndex(t => t.team === teamOriginal);
-        if (idx === -1) return true;
-        const groupMatches = firestoreMatches.filter(m => m.group === group);
-        const remainingMatches = groupMatches.filter(m => m.homeScore === null);
-        if (remainingMatches.length === 0) return false;
-        const teamPts = st[idx].pts;
-        let chaser;
-        if (position === 1 && st.length >= 2) chaser = st[1];
-        else if (position === 2 && st.length >= 3) chaser = st[2];
-        else return true;
-        if (!chaser) return true;
-        const cleanChaser = cleanName(chaser.team);
-        const chaserRemaining = remainingMatches.filter(m =>
-            cleanName(m.homeRaw) === cleanChaser || cleanName(m.awayRaw) === cleanChaser
-        ).length;
-        const maxChaserPts = chaser.pts + chaserRemaining * 3;
-        const teamRemaining = remainingMatches.filter(m =>
-            cleanName(m.homeRaw) === cleanName(teamOriginal) || cleanName(m.awayRaw) === cleanName(teamOriginal)
-        ).length;
-        const minTeamPts = teamPts;
-        if (minTeamPts > maxChaserPts) return false;
-        if (minTeamPts < maxChaserPts) return true;
-        return true;
-    };
-
-    const isPositionSecure = (teamOriginal, group, position) => {
-        const st = currentStandings[group];
-        if (!st || st.length < 3) return false;
-        const idx = st.findIndex(t => t.team === teamOriginal);
-        if (idx === -1) return false;
-        const groupMatches = firestoreMatches.filter(m => m.group === group);
-        // Grupo terminado → las posiciones son definitivas
-        if (groupMatches.every(m => m.homeScore !== null)) {
-            return (position === 1 && idx === 0) || (position === 2 && idx === 1);
-        }
-
-        // Para ser primero, el equipo no debe poder ser superado por el segundo
-        if (position === 1) {
-            if (idx !== 0) return false;
-            return !canTeamBeOvertaken(teamOriginal, group, 1);
-        }
-
-        // Para ser segundo, debe cumplir dos condiciones:
-        // 1. No puede ser superado por el tercero.
-        // 2. No puede alcanzar al primero (porque entonces podría ser primero él y otro sería segundo).
-        if (position === 2) {
-            if (idx !== 1) return false;
-            if (canTeamBeOvertaken(teamOriginal, group, 2)) return false;          // el tercero le puede alcanzar
-            if (st.length >= 2 && canTeamBeOvertaken(st[0].team, group, 1)) return false; // él puede alcanzar al primero
-            return true;
-        }
-
-        return false;
-    };
-
-    const r32Map = {
-        73: () => {
-            const secondA = currentStandings.A[1]?.team;
-            const secondB = currentStandings.B[1]?.team;
-            return {
-                home: (secondA && isPositionSecure(secondA, 'A', 2)) ? secondA : '2°A',
-                away: (secondB && isPositionSecure(secondB, 'B', 2)) ? secondB : '2°B'
-            };
-        },
-        74: () => {
-            const firstC = currentStandings.C[0]?.team;
-            const secondF = currentStandings.F[1]?.team;
-            return {
-                home: (firstC && isPositionSecure(firstC, 'C', 1)) ? firstC : '1°C',
-                away: (secondF && isPositionSecure(secondF, 'F', 2)) ? secondF : '2°F'
-            };
-        },
-        75: () => {
-            const firstE = currentStandings.E[0]?.team;
-            return {
-                home: (firstE && isPositionSecure(firstE, 'E', 1)) ? firstE : '1°E',
-                away: '3°A/B/C/D/F'
-            };
-        },
-        76: () => {
-            const firstF = currentStandings.F[0]?.team;
-            const secondC = currentStandings.C[1]?.team;
-            return {
-                home: (firstF && isPositionSecure(firstF, 'F', 1)) ? firstF : '1°F',
-                away: (secondC && isPositionSecure(secondC, 'C', 2)) ? secondC : '2°C'
-            };
-        },
-        77: () => {
-            const secondE = currentStandings.E[1]?.team;
-            const secondI = currentStandings.I[1]?.team;
-            return {
-                home: (secondE && isPositionSecure(secondE, 'E', 2)) ? secondE : '2°E',
-                away: (secondI && isPositionSecure(secondI, 'I', 2)) ? secondI : '2°I'
-            };
-        },
-        78: () => {
-            const firstI = currentStandings.I[0]?.team;
-            return {
-                home: (firstI && isPositionSecure(firstI, 'I', 1)) ? firstI : '1°I',
-                away: '3°C/D/F/G/H'
-            };
-        },
-        79: () => {
-            const firstA = currentStandings.A[0]?.team;
-            return {
-                home: (firstA && isPositionSecure(firstA, 'A', 1)) ? firstA : '1°A',
-                away: '3°C/E/F/H/I'
-            };
-        },
-        80: () => {
-            const firstL = currentStandings.L[0]?.team;
-            return {
-                home: (firstL && isPositionSecure(firstL, 'L', 1)) ? firstL : '1°L',
-                away: '3°E/H/I/J/K'
-            };
-        },
-        81: () => {
-            const firstG = currentStandings.G[0]?.team;
-            return {
-                home: (firstG && isPositionSecure(firstG, 'G', 1)) ? firstG : '1°G',
-                away: '3°A/E/H/I/J'
-            };
-        },
-        82: () => {
-            const firstD = currentStandings.D[0]?.team;
-            return {
-                home: (firstD && isPositionSecure(firstD, 'D', 1)) ? firstD : '1°D',
-                away: '3°B/E/F/I/J'
-            };
-        },
-        83: () => {
-            const firstH = currentStandings.H[0]?.team;
-            const secondJ = currentStandings.J[1]?.team;
-            return {
-                home: (firstH && isPositionSecure(firstH, 'H', 1)) ? firstH : '1°H',
-                away: (secondJ && isPositionSecure(secondJ, 'J', 2)) ? secondJ : '2°J'
-            };
-        },
-        84: () => {
-            const secondK = currentStandings.K[1]?.team;
-            const secondL = currentStandings.L[1]?.team;
-            return {
-                home: (secondK && isPositionSecure(secondK, 'K', 2)) ? secondK : '2°K',
-                away: (secondL && isPositionSecure(secondL, 'L', 2)) ? secondL : '2°L'
-            };
-        },
-        85: () => {
-            const firstB = currentStandings.B[0]?.team;
-            return {
-                home: (firstB && isPositionSecure(firstB, 'B', 1)) ? firstB : '1°B',
-                away: '3°E/F/G/I/J'
-            };
-        },
-        86: () => {
-            const secondD = currentStandings.D[1]?.team;
-            const secondG = currentStandings.G[1]?.team;
-            return {
-                home: (secondD && isPositionSecure(secondD, 'D', 2)) ? secondD : '2°D',
-                away: (secondG && isPositionSecure(secondG, 'G', 2)) ? secondG : '2°G'
-            };
-        },
-        87: () => {
-            const firstJ = currentStandings.J[0]?.team;
-            const secondH = currentStandings.H[1]?.team;
-            return {
-                home: (firstJ && isPositionSecure(firstJ, 'J', 1)) ? firstJ : '1°J',
-                away: (secondH && isPositionSecure(secondH, 'H', 2)) ? secondH : '2°H'
-            };
-        },
-        88: () => {
-            const firstK = currentStandings.K[0]?.team;
-            return {
-                home: (firstK && isPositionSecure(firstK, 'K', 1)) ? firstK : '1°K',
-                away: '3°D/E/I/J/L'
-            };
-        }
-    };
-
-    for (const [idStr, getTeams] of Object.entries(r32Map)) {
-        const teams = getTeams();
-        const matchId = parseInt(idStr);
-        const match = firestoreMatches.find(m => m.id == matchId);
-        if (!match) continue;
-
-        const newHome = teams.home;
-        const newAway = teams.away;
-
-        // Solo actualizar si ha cambiado (respetamos los cruces fijados)
-        if (match.homeRaw === newHome && match.awayRaw === newAway) continue;
-
-        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-        const body = { fields: { home: { stringValue: newHome }, away: { stringValue: newAway } } };
-        try {
-            const upd = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-            if (upd.ok) console.log(`✔ R32 ${matchId}: ${newHome} vs ${newAway}`);
-        } catch (err) { console.warn(`No se pudo actualizar R32 ${matchId}: ${err.message}`); }
-    }
-
-    // Placeholders para octavos, cuartos, semis y final
+    // --- Placeholders para octavos, cuartos, semis y final (sin tocar dieciseisavos) ---
     const KO_PLACEHOLDERS = {
         89: { home: 'Ganador M73', away: 'Ganador M75' },
         90: { home: 'Ganador M74', away: 'Ganador M77' },
@@ -499,12 +229,17 @@ async function getAccessToken() {
         104: { home: 'Ganador M101', away: 'Ganador M102' }
     };
 
+    // Función para saber si un valor ya es un equipo real
+    const isPlaceholder = (value) => {
+        return !value || value === 'Por definir' || value.includes('°') || value.includes('Ganador') || value.includes('Perdedor');
+    };
+
     for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
         const matchId = parseInt(idStr);
         const match = firestoreMatches.find(m => m.id == matchId);
         if (!match) continue;
-        if (match.homeRaw !== 'Por definir' && match.awayRaw !== 'Por definir') continue;
-        if (match.homeRaw === teams.home && match.awayRaw === teams.away) continue;
+        // Si ya tiene equipos reales, no los tocamos
+        if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) continue;
 
         const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
         const body = { fields: { home: { stringValue: teams.home }, away: { stringValue: teams.away } } };
@@ -520,38 +255,61 @@ async function getAccessToken() {
 
     console.log(`Actualizados ${updatedCount} partidos.`);
 
-    // --- Generar automáticamente los dieciseisavos cuando termine la fase de grupos ---
+    // --- Generar automáticamente los dieciseisavos (con terceros reales) cuando la fase de grupos termine ---
+    const GROUPS = {
+        A: ['🇲🇽 México','🇿🇦 Sudáfrica','🇰🇷 Corea del Sur','🇨🇿 República Checa'],
+        B: ['🇨🇦 Canadá','🇧🇦 Bosnia','🇶🇦 Catar','🇨🇭 Suiza'],
+        C: ['🇧🇷 Brasil','🇲🇦 Marruecos','🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escocia','🇭🇹 Haití'],
+        D: ['🇺🇸 Estados Unidos','🇦🇺 Australia','🇵🇾 Paraguay','🇹🇷 Turquía'],
+        E: ['🇩🇪 Alemania','🇨🇼 Curazao','🇨🇮 Costa de Marfil','🇪🇨 Ecuador'],
+        F: ['🇳🇱 Países Bajos','🇯🇵 Japón','🇹🇳 Túnez','🇸🇪 Suecia'],
+        G: ['🇧🇪 Bélgica','🇮🇷 Irán','🇪🇬 Egipto','🇳🇿 Nueva Zelanda'],
+        H: ['🇪🇸 España','🇺🇾 Uruguay','🇸🇦 Arabia Saudita','🇨🇻 Cabo Verde'],
+        I: ['🇫🇷 Francia','🇸🇳 Senegal','🇳🇴 Noruega','🇮🇶 Irak'],
+        J: ['🇦🇷 Argentina','🇦🇹 Austria','🇩🇿 Argelia','🇯🇴 Jordania'],
+        K: ['🇵🇹 Portugal','🇨🇴 Colombia','🇺🇿 Uzbekistán','🇨🇩 RD Congo'],
+        L: ['🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra','🇭🇷 Croacia','🇵🇦 Panamá','🇬🇭 Ghana']
+    };
+
     const allGroupMatches = firestoreMatches.filter(m => m.group !== 'KO');
     const allPlayed = allGroupMatches.every(m => m.homeScore !== null);
 
     if (allPlayed) {
-        // Protección: si los dieciseisavos ya tienen equipos reales, no los regeneramos
-        const r32AlreadyFilled = firestoreMatches
-            .filter(m => m.group === 'KO' && m.round === 'Dieciseisavos')
-            .every(m => m.homeRaw !== 'Por definir' && m.awayRaw !== 'Por definir');
-        if (r32AlreadyFilled) {
-            console.log('✅ Dieciseisavos ya estaban generados (no se sobrescriben).');
-            return;
-        }
+        console.log('⏳ Fase de grupos terminada. Generando dieciseisavos...');
 
-        console.log('⏳ Todos los partidos de grupo finalizados. Generando dieciseisavos...');
+        const getStandings = (group) => {
+            const teams = GROUPS[group];
+            const stats = {};
+            teams.forEach(t => stats[t] = { team: t, pts:0, gf:0, ga:0 });
+            firestoreMatches.filter(m => m.group === group && m.homeScore !== null).forEach(m => {
+                const h = stats[m.homeRaw], a = stats[m.awayRaw];
+                if (!h || !a) return;
+                h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+                if (m.homeScore > m.awayScore) h.pts += 3;
+                else if (m.homeScore < m.awayScore) a.pts += 3;
+                else { h.pts += 1; a.pts += 1; }
+            });
+            return Object.values(stats).sort((a,b) => (b.pts - a.pts) || ((b.gf-b.ga) - (a.gf-a.ga)) || (b.gf - a.gf));
+        };
 
         const qual = {};
         for (const g of Object.keys(GROUPS)) {
-            const st = getGroupStandingsLocal(firestoreMatches, g);
+            const st = getStandings(g);
             qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
         }
 
+        // Mejores terceros
         const thirds = [];
         for (const g of Object.keys(GROUPS)) {
             if (qual[g][2]) {
-                const st = getGroupStandingsLocal(firestoreMatches, g);
-                thirds.push({ team: qual[g][2], group: g, pts: st[2].pts, gd: st[2].gf - st[2].ga, gf: st[2].gf });
+                const st = getStandings(g);
+                thirds.push({ team: st[2].team, group: g, pts: st[2].pts, gd: (st[2].gf||0) - (st[2].ga||0), gf: st[2].gf||0 });
             }
         }
-        thirds.sort((a, b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
-        const bestThirds = thirds.slice(0, 8).map(t => t.team);
+        thirds.sort((a,b) => b.pts - a.pts || (b.gd - a.gd) || (b.gf - a.gf));
+        const bestThirds = thirds.slice(0,8).map(t => t.team);
 
+        // Asignación oficial FIFA de terceros
         const thirdSlots = [
             { matchId: 75, eligible: ['A','B','C','D','F'] },
             { matchId: 78, eligible: ['C','D','F','G','H'] },
@@ -562,36 +320,32 @@ async function getAccessToken() {
             { matchId: 85, eligible: ['E','F','G','I','J'] },
             { matchId: 88, eligible: ['D','E','I','J','L'] }
         ];
-
         const assigned = {};
         const used = new Set();
         for (const slot of thirdSlots) {
             const selected = bestThirds.find(t => slot.eligible.includes(t.group) && !used.has(t));
-            if (selected) {
-                assigned[slot.matchId] = selected;
-                used.add(selected);
-            } else {
-                assigned[slot.matchId] = 'Por definir';
-            }
+            assigned[slot.matchId] = selected || 'Por definir';
+            if (selected) used.add(selected);
         }
 
+        // Emparejamientos oficiales
         const r32 = {
-            73: [qual.A[1], qual.B[1]],
+            73: [qual.A[1], qual.B[1]],                     // 2A vs 2B
             74: [qual.C[0], qual.F[1]],                     // 1C vs 2F
-            75: [qual.E[0], assigned[75]],
-            76: [qual.F[0], qual.C[1]],
+            75: [qual.E[0], assigned[75]],                  // 1E vs 3ABCDF
+            76: [qual.F[0], qual.C[1]],                     // 1F vs 2C
             77: [qual.E[1], qual.I[1]],                     // 2E vs 2I
-            78: [qual.I[0], assigned[78]],
-            79: [qual.A[0], assigned[79]],
-            80: [qual.L[0], assigned[80]],
-            81: [qual.D[0], assigned[81]],
-            82: [qual.G[0], assigned[82]],
-            83: [qual.K[1], qual.L[1]],
-            84: [qual.H[0], qual.J[1]],
-            85: [qual.B[0], assigned[85]],
-            86: [qual.J[0], qual.H[1]],
-            87: [qual.K[0], assigned[87]],
-            88: [qual.D[1], qual.G[1]]
+            78: [qual.I[0], assigned[78]],                  // 1I vs 3CDFGH
+            79: [qual.A[0], assigned[79]],                  // 1A vs 3CEFHI
+            80: [qual.L[0], assigned[80]],                  // 1L vs 3EHIJK
+            81: [qual.D[0], assigned[81]],                  // 1D vs 3BEFIJ
+            82: [qual.G[0], assigned[82]],                  // 1G vs 3AEHIJ
+            83: [qual.K[1], qual.L[1]],                     // 2K vs 2L
+            84: [qual.H[0], qual.J[1]],                     // 1H vs 2J
+            85: [qual.B[0], assigned[85]],                  // 1B vs 3EFGIJ
+            86: [qual.J[0], qual.H[1]],                     // 1J vs 2H
+            87: [qual.K[0], assigned[87]],                  // 1K vs 3DEIJL
+            88: [qual.D[1], qual.G[1]]                      // 2D vs 2G
         };
 
         for (const [id, teams] of Object.entries(r32)) {
@@ -609,7 +363,7 @@ async function getAccessToken() {
             });
             console.log(`✔ R32 ${id}: ${teams[0]} vs ${teams[1]}`);
         }
-        console.log('✅ Dieciseisavos generados automáticamente.');
+        console.log('✅ Dieciseisavos generados con terceros reales.');
     }
   } catch (error) {
     console.error('Error general:', error);
