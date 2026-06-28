@@ -1450,11 +1450,20 @@ if (m.group === 'KO' && m.round !== '3er Puesto') {
 }
         }
         if (allGroupMatchesPlayed(matches)) {
-            const realQual = getQualifiedTeams(matches);
-            const userQual = getQualifiedTeams(getSimMatches(preds));
-            const correct = userQual.filter(t => realQual.includes(t));
-            correct.forEach(team => { details.push({type:'Clasificado', team, points: pointsConfig.qualify}); total += pointsConfig.qualify; });
-        }
+    // Clasificados reales (primeros, segundos y mejores terceros)
+    const realFirstSeconds = getQualifiedTeams(matches);                // 24 equipos
+    const realThirds = getBestThirds(matches).map(t => t.team);        // 8 equipos
+    const realQual = [...realFirstSeconds, ...realThirds];             // 32 equipos
+
+    // Clasificados según la predicción del usuario
+    const userSimMatches = getSimMatches(preds);
+    const userFirstSeconds = getQualifiedTeams(userSimMatches);
+    const userThirds = getBestThirds(userSimMatches).map(t => t.team);
+    const userQual = [...userFirstSeconds, ...userThirds];
+
+    const correct = userQual.filter(t => realQual.includes(t));
+    correct.forEach(team => { details.push({type:'Clasificado', team, points: pointsConfig.qualify}); total += pointsConfig.qualify; });
+}
         if (actualWinners.goldenBoot && normalizeName(preds.goldenBoot) === normalizeName(actualWinners.goldenBoot)) { details.push({type:'Bota de Oro', name: actualWinners.goldenBoot, points: pointsConfig.goldenBoot}); total += pointsConfig.goldenBoot; }
         if (actualWinners.goldenBall && normalizeName(preds.goldenBall) === normalizeName(actualWinners.goldenBall)) { details.push({type:'Balón de Oro', name: actualWinners.goldenBall, points: pointsConfig.goldenBall}); total += pointsConfig.goldenBall; }
         if (actualWinners.champion && preds.champion === actualWinners.champion) { details.push({type:'Campeón', name: actualWinners.champion, points: pointsConfig.champion}); total += pointsConfig.champion; }
