@@ -271,6 +271,130 @@
 .pool-round-body.open {
     display: block;
 }
+        .bracket-tree {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    gap: 40px;
+    padding: 40px 10px;
+    overflow-x: auto;
+}
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 160px;
+}
+.bracket-match {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 6px 8px;
+    text-align: center;
+    position: relative;
+    font-size: 0.7rem;
+    margin: 4px 0;
+}
+.bracket-match .match-id {
+    font-weight: bold;
+    color: var(--gold-light);
+    font-size: 0.6rem;
+}
+.bracket-match .teams {
+    font-weight: 600;
+}
+.bracket-match .score {
+    font-family: 'Space Grotesk', monospace;
+    background: rgba(0,0,0,0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-top: 2px;
+    display: inline-block;
+}
+.connector {
+    position: absolute;
+    background: rgba(255,255,255,0.2);
+    z-index: -1;
+}
+/* ... (más reglas para las líneas conectoras) */
+
+        /* === BRACKET TREE === */
+.bracket-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+    overflow-x: auto;
+}
+.bracket-tree {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    position: relative;
+}
+.bracket-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    position: relative;
+}
+.bracket-match {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 6px 8px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    min-width: 140px;
+    font-size: 0.7rem;
+    margin: 4px 0;
+}
+.bracket-match .match-id {
+    font-weight: 700;
+    color: var(--gold-light);
+    font-size: 0.6rem;
+    display: block;
+}
+.bracket-match .teams {
+    font-weight: 600;
+    white-space: nowrap;
+}
+.bracket-match .score {
+    font-family: 'Space Grotesk', monospace;
+    background: rgba(0,0,0,0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-top: 3px;
+    display: inline-block;
+}
+
+/* Líneas conectoras */
+.connector-line {
+    position: absolute;
+    background: rgba(255,255,255,0.2);
+    z-index: 0;
+}
+.connector-h {
+    height: 1px;
+}
+.connector-v {
+    width: 1px;
+}
+
+/* Ajustes de espaciado por ronda */
+.round-32 .bracket-match { margin: 2px 0; }
+.round-16 .bracket-match { margin: 16px 0; }
+.round-qf  .bracket-match { margin: 40px 0; }
+.round-sf  .bracket-match { margin: 80px 0; }
+.round-final { justify-content: center; gap: 0; }
+.round-final .bracket-match { margin: 10px 0; }
+
+@media (max-width: 900px) {
+    .bracket-tree { flex-direction: column; }
+    .bracket-column { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    .connector-line { display: none; }
+}
     </style>
 
 </head>
@@ -330,7 +454,9 @@
     </div>
     <div id="tab-bracket" class="tab-content">
         <h1>🏟️ Cuadro de Eliminatorias</h1>
-        <div class="panel" id="bracket-tree"></div>
+        <div class="bracket-tree" id="bracket-tree">
+    <!-- Se rellenará con la función renderBracket -->
+</div>
     </div>
     <div id="tab-mypool" class="tab-content">
         <h1>📝 Mi Porra</h1>
@@ -1602,102 +1728,124 @@ function renderMatchesFull() {
 function renderBracket() {
     const container = document.getElementById('bracket-tree');
     if (!container) return;
-
     if (!allGroupMatchesPlayed(matches)) {
         container.innerHTML = '<p style="text-align:center;padding:40px;">🏟️ El cuadro de eliminatorias se generará cuando terminen los grupos.</p>';
         return;
     }
 
-    // --- LÓGICA DE CLASIFICADOS (con reglamento FIFA) ---
-    const qual = {};
-    for (const g of Object.keys(GROUPS)) {
-        const st = getGroupStandings(matches, g);
-        qual[g] = [st[0]?.team, st[1]?.team, st[2]?.team];
-    }
-    const bestThirds = getBestThirds(matches);
-    const thirdAssignment = assignBestThirdsToMatches(bestThirds);
+    const ko = matches.filter(m => m.group === 'KO');
+    // Mapa de partidos por ID
+    const getMatch = id => ko.find(m => m.id === id) || { home: '?', away: '?', homeScore: null, awayScore: null };
 
-    const r32 = {
-        73: [qual.A[1], qual.B[1]],          74: [qual.E[0], thirdAssignment[74] || '?'],
-        75: [qual.F[0], qual.C[1]],          76: [qual.C[0], qual.F[1]],
-        77: [qual.I[0], thirdAssignment[77] || '?'], 78: [qual.E[1], qual.I[1]],
-        79: [qual.A[0], thirdAssignment[79] || '?'], 80: [qual.L[0], thirdAssignment[80] || '?'],
-        81: [qual.D[0], thirdAssignment[81] || '?'], 82: [qual.G[0], thirdAssignment[82] || '?'],
-        83: [qual.K[1], qual.L[1]],          84: [qual.H[0], qual.J[1]],
-        85: [qual.B[0], thirdAssignment[85] || '?'], 86: [qual.J[0], qual.H[1]],
-        87: [qual.K[0], thirdAssignment[87] || '?'], 88: [qual.D[1], qual.G[1]]
+    // Estructura de rondas
+    const rounds = {
+        'Dieciseisavos': [73,74,75,76,77,78,79,80, 81,82,83,84,85,86,87,88],
+        'Octavos':       [89,90,91,92,93,94,95,96],
+        'Cuartos':       [97,98,99,100],
+        'Semifinales':   [101,102],
+        '3er Puesto':    [103],
+        'Final':         [104]
     };
-    const koMatches = matches.filter(m => m.group === 'KO');
-    const findKo = (id) => koMatches.find(m => m.id === id) || { home: '?', away: '?', homeScore: null, awayScore: null };
 
-    // --- CONSTRUCCIÓN DEL HTML DEL BRACKET ---
-    let html = '<div class="bracket-container">';
+    let html = '<div class="bracket-wrapper"><div class="bracket-tree">';
 
-    // --- LADO IZQUIERDO ---
-    html += '<div class="bracket-column round-32">';
-    [73, 74, 75, 76, 77, 78, 79, 80].forEach(id => {
-        const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home || r32[id][0])} vs ${teamFlag(m.away || r32[id][1])}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;    });
-    html += '</div>';
+    // Generar columnas para cada ronda
+    const roundClasses = {
+        'Dieciseisavos': 'round-32',
+        'Octavos': 'round-16',
+        'Cuartos': 'round-qf',
+        'Semifinales': 'round-sf',
+        '3er Puesto': 'round-final',
+        'Final': 'round-final'
+    };
 
-    html += '<div class="bracket-column round-16">';
-    [89, 90, 91, 92].forEach(id => {
-        const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
-    });
-    html += '</div>';
+    for (const [round, ids] of Object.entries(rounds)) {
+        html += `<div class="bracket-column ${roundClasses[round]}">`;
+        if (round !== '3er Puesto' && round !== 'Final') {
+            html += `<div style="text-align:center;color:var(--gold-light);font-weight:600;margin-bottom:6px;">${round}</div>`;
+        }
+        ids.forEach(id => {
+            const m = getMatch(id);
+            const sc = m.homeScore !== null ? `${m.homeScore}-${m.awayScore}` : '-:-';
+            html += `<div class="bracket-match" data-match="${id}">
+                <span class="match-id">M${id}</span>
+                <span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>
+                <span class="score">${sc}</span>
+            </div>`;
+        });
+        html += `</div>`;
+    }
 
-    html += '<div class="bracket-column round-qf">';
-    [97, 98].forEach(id => {
-        const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
-    });
-    html += '</div>';
-
-    html += '<div class="bracket-column round-sf">';
-    const m101 = findKo(101);
-    html += `<div class="bracket-match"><span class="match-id">M101</span><span class="teams">${m101.home} vs ${m101.away}</span>${m101.homeScore !== null ? `<span class="score">${m101.homeScore}-${m101.awayScore}</span>` : ''}</div>`;
-    html += '</div>';
-
-    // --- CENTRO: FINAL, 3ER PUESTO y TROFEO ---
-    html += '<div class="bracket-center">';
-    html += '<div class="trophy-bracket">🏆</div>';
-    const m104 = findKo(104);
-    html += `<div class="bracket-match" style="min-width:160px;"><span class="match-id">🏁 FINAL (M104)</span><span class="teams">${m104.home} vs ${m104.away}</span>${m104.homeScore !== null ? `<span class="score">${m104.homeScore}-${m104.awayScore}</span>` : ''}</div>`;
-    const m103 = findKo(103);
-    html += `<div class="bracket-match" style="min-width:140px; margin-top:10px;"><span class="match-id">🥉 3er Puesto (M103)</span><span class="teams">${m103.home} vs ${m103.away}</span>${m103.homeScore !== null ? `<span class="score">${m103.homeScore}-${m103.awayScore}</span>` : ''}</div>`;
-    html += '</div>';
-
-    // --- LADO DERECHO (espejo del izquierdo) ---
-    html += '<div class="bracket-column round-sf">';
-    const m102 = findKo(102);
-    html += `<div class="bracket-match"><span class="match-id">M102</span><span class="teams">${m102.home} vs ${m102.away}</span>${m102.homeScore !== null ? `<span class="score">${m102.homeScore}-${m102.awayScore}</span>` : ''}</div>`;
-    html += '</div>';
-
-    html += '<div class="bracket-column round-qf">';
-    [99, 100].forEach(id => {
-        const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
-    });
-    html += '</div>';
-
-    html += '<div class="bracket-column round-16">';
-    [93, 94, 95, 96].forEach(id => {
-        const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
-    });
-    html += '</div>';
-
-    html += '<div class="bracket-column round-32">';
-    [81, 82, 83, 84, 85, 86, 87, 88].forEach(id => {
-        const m = findKo(id);
-        html += `<div class="bracket-match"><span class="match-id">M${id}</span><span class="teams">${teamFlag(m.home || r32[id][0])} vs ${teamFlag(m.away || r32[id][1])}</span>${m.homeScore !== null ? `<span class="score">${m.homeScore}-${m.awayScore}</span>` : ''}</div>`;
-    });
-    html += '</div>';
-
-    html += '</div>'; // Cierre del contenedor principal
-
+    html += '</div></div>';
     container.innerHTML = html;
+
+    // Dibujar líneas conectoras (ejecutar después de que el DOM esté listo)
+    setTimeout(drawConnectors, 50);
+}
+
+// Función para dibujar las líneas conectoras
+function drawConnectors() {
+    const container = document.querySelector('.bracket-tree');
+    if (!container) return;
+    // Eliminar líneas antiguas
+    container.querySelectorAll('.connector-line').forEach(el => el.remove());
+
+    const columns = container.querySelectorAll('.bracket-column');
+    if (columns.length < 2) return;
+
+    // Mapa de conexiones: [origen, destino] (IDs)
+    const connections = [
+        [73,89], [75,89], [74,90], [77,90],
+        [76,91], [78,91], [79,92], [80,92],
+        [83,93], [84,93], [81,94], [82,94],
+        [86,95], [88,95], [85,96], [87,96],
+        [89,97], [90,97], [91,99], [92,99],
+        [93,98], [94,98], [95,100], [96,100],
+        [97,101], [98,101], [99,102], [100,102],
+        [101,104], [102,104],
+        [101,103], [102,103]  // perdedores al 3er puesto
+    ];
+
+    const getMatchElement = (id) => container.querySelector(`.bracket-match[data-match="${id}"]`);
+
+    connections.forEach(([fromId, toId]) => {
+        const fromEl = getMatchElement(fromId);
+        const toEl = getMatchElement(toId);
+        if (!fromEl || !toEl) return;
+
+        const fromRect = fromEl.getBoundingClientRect();
+        const toRect = toEl.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        // Calcular coordenadas relativas al contenedor
+        const x1 = fromRect.right - containerRect.left + 10;
+        const y1 = fromRect.top + fromRect.height/2 - containerRect.top;
+        const x2 = toRect.left - containerRect.left - 10;
+        const y2 = toRect.top + toRect.height/2 - containerRect.top;
+
+        // Dibujar línea horizontal y vertical
+        const midX = (x1 + x2) / 2;
+        const lineH1 = document.createElement('div');
+        lineH1.className = 'connector-line connector-h';
+        lineH1.style.left = x1 + 'px';
+        lineH1.style.top = y1 + 'px';
+        lineH1.style.width = (midX - x1) + 'px';
+        container.appendChild(lineH1);
+
+        const lineV = document.createElement('div');
+        lineV.className = 'connector-line connector-v';
+        lineV.style.left = midX + 'px';
+        lineV.style.top = Math.min(y1, y2) + 'px';
+        lineV.style.height = Math.abs(y2 - y1) + 'px';
+        container.appendChild(lineV);
+
+        const lineH2 = document.createElement('div');
+        lineH2.className = 'connector-line connector-h';
+        lineH2.style.left = midX + 'px';
+        lineH2.style.top = y2 + 'px';
+        lineH2.style.width = (x2 - midX) + 'px';
+        container.appendChild(lineH2);
+    });
 }
 function renderMyPool() {
     if (!currentPlayer || !sessionValid) {
