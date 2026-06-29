@@ -569,31 +569,31 @@ async function firestoreRequest(method, path, body = null) {
     if (!response.ok) throw new Error(`Error ${response.status}: ${await response.text()}`);
     return response.json();
 }
-    const KO_ADVANCE_MAP = {
+const KO_ADVANCE_MAP = {
     // Dieciseisavos -> Octavos
-    73: { nextMatch: 89, position: 'home' },
-    74: { nextMatch: 89, position: 'away' },
-    75: { nextMatch: 90, position: 'home' },
-    76: { nextMatch: 90, position: 'away' },
-    77: { nextMatch: 91, position: 'home' },
+    73: { nextMatch: 90, position: 'home' },
+    74: { nextMatch: 89, position: 'home' },
+    75: { nextMatch: 90, position: 'away' },
+    76: { nextMatch: 91, position: 'home' },
+    77: { nextMatch: 89, position: 'away' },
     78: { nextMatch: 91, position: 'away' },
     79: { nextMatch: 92, position: 'home' },
     80: { nextMatch: 92, position: 'away' },
-    81: { nextMatch: 93, position: 'home' },
-    82: { nextMatch: 93, position: 'away' },
-    83: { nextMatch: 94, position: 'home' },
-    84: { nextMatch: 94, position: 'away' },
-    85: { nextMatch: 95, position: 'home' },
-    86: { nextMatch: 95, position: 'away' },
-    87: { nextMatch: 96, position: 'home' },
-    88: { nextMatch: 96, position: 'away' },
+    81: { nextMatch: 94, position: 'home' },
+    82: { nextMatch: 94, position: 'away' },
+    83: { nextMatch: 93, position: 'home' },
+    84: { nextMatch: 93, position: 'away' },
+    85: { nextMatch: 96, position: 'home' },
+    86: { nextMatch: 95, position: 'home' },
+    87: { nextMatch: 96, position: 'away' },
+    88: { nextMatch: 95, position: 'away' },
     // Octavos -> Cuartos
     89: { nextMatch: 97, position: 'home' },
     90: { nextMatch: 97, position: 'away' },
-    91: { nextMatch: 98, position: 'home' },
-    92: { nextMatch: 98, position: 'away' },
-    93: { nextMatch: 99, position: 'home' },
-    94: { nextMatch: 99, position: 'away' },
+    91: { nextMatch: 99, position: 'home' },
+    92: { nextMatch: 99, position: 'away' },
+    93: { nextMatch: 98, position: 'home' },
+    94: { nextMatch: 98, position: 'away' },
     95: { nextMatch: 100, position: 'home' },
     96: { nextMatch: 100, position: 'away' },
     // Cuartos -> Semifinales
@@ -601,7 +601,7 @@ async function firestoreRequest(method, path, body = null) {
     98: { nextMatch: 101, position: 'away' },
     99: { nextMatch: 102, position: 'home' },
     100: { nextMatch: 102, position: 'away' },
-    // Semifinales -> Tercer puesto y Final
+    // Semifinales -> 3er puesto / Final
     101: { nextMatchWin: 104, positionWin: 'home', nextMatchLose: 103, positionLose: 'home' },
     102: { nextMatchWin: 104, positionWin: 'away', nextMatchLose: 103, positionLose: 'away' }
 };
@@ -1641,12 +1641,12 @@ function renderBracket() {
     html += matchCard(getMatch(thirdMatch));
     html += '</div>';
 
-    // --- LADO DERECHO ---
+    // --- LADO DERECHO (invertido para que converja hacia el centro) ---
     html += '<div class="bracket-side">';
-    html += `<div class="bracket-col r32">${rightR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col r16">${rightR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col sf">${rightSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col r16">${rightR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col r32">${rightR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += '</div>';
 
     html += '<svg class="bracket-svg" id="bracket-svg"></svg>';
