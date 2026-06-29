@@ -319,24 +319,39 @@
 }
 /* ... (más reglas para las líneas conectoras) */
 
-        /* === BRACKET TREE === */
-.bracket-wrapper {
+/* === NUEVO BRACKET CONVERGENTE === */
+.bracket-arena {
     display: flex;
     justify-content: center;
-    padding: 20px 0;
+    align-items: stretch;
+    gap: 20px;
+    padding: 30px 0;
+    position: relative;
     overflow-x: auto;
 }
-.bracket-tree {
+.bracket-side {
     display: flex;
-    align-items: stretch;
-    gap: 0;
-    position: relative;
+    flex-direction: row;
+    gap: 10px;
 }
-.bracket-column {
+.bracket-col {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    position: relative;
+    gap: 2px;
+}
+.bracket-col.r32 .bracket-match { margin: 2px 0; }
+.bracket-col.r16 .bracket-match { margin: 16px 0; }
+.bracket-col.qf  .bracket-match { margin: 40px 0; }
+.bracket-col.sf  .bracket-match { margin: 80px 0; }
+
+.bracket-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 200px;
+    gap: 15px;
 }
 .bracket-match {
     background: rgba(255, 255, 255, 0.05);
@@ -344,11 +359,10 @@
     border-radius: 8px;
     padding: 6px 8px;
     text-align: center;
-    position: relative;
-    z-index: 1;
-    min-width: 140px;
+    min-width: 160px;
     font-size: 0.7rem;
-    margin: 4px 0;
+    position: relative;
+    z-index: 2;
 }
 .bracket-match .match-id {
     font-weight: 700;
@@ -369,31 +383,26 @@
     display: inline-block;
 }
 
-/* Líneas conectoras */
-.connector-line {
+/* SVG conectores */
+.bracket-svg {
     position: absolute;
-    background: rgba(255,255,255,0.2);
-    z-index: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
 }
-.connector-h {
-    height: 1px;
+.connector {
+    stroke: rgba(255,255,255,0.25);
+    stroke-width: 1;
+    fill: none;
 }
-.connector-v {
-    width: 1px;
-}
-
-/* Ajustes de espaciado por ronda */
-.round-32 .bracket-match { margin: 2px 0; }
-.round-16 .bracket-match { margin: 16px 0; }
-.round-qf  .bracket-match { margin: 40px 0; }
-.round-sf  .bracket-match { margin: 80px 0; }
-.round-final { justify-content: center; gap: 0; }
-.round-final .bracket-match { margin: 10px 0; }
 
 @media (max-width: 900px) {
-    .bracket-tree { flex-direction: column; }
-    .bracket-column { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-    .connector-line { display: none; }
+    .bracket-arena { flex-direction: column; align-items: center; }
+    .bracket-side { flex-direction: column; }
+    .bracket-svg { display: none; }
 }
     </style>
 
@@ -1733,54 +1742,125 @@ function renderBracket() {
         return;
     }
 
-    const ko = matches.filter(m => m.group === 'KO');
-    // Mapa de partidos por ID
-    const getMatch = id => ko.find(m => m.id === id) || { home: '?', away: '?', homeScore: null, awayScore: null };
+    const koMatches = matches.filter(m => m.group === 'KO');
+    const getMatch = id => koMatches.find(m => m.id === id) || { home: 'Por definir', away: 'Por definir', homeScore: null, awayScore: null };
 
-    // Estructura de rondas
-    const rounds = {
-        'Dieciseisavos': [73,74,75,76,77,78,79,80, 81,82,83,84,85,86,87,88],
-        'Octavos':       [89,90,91,92,93,94,95,96],
-        'Cuartos':       [97,98,99,100],
-        'Semifinales':   [101,102],
-        '3er Puesto':    [103],
-        'Final':         [104]
+    // Definir los IDs en cada lado y ronda
+    const leftR32 = [73,74,75,76,77,78,79,80];
+    const rightR32 = [81,82,83,84,85,86,87,88];
+    const leftR16 = [89,90,91,92];
+    const rightR16 = [93,94,95,96];
+    const leftQF = [97,98];
+    const rightQF = [99,100];
+    const leftSF = [101];
+    const rightSF = [102];
+    const finalMatch = 104;
+    const thirdMatch = 103;
+
+    const matchCard = (m) => {
+        const sc = m.homeScore !== null ? `${m.homeScore}-${m.awayScore}` : '-:-';
+        return `<div class="bracket-match" data-match="${m.id}">
+            <span class="match-id">M${m.id}</span>
+            <span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>
+            <span class="score">${sc}</span>
+        </div>`;
     };
 
-    let html = '<div class="bracket-wrapper"><div class="bracket-tree">';
+    // Construir HTML
+    let html = '<div class="bracket-arena">';
 
-    // Generar columnas para cada ronda
-    const roundClasses = {
-        'Dieciseisavos': 'round-32',
-        'Octavos': 'round-16',
-        'Cuartos': 'round-qf',
-        'Semifinales': 'round-sf',
-        '3er Puesto': 'round-final',
-        'Final': 'round-final'
-    };
+    // Lado izquierdo
+    html += '<div class="bracket-side">';
+    html += `<div class="bracket-col r32">${leftR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col r16">${leftR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col qf">${leftQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col sf">${leftSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += '</div>';
 
-    for (const [round, ids] of Object.entries(rounds)) {
-        html += `<div class="bracket-column ${roundClasses[round]}">`;
-        if (round !== '3er Puesto' && round !== 'Final') {
-            html += `<div style="text-align:center;color:var(--gold-light);font-weight:600;margin-bottom:6px;">${round}</div>`;
-        }
-        ids.forEach(id => {
-            const m = getMatch(id);
-            const sc = m.homeScore !== null ? `${m.homeScore}-${m.awayScore}` : '-:-';
-            html += `<div class="bracket-match" data-match="${id}">
-                <span class="match-id">M${id}</span>
-                <span class="teams">${teamFlag(m.home)} vs ${teamFlag(m.away)}</span>
-                <span class="score">${sc}</span>
-            </div>`;
-        });
-        html += `</div>`;
-    }
+    // Centro (final y 3er puesto)
+    html += '<div class="bracket-center">';
+    html += `<div class="trophy-bracket">🏆</div>`;
+    html += matchCard(getMatch(finalMatch));
+    html += matchCard(getMatch(thirdMatch));
+    html += '</div>';
 
-    html += '</div></div>';
+    // Lado derecho
+    html += '<div class="bracket-side">';
+    html += `<div class="bracket-col sf">${rightSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col r16">${rightR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col r32">${rightR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += '</div>';
+
+    html += '<svg class="bracket-svg" id="bracket-svg"></svg>';
+    html += '</div>';
+
     container.innerHTML = html;
 
-    // Dibujar líneas conectoras (ejecutar después de que el DOM esté listo)
-    setTimeout(drawConnectors, 50);
+    // Dibujar conectores después de que el DOM esté listo
+    setTimeout(drawBracketConnectors, 100);
+    window.addEventListener('resize', drawBracketConnectors);
+}
+
+function drawBracketConnectors() {
+    const svg = document.getElementById('bracket-svg');
+    if (!svg) return;
+    const container = svg.parentNode;
+    const containerRect = container.getBoundingClientRect();
+    svg.setAttribute('viewBox', `0 0 ${containerRect.width} ${containerRect.height}`);
+    svg.innerHTML = '';
+
+    // Pares de conexiones (origen, destino) por ID de partido
+    const connections = [
+        // Dieciseisavos -> Octavos (izquierda)
+        [73,89],[75,89],[74,90],[77,90],
+        [76,91],[78,91],[79,92],[80,92],
+        // Dieciseisavos -> Octavos (derecha)
+        [83,93],[84,93],[81,94],[82,94],
+        [86,95],[88,95],[85,96],[87,96],
+        // Octavos -> Cuartos
+        [89,97],[90,97],[91,99],[92,99],
+        [93,98],[94,98],[95,100],[96,100],
+        // Cuartos -> Semis
+        [97,101],[98,101],[99,102],[100,102],
+        // Semis -> Final / 3er puesto
+        [101,104],[102,104],
+        [101,103],[102,103]
+    ];
+
+    const getCenter = el => {
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        return {
+            x: rect.left + rect.width/2 - containerRect.left,
+            y: rect.top + rect.height/2 - containerRect.top
+        };
+    };
+
+    connections.forEach(([fromId, toId]) => {
+        const fromEl = container.querySelector(`.bracket-match[data-match="${fromId}"]`);
+        const toEl = container.querySelector(`.bracket-match[data-match="${toId}"]`);
+        if (!fromEl || !toEl) return;
+
+        const p1 = getCenter(fromEl);
+        const p2 = getCenter(toEl);
+        if (!p1 || !p2) return;
+
+        // Dibujar una línea poligonal sencilla (horizontal desde el borde derecho del origen, vertical, horizontal al destino)
+        const fromRect = fromEl.getBoundingClientRect();
+        const toRect = toEl.getBoundingClientRect();
+        const startX = fromRect.right - containerRect.left + 5;
+        const startY = p1.y;
+        const endX = toRect.left - containerRect.left - 5;
+        const endY = p2.y;
+        const midX = (startX + endX) / 2;
+
+        const d = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'connector');
+        svg.appendChild(path);
+    });
 }
 
 // Función para dibujar las líneas conectoras
