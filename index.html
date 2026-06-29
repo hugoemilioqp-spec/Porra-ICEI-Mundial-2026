@@ -160,190 +160,49 @@
         padding: 8px 10px;
     }
 }
-            /* NUEVO ESTILO: BRACKET CONVERGENTE (REEMPLAZA LAS REGLAS ANTERIORES DE .bracket-tree, .bracket-round, .bracket-match) */
-    .bracket-container {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        gap: 15px;
-        padding: 20px 10px;
-        overflow-x: auto;
-        font-size: 0.7rem;
-    }
-    .bracket-column {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-around;
-        gap: 4px;
-        min-width: 130px;
-    }
-    .bracket-column.round-32 { gap: 2px; }
-    .bracket-column.round-16 { gap: 16px; }
-    .bracket-column.round-qf { gap: 40px; }
-    .bracket-column.round-sf { gap: 90px; }
-    .bracket-column.round-final { justify-content: center; gap: 0; }
-
-    .bracket-match {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 8px;
-        padding: 6px 8px;
-        text-align: center;
-        position: relative;
-        transition: all 0.2s;
-    }
-    .bracket-match:hover {
-        border-color: var(--gold);
-        box-shadow: 0 0 12px rgba(240, 185, 11, 0.2);
-    }
-    .bracket-match .match-id {
-        font-weight: 700;
-        color: var(--gold-light);
-        font-size: 0.6rem;
-        display: block;
-    }
-    .bracket-match .teams {
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    .bracket-match .score {
-        font-family: 'Space Grotesk', monospace;
-        background: rgba(0,0,0,0.3);
-        padding: 1px 5px;
-        border-radius: 4px;
-        margin-top: 3px;
-        display: inline-block;
-    }
-
-    .connector-line {
-        position: absolute;
-        background: rgba(255,255,255,0.2);
-        z-index: 0;
-    }
-
-    /* Centro: Trofeo y Final */
-    .bracket-center {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 15px;
-        min-width: 180px;
-        text-align: center;
-    }
-    .trophy-bracket {
-        font-size: 3.5rem;
-        filter: drop-shadow(0 0 20px rgba(240,185,11,0.5));
-        animation: floatTrophy 3s ease-in-out infinite;
-    }
-
-    @media (max-width: 900px) {
-        .bracket-container {
-            flex-direction: column;
-            align-items: center;
-        }
-        .bracket-column {
-            flex-direction: row;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-    }
-
-        .pool-round-header {
-    background: rgba(240,185,11,0.08);
-    color: var(--gold-light);
-    padding: 8px 12px;
-    cursor: pointer;
-    font-weight: 600;
-    border-radius: 6px;
-    margin-top: 10px;
-    user-select: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.pool-round-header:hover {
-    background: rgba(240,185,11,0.15);
-}
-.pool-round-body {
-    display: none;
-}
-.pool-round-body.open {
-    display: block;
-}
-        .bracket-tree {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: stretch;
-    gap: 40px;
-    padding: 40px 10px;
-    overflow-x: auto;
-}
-.bracket-round {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    min-width: 160px;
-}
-.bracket-match {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 6px 8px;
-    text-align: center;
-    position: relative;
-    font-size: 0.7rem;
-    margin: 4px 0;
-}
-.bracket-match .match-id {
-    font-weight: bold;
-    color: var(--gold-light);
-    font-size: 0.6rem;
-}
-.bracket-match .teams {
-    font-weight: 600;
-}
-.bracket-match .score {
-    font-family: 'Space Grotesk', monospace;
-    background: rgba(0,0,0,0.3);
-    padding: 1px 5px;
-    border-radius: 4px;
-    margin-top: 2px;
-    display: inline-block;
-}
-.connector {
-    position: absolute;
-    background: rgba(255,255,255,0.2);
-    z-index: -1;
-}
-/* ... (más reglas para las líneas conectoras) */
-
-/* === NUEVO BRACKET CONVERGENTE === */
+/* === BRACKET CONVERGENTE (DOS RAMAS SEPARADAS) === */
 .bracket-arena {
     display: flex;
     justify-content: center;
     align-items: stretch;
-    gap: 20px;
-    padding: 30px 0;
+    gap: 12px;
+    padding: 20px 10px;
     position: relative;
     overflow-x: auto;
 }
 .bracket-side {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 6px;
 }
 .bracket-col {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    gap: 2px;
 }
+.bracket-col .bracket-match {
+    margin: 6px 0;
+}
+/* Espaciados uniformes por ronda */
 .bracket-col.r32 .bracket-match { margin: 2px 0; }
-.bracket-col.r16 .bracket-match { margin: 16px 0; }
-.bracket-col.qf  .bracket-match { margin: 40px 0; }
-.bracket-col.sf  .bracket-match { margin: 80px 0; }
+.bracket-col.r16 .bracket-match { margin: 18px 0; }
+.bracket-col.qf  .bracket-match { margin: 44px 0; }
+.bracket-col.sf  .bracket-match { margin: 90px 0; }
+
+/* Agrupación de ramas */
+.branch-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.branch-label {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text3);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
 .bracket-center {
     display: flex;
@@ -351,7 +210,7 @@
     align-items: center;
     justify-content: center;
     min-width: 200px;
-    gap: 15px;
+    gap: 20px;
 }
 .bracket-match {
     background: rgba(255, 255, 255, 0.05);
@@ -359,7 +218,7 @@
     border-radius: 8px;
     padding: 6px 8px;
     text-align: center;
-    min-width: 160px;
+    min-width: 150px;
     font-size: 0.7rem;
     position: relative;
     z-index: 2;
@@ -382,14 +241,10 @@
     margin-top: 3px;
     display: inline-block;
 }
-
-/* SVG conectores */
 .bracket-svg {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     pointer-events: none;
     z-index: 1;
 }
@@ -398,7 +253,6 @@
     stroke-width: 1;
     fill: none;
 }
-
 @media (max-width: 900px) {
     .bracket-arena { flex-direction: column; align-items: center; }
     .bracket-side { flex-direction: column; }
@@ -1745,15 +1599,23 @@ function renderBracket() {
     const koMatches = matches.filter(m => m.group === 'KO');
     const getMatch = id => koMatches.find(m => m.id === id) || { home: 'Por definir', away: 'Por definir', homeScore: null, awayScore: null };
 
-    // Definir los IDs en cada lado y ronda
+    // IDs oficiales divididos en ramas que alimentan cada semifinal
+    // Rama superior derecha -> semifinal 101 (junto con la izquierda)
+    // Rama inferior derecha -> semifinal 102
     const leftR32 = [73,74,75,76,77,78,79,80];
-    const rightR32 = [81,82,83,84,85,86,87,88];
+    const rightUpperR32 = [81,82,83,84];   // alimentan 93/94 -> 98 -> 101
+    const rightLowerR32 = [85,86,87,88];   // alimentan 95/96 -> 100 -> 102
+
     const leftR16 = [89,90,91,92];
-    const rightR16 = [93,94,95,96];
-    const leftQF = [97,98];
-    const rightQF = [99,100];
-    const leftSF = [101];
-    const rightSF = [102];
+    const rightUpperR16 = [93,94];
+    const rightLowerR16 = [95,96];
+
+    const leftQF = [97,98];     // 97 (de 89/90), 98 (de 93/94)
+    const rightQF = [99,100];   // 99 (de 91/92), 100 (de 95/96)
+
+    const leftSF = [101];       // de 97 y 98
+    const rightSF = [102];      // de 99 y 100
+
     const finalMatch = 104;
     const thirdMatch = 103;
 
@@ -1766,10 +1628,9 @@ function renderBracket() {
         </div>`;
     };
 
-    // Construir HTML
     let html = '<div class="bracket-arena">';
 
-    // Lado izquierdo
+    // --- LADO IZQUIERDO (rama 101) ---
     html += '<div class="bracket-side">';
     html += `<div class="bracket-col r32">${leftR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col r16">${leftR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
@@ -1777,27 +1638,44 @@ function renderBracket() {
     html += `<div class="bracket-col sf">${leftSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += '</div>';
 
-    // Centro (final y 3er puesto)
+    // --- LADO DERECHO (dos ramas agrupadas) ---
+    html += '<div class="bracket-side" style="flex-direction: column; gap: 12px;">';
+
+    // Rama superior (alimenta semifinal 101)
+    html += '<div class="branch-group">';
+    html += '<div class="branch-label">→ Semifinal 101</div>';
+    html += '<div style="display:flex; flex-direction:row; gap:6px;">';
+    html += `<div class="bracket-col r32">${rightUpperR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col r16">${rightUpperR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += '</div></div>';
+
+    // Rama inferior (alimenta semifinal 102)
+    html += '<div class="branch-group">';
+    html += '<div class="branch-label">→ Semifinal 102</div>';
+    html += '<div style="display:flex; flex-direction:row; gap:6px;">';
+    html += `<div class="bracket-col r32">${rightLowerR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col r16">${rightLowerR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += '</div></div>';
+
+    // Cuartos y semifinal derecha (99,100,102) se colocan en una columna aparte
+    html += '<div style="display:flex; flex-direction:row; gap:6px; margin-top:10px;">';
+    html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += `<div class="bracket-col sf">${rightSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
+    html += '</div>';
+
+    html += '</div>'; // fin lado derecho
+
+    // --- CENTRO ---
     html += '<div class="bracket-center">';
     html += `<div class="trophy-bracket">🏆</div>`;
     html += matchCard(getMatch(finalMatch));
     html += matchCard(getMatch(thirdMatch));
     html += '</div>';
 
-    // Lado derecho
-    html += '<div class="bracket-side">';
-    html += `<div class="bracket-col sf">${rightSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col r16">${rightR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col r32">${rightR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += '</div>';
-
     html += '<svg class="bracket-svg" id="bracket-svg"></svg>';
     html += '</div>';
 
     container.innerHTML = html;
-
-    // Dibujar conectores después de que el DOM esté listo
     setTimeout(drawBracketConnectors, 100);
     window.addEventListener('resize', drawBracketConnectors);
 }
@@ -1805,25 +1683,21 @@ function renderBracket() {
 function drawBracketConnectors() {
     const svg = document.getElementById('bracket-svg');
     if (!svg) return;
-    const container = svg.parentNode;
-    const containerRect = container.getBoundingClientRect();
-    svg.setAttribute('viewBox', `0 0 ${containerRect.width} ${containerRect.height}`);
+    const arena = svg.closest('.bracket-arena');
+    if (!arena) return;
+    const arenaRect = arena.getBoundingClientRect();
+
+    svg.setAttribute('viewBox', `0 0 ${arenaRect.width} ${arenaRect.height}`);
     svg.innerHTML = '';
 
-    // Pares de conexiones (origen, destino) por ID de partido
     const connections = [
-        // Dieciseisavos -> Octavos (izquierda)
         [73,89],[75,89],[74,90],[77,90],
         [76,91],[78,91],[79,92],[80,92],
-        // Dieciseisavos -> Octavos (derecha)
         [83,93],[84,93],[81,94],[82,94],
         [86,95],[88,95],[85,96],[87,96],
-        // Octavos -> Cuartos
         [89,97],[90,97],[91,99],[92,99],
         [93,98],[94,98],[95,100],[96,100],
-        // Cuartos -> Semis
         [97,101],[98,101],[99,102],[100,102],
-        // Semis -> Final / 3er puesto
         [101,104],[102,104],
         [101,103],[102,103]
     ];
@@ -1832,26 +1706,25 @@ function drawBracketConnectors() {
         if (!el) return null;
         const rect = el.getBoundingClientRect();
         return {
-            x: rect.left + rect.width/2 - containerRect.left,
-            y: rect.top + rect.height/2 - containerRect.top
+            x: rect.left + rect.width/2 - arenaRect.left,
+            y: rect.top + rect.height/2 - arenaRect.top
         };
     };
 
     connections.forEach(([fromId, toId]) => {
-        const fromEl = container.querySelector(`.bracket-match[data-match="${fromId}"]`);
-        const toEl = container.querySelector(`.bracket-match[data-match="${toId}"]`);
+        const fromEl = arena.querySelector(`.bracket-match[data-match="${fromId}"]`);
+        const toEl = arena.querySelector(`.bracket-match[data-match="${toId}"]`);
         if (!fromEl || !toEl) return;
 
         const p1 = getCenter(fromEl);
         const p2 = getCenter(toEl);
         if (!p1 || !p2) return;
 
-        // Dibujar una línea poligonal sencilla (horizontal desde el borde derecho del origen, vertical, horizontal al destino)
         const fromRect = fromEl.getBoundingClientRect();
         const toRect = toEl.getBoundingClientRect();
-        const startX = fromRect.right - containerRect.left + 5;
+        const startX = fromRect.right - arenaRect.left + 4;
         const startY = p1.y;
-        const endX = toRect.left - containerRect.left - 5;
+        const endX = toRect.left - arenaRect.left - 4;
         const endY = p2.y;
         const midX = (startX + endX) / 2;
 
