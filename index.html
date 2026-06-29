@@ -1599,9 +1599,6 @@ function renderBracket() {
     const koMatches = matches.filter(m => m.group === 'KO');
     const getMatch = id => koMatches.find(m => m.id === id) || { home: 'Por definir', away: 'Por definir', homeScore: null, awayScore: null };
 
-    // IDs oficiales divididos en ramas que alimentan cada semifinal
-    // Rama superior derecha -> semifinal 101 (junto con la izquierda)
-    // Rama inferior derecha -> semifinal 102
     // Orden exacto según el gráfico oficial FIFA
     const leftR32  = [74, 77, 73, 75, 83, 84, 81, 82];
     const rightR32 = [76, 78, 79, 80, 86, 88, 85, 87];
@@ -1629,7 +1626,7 @@ function renderBracket() {
 
     let html = '<div class="bracket-arena">';
 
-    // --- LADO IZQUIERDO (rama 101) ---
+    // --- LADO IZQUIERDO ---
     html += '<div class="bracket-side">';
     html += `<div class="bracket-col r32">${leftR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col r16">${leftR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
@@ -1637,38 +1634,13 @@ function renderBracket() {
     html += `<div class="bracket-col sf">${leftSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += '</div>';
 
-    // --- LADO DERECHO (dos ramas agrupadas) ---
-        // --- LADO DERECHO ---
+    // --- LADO DERECHO ---
     html += '<div class="bracket-side">';
     html += `<div class="bracket-col r32">${rightR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col r16">${rightR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col sf">${rightSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += '</div>';
-
-    // Rama superior (alimenta semifinal 101)
-    html += '<div class="branch-group">';
-    html += '<div class="branch-label">→ Semifinal 101</div>';
-    html += '<div style="display:flex; flex-direction:row; gap:6px;">';
-    html += `<div class="bracket-col r32">${rightUpperR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col r16">${rightUpperR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += '</div></div>';
-
-    // Rama inferior (alimenta semifinal 102)
-    html += '<div class="branch-group">';
-    html += '<div class="branch-label">→ Semifinal 102</div>';
-    html += '<div style="display:flex; flex-direction:row; gap:6px;">';
-    html += `<div class="bracket-col r32">${rightLowerR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col r16">${rightLowerR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += '</div></div>';
-
-    // Cuartos y semifinal derecha (99,100,102) se colocan en una columna aparte
-    html += '<div style="display:flex; flex-direction:row; gap:6px; margin-top:10px;">';
-    html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += `<div class="bracket-col sf">${rightSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += '</div>';
-
-    html += '</div>'; // fin lado derecho
 
     // --- CENTRO ---
     html += '<div class="bracket-center">';
