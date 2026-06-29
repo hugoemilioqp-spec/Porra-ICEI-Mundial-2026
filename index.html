@@ -162,13 +162,15 @@
 }
 /* === BRACKET CONVERGENTE (DOS RAMAS SEPARADAS) === */
 .bracket-arena {
-    position: relative;   /* ← imprescindible para que el SVG se superponga correctamente */
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: stretch;
-    gap: 12px;
+    gap: 8px;
     padding: 20px 10px;
     overflow-x: auto;
+    min-width: 100%;              /* ocupa todo el ancho disponible */
+    flex-wrap: nowrap;
 }
 .bracket-side {
     display: flex;
@@ -216,10 +218,10 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
-    padding: 6px 8px;
+    padding: 5px 6px;
     text-align: center;
-    min-width: 150px;
-    font-size: 0.7rem;
+    min-width: 130px;
+    font-size: 0.68rem;
     position: relative;
     z-index: 2;
 }
@@ -254,9 +256,19 @@
     fill: none;
 }
 @media (max-width: 900px) {
-    .bracket-arena { flex-direction: column; align-items: center; }
-    .bracket-side { flex-direction: column; }
-    .bracket-svg { display: none; }
+    .bracket-arena {
+        gap: 4px;
+        padding: 10px 2px;
+    }
+    .bracket-match {
+        min-width: 100px;
+        font-size: 0.6rem;
+        padding: 3px 4px;
+    }
+    .bracket-col.r32 .bracket-match { margin: 2px 0; }
+    .bracket-col.r16 .bracket-match { margin: 12px 0; }
+    .bracket-col.qf  .bracket-match { margin: 28px 0; }
+    .bracket-col.sf  .bracket-match { margin: 60px 0; }
 }
     </style>
 
