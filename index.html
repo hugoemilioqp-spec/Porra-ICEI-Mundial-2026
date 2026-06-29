@@ -1634,19 +1634,19 @@ function renderBracket() {
     html += `<div class="bracket-col sf">${leftSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += '</div>';
 
+    // --- CENTRO (final, 3er puesto) ---
+    html += '<div class="bracket-center">';
+    html += `<div class="trophy-bracket">🏆</div>`;
+    html += matchCard(getMatch(finalMatch));
+    html += matchCard(getMatch(thirdMatch));
+    html += '</div>';
+
     // --- LADO DERECHO ---
     html += '<div class="bracket-side">';
     html += `<div class="bracket-col r32">${rightR32.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col r16">${rightR16.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col qf">${rightQF.map(id => matchCard(getMatch(id))).join('')}</div>`;
     html += `<div class="bracket-col sf">${rightSF.map(id => matchCard(getMatch(id))).join('')}</div>`;
-    html += '</div>';
-
-    // --- CENTRO ---
-    html += '<div class="bracket-center">';
-    html += `<div class="trophy-bracket">🏆</div>`;
-    html += matchCard(getMatch(finalMatch));
-    html += matchCard(getMatch(thirdMatch));
     html += '</div>';
 
     html += '<svg class="bracket-svg" id="bracket-svg"></svg>';
@@ -1666,9 +1666,8 @@ function drawBracketConnectors() {
 
     svg.setAttribute('viewBox', `0 0 ${arenaRect.width} ${arenaRect.height}`);
     svg.innerHTML = '';
-
     const connections = [
-        [73,89],[75,89],[74,90],[77,90],
+        [74,89],[77,89],[73,90],[75,90],   // ← CORREGIDO
         [76,91],[78,91],[79,92],[80,92],
         [83,93],[84,93],[81,94],[82,94],
         [86,95],[88,95],[85,96],[87,96],
