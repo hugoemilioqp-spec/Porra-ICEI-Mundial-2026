@@ -162,12 +162,12 @@
 }
 /* === BRACKET CONVERGENTE (DOS RAMAS SEPARADAS) === */
 .bracket-arena {
+    position: relative;   /* ← imprescindible para que el SVG se superponga correctamente */
     display: flex;
     justify-content: center;
     align-items: stretch;
     gap: 12px;
     padding: 20px 10px;
-    position: relative;
     overflow-x: auto;
 }
 .bracket-side {
@@ -1653,7 +1653,10 @@ function renderBracket() {
     html += '</div>';
 
     container.innerHTML = html;
-    setTimeout(drawBracketConnectors, 100);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(drawBracketConnectors);
+});
     window.addEventListener('resize', drawBracketConnectors);
 }
 
@@ -1663,6 +1666,7 @@ function drawBracketConnectors() {
     const arena = svg.closest('.bracket-arena');
     if (!arena) return;
     const arenaRect = arena.getBoundingClientRect();
+    const scrollLeft = arena.scrollLeft;
 
     svg.setAttribute('viewBox', `0 0 ${arenaRect.width} ${arenaRect.height}`);
     svg.innerHTML = '';
@@ -1682,7 +1686,7 @@ function drawBracketConnectors() {
         if (!el) return null;
         const rect = el.getBoundingClientRect();
         return {
-            x: rect.left + rect.width/2 - arenaRect.left,
+            x: rect.left + rect.width/2 - arenaRect.left + scrollLeft,
             y: rect.top + rect.height/2 - arenaRect.top
         };
     };
