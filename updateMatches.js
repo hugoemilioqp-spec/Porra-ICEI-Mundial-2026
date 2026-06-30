@@ -108,6 +108,40 @@ async function getAccessToken() {
   return data.access_token;
 }
 
+// Mismo KO_ADVANCE_MAP que en index.html
+const KO_ADVANCE_MAP = {
+    73: { nextMatch: 90, position: 'home' },
+    75: { nextMatch: 89, position: 'home' },
+    76: { nextMatch: 90, position: 'away' },
+    78: { nextMatch: 89, position: 'away' },
+    74: { nextMatch: 91, position: 'home' },
+    77: { nextMatch: 91, position: 'away' },
+    79: { nextMatch: 92, position: 'home' },
+    80: { nextMatch: 92, position: 'away' },
+    83: { nextMatch: 93, position: 'home' },
+    84: { nextMatch: 93, position: 'away' },
+    81: { nextMatch: 94, position: 'home' },
+    82: { nextMatch: 94, position: 'away' },
+    86: { nextMatch: 95, position: 'home' },
+    88: { nextMatch: 95, position: 'away' },
+    85: { nextMatch: 96, position: 'home' },
+    87: { nextMatch: 96, position: 'away' },
+    89: { nextMatch: 97, position: 'home' },
+    90: { nextMatch: 97, position: 'away' },
+    91: { nextMatch: 99, position: 'home' },
+    92: { nextMatch: 99, position: 'away' },
+    93: { nextMatch: 98, position: 'home' },
+    94: { nextMatch: 98, position: 'away' },
+    95: { nextMatch: 100, position: 'home' },
+    96: { nextMatch: 100, position: 'away' },
+    97: { nextMatch: 101, position: 'home' },
+    98: { nextMatch: 101, position: 'away' },
+    99: { nextMatch: 102, position: 'home' },
+    100:{ nextMatch: 102, position: 'away' },
+    101:{ nextMatchWin: 104, positionWin: 'home', nextMatchLose: 103, positionLose: 'home' },
+    102:{ nextMatchWin: 104, positionWin: 'away', nextMatchLose: 103, positionLose: 'away' }
+};
+
 (async function main() {
   try {
     const token = await getAccessToken();
@@ -184,7 +218,8 @@ async function getAccessToken() {
         awayScore: f.awayScore?.integerValue != null ? parseInt(f.awayScore.integerValue) : null,
         matchStatus: f.matchStatus?.stringValue || null,
         liveMinute: f.liveMinute?.integerValue != null ? parseInt(f.liveMinute.integerValue) : null,
-        extraTime: f.extraTime?.booleanValue || false
+        extraTime: f.extraTime?.booleanValue || false,
+        winnerTeam: f.winnerTeam?.stringValue || null   // importante para el avance
       };
     });
 
@@ -235,7 +270,6 @@ async function getAccessToken() {
         }
       }
 
-      // Solo actualizamos campos que realmente cambiaron
       const fields = {};
       let hasChanged = false;
 
@@ -267,7 +301,6 @@ async function getAccessToken() {
         } : { nullValue: null };
         hasChanged = true;
       }
-      // Solo enviar winnerTeam si la API nos dio un valor (no null)
       if (winnerTeam) {
         fields.winnerTeam = { stringValue: winnerTeam };
         hasChanged = true;
@@ -288,10 +321,16 @@ async function getAccessToken() {
         if (!updResp.ok) { console.error(`❌ Error ${match.id}: ${updResp.status}`); continue; }
         console.log(`✔ ${apiHome} vs ${apiAway} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}] ${winnerTeam ? '(Ganador: ' + winnerTeam + ')' : ''}`);
         updatedCount++;
+        // Actualizar también el array local para el avance posterior
+        match.homeScore = homeScore;
+        match.awayScore = awayScore;
+        match.winnerTeam = winnerTeam || match.winnerTeam;
       } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
     }
 
-    // ========== 4. PLACEHOLDERS PARA PARTIDOS KO SIN EQUIPO ==========
+    console.log(`Actualizados ${updatedCount} partidos.`);
+
+    // ========== 4. PLACEHOLDERS (SOLO SI AMBOS SON PLACEHOLDER) ==========
     const KO_PLACEHOLDERS = {
       89: { home: 'Ganador M73', away: 'Ganador M75' },
       90: { home: 'Ganador M74', away: 'Ganador M77' },
@@ -319,7 +358,8 @@ async function getAccessToken() {
       const matchId = parseInt(idStr);
       const match = firestoreMatches.find(m => m.id == matchId);
       if (!match) continue;
-      if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) continue;
+      // 🔁 Solo actualiza si AMBOS equipos son placeholders
+      if (!isPlaceholder(match.homeRaw) || !isPlaceholder(match.awayRaw)) continue;
 
       const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
       const body = { fields: { home: { stringValue: teams.home }, away: { stringValue: teams.away } } };
@@ -330,8 +370,87 @@ async function getAccessToken() {
       }).catch(err => console.warn(`No se pudo actualizar KO ${matchId}`));
     }
 
-    console.log(`Actualizados ${updatedCount} partidos.`);
-    console.log('✅ Reparación y actualización completadas.');
+    // ========== 5. AVANCE AUTOMÁTICO DE GANADORES ==========
+    console.log('⏳ Avanzando ganadores...');
+    // Volver a leer Firestore para tener los datos más recientes
+    const freshResp = await fetch(`${BASE_URL}/matches?pageSize=200`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const freshData = await freshResp.json();
+    const allMatches = (freshData.documents || []).map(doc => {
+      const f = doc.fields || {};
+      return {
+        id: parseInt(doc.name.split('/').pop()),
+        home: f.home?.stringValue || '',
+        away: f.away?.stringValue || '',
+        homeScore: f.homeScore?.integerValue != null ? parseInt(f.homeScore.integerValue) : null,
+        awayScore: f.awayScore?.integerValue != null ? parseInt(f.awayScore.integerValue) : null,
+        winnerTeam: f.winnerTeam?.stringValue || null,
+        group: f.group?.stringValue || ''
+      };
+    });
+
+    const koMatches = allMatches.filter(m => m.group === 'KO' && m.homeScore !== null && m.awayScore !== null);
+    for (const m of koMatches) {
+      const advance = KO_ADVANCE_MAP[m.id];
+      if (!advance) continue;
+
+      const winner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : (m.winnerTeam || null));
+      if (!winner) continue;
+
+      // Ganador a siguiente partido
+      let nextMatchWinId = advance.nextMatchWin || advance.nextMatch;
+      let positionWin = advance.positionWin || advance.position;
+      if (nextMatchWinId) {
+        const nextMatch = allMatches.find(n => n.id === nextMatchWinId);
+        if (nextMatch) {
+          const updateFields = {};
+          if (positionWin === 'home') {
+            if (nextMatch.home !== winner) updateFields.home = { stringValue: winner };
+          } else {
+            if (nextMatch.away !== winner) updateFields.away = { stringValue: winner };
+          }
+          if (Object.keys(updateFields).length) {
+            const url = `${BASE_URL}/matches/${nextMatchWinId}?updateMask.fieldPaths=${Object.keys(updateFields).join('&updateMask.fieldPaths=')}`;
+            await fetch(url, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ fields: updateFields })
+            }).catch(err => console.error(`Error avanzando a ${nextMatchWinId}: ${err.message}`));
+            console.log(`✔ Avanza: ${winner} → M${nextMatchWinId} (${positionWin})`);
+          }
+        }
+      }
+
+      // Perdedor de semifinales a 3er puesto
+      if (m.id === 101 || m.id === 102) {
+        const loser = winner === m.home ? m.away : m.home;
+        const thirdMatchId = advance.nextMatchLose;
+        const positionLose = advance.positionLose;
+        if (thirdMatchId && loser) {
+          const thirdMatch = allMatches.find(n => n.id === thirdMatchId);
+          if (thirdMatch) {
+            const updateFields = {};
+            if (positionLose === 'home') {
+              if (thirdMatch.home !== loser) updateFields.home = { stringValue: loser };
+            } else {
+              if (thirdMatch.away !== loser) updateFields.away = { stringValue: loser };
+            }
+            if (Object.keys(updateFields).length) {
+              const url = `${BASE_URL}/matches/${thirdMatchId}?updateMask.fieldPaths=${Object.keys(updateFields).join('&updateMask.fieldPaths=')}`;
+              await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ fields: updateFields })
+              }).catch(err => console.error(`Error avanzando perdedor a ${thirdMatchId}: ${err.message}`));
+              console.log(`✔ Perdedor: ${loser} → M${thirdMatchId} (3er puesto)`);
+            }
+          }
+        }
+      }
+    }
+
+    console.log('✅ Avance automático completado.');
   } catch (error) {
     console.error('Error general:', error);
     process.exit(1);
