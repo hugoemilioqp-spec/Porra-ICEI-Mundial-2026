@@ -112,6 +112,58 @@ async function getAccessToken() {
   try {
     const token = await getAccessToken();
 
+    // ========== 1. REPARAR GRUPO, RONDA Y FECHA DE TODOS LOS PARTIDOS KO ==========
+    const KO_DEFAULTS = {
+      73: { round: 'Dieciseisavos', date: '2026-06-28T19:00:00Z' },
+      74: { round: 'Dieciseisavos', date: '2026-06-29T17:00:00Z' },
+      75: { round: 'Dieciseisavos', date: '2026-06-29T20:30:00Z' },
+      76: { round: 'Dieciseisavos', date: '2026-06-30T01:00:00Z' },
+      77: { round: 'Dieciseisavos', date: '2026-06-30T17:00:00Z' },
+      78: { round: 'Dieciseisavos', date: '2026-06-30T21:00:00Z' },
+      79: { round: 'Dieciseisavos', date: '2026-07-01T01:00:00Z' },
+      80: { round: 'Dieciseisavos', date: '2026-07-01T16:00:00Z' },
+      81: { round: 'Dieciseisavos', date: '2026-07-01T20:00:00Z' },
+      82: { round: 'Dieciseisavos', date: '2026-07-02T00:00:00Z' },
+      83: { round: 'Dieciseisavos', date: '2026-07-02T19:00:00Z' },
+      84: { round: 'Dieciseisavos', date: '2026-07-02T23:00:00Z' },
+      85: { round: 'Dieciseisavos', date: '2026-07-03T03:00:00Z' },
+      86: { round: 'Dieciseisavos', date: '2026-07-03T18:00:00Z' },
+      87: { round: 'Dieciseisavos', date: '2026-07-03T22:00:00Z' },
+      88: { round: 'Dieciseisavos', date: '2026-07-04T01:30:00Z' },
+      89: { round: 'Octavos',      date: '2026-07-04T17:00:00Z' },
+      90: { round: 'Octavos',      date: '2026-07-04T21:00:00Z' },
+      91: { round: 'Octavos',      date: '2026-07-05T19:00:00Z' },
+      92: { round: 'Octavos',      date: '2026-07-06T00:00:00Z' },
+      93: { round: 'Octavos',      date: '2026-07-06T19:00:00Z' },
+      94: { round: 'Octavos',      date: '2026-07-07T00:00:00Z' },
+      95: { round: 'Octavos',      date: '2026-07-07T16:00:00Z' },
+      96: { round: 'Octavos',      date: '2026-07-07T20:00:00Z' },
+      97: { round: 'Cuartos',      date: '2026-07-09T20:00:00Z' },
+      98: { round: 'Cuartos',      date: '2026-07-10T19:00:00Z' },
+      99: { round: 'Cuartos',      date: '2026-07-11T21:00:00Z' },
+      100:{ round: 'Cuartos',      date: '2026-07-12T01:00:00Z' },
+      101:{ round: 'Semifinales',  date: '2026-07-14T19:00:00Z' },
+      102:{ round: 'Semifinales',  date: '2026-07-15T19:00:00Z' },
+      103:{ round: '3er Puesto',   date: '2026-07-18T21:00:00Z' },
+      104:{ round: 'Final',        date: '2026-07-19T18:00:00Z' }
+    };
+
+    for (const [id, info] of Object.entries(KO_DEFAULTS)) {
+      const matchId = parseInt(id);
+      const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=group&updateMask.fieldPaths=round&updateMask.fieldPaths=date`;
+      const fields = {
+        group: { stringValue: 'KO' },
+        round: { stringValue: info.round },
+        date: { stringValue: info.date }
+      };
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ fields })
+      }).catch(err => console.error(`Error reparando KO ${matchId}: ${err.message}`));
+    }
+
+    // ========== 2. LEER FIRESTORE ==========
     console.log('⏳ Leyendo Firestore...');
     const matchesResp = await fetch(`${BASE_URL}/matches?pageSize=200`, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -126,14 +178,17 @@ async function getAccessToken() {
         awayRaw: f.away?.stringValue || '',
         homeClean: cleanName(f.home?.stringValue || ''),
         awayClean: cleanName(f.away?.stringValue || ''),
-        round: f.round?.stringValue || f.round?.integerValue?.toString() || '',
+        round: f.round?.stringValue || '',
         group: f.group?.stringValue || '',
         homeScore: f.homeScore?.integerValue != null ? parseInt(f.homeScore.integerValue) : null,
         awayScore: f.awayScore?.integerValue != null ? parseInt(f.awayScore.integerValue) : null,
-        matchStatus: f.matchStatus?.stringValue || null
+        matchStatus: f.matchStatus?.stringValue || null,
+        liveMinute: f.liveMinute?.integerValue != null ? parseInt(f.liveMinute.integerValue) : null,
+        extraTime: f.extraTime?.booleanValue || false
       };
     });
 
+    // ========== 3. CONSULTAR API Y ACTUALIZAR SOLO CAMPOS NECESARIOS ==========
     console.log('⏳ Consultando API...');
     const apiResp = await fetch(API_URL, { headers: { 'X-API-Key': API_KEY } });
     if (!apiResp.ok) throw new Error(`API error: ${apiResp.status}`);
@@ -157,28 +212,21 @@ async function getAccessToken() {
       const extraTime = apiMatch.extraTime || false;
       const penalties = apiMatch.penalties || null;
 
-      // Determinar ganador automáticamente
       let winnerTeam = null;
-      // 1. Por penaltis
       if (penalties && penalties.home !== undefined && penalties.away !== undefined) {
         winnerTeam = (penalties.home > penalties.away) ? apiHome : apiAway;
       }
-      // 2. Si hay marcador y no hay penaltis: ganador por goles
-      if (!winnerTeam && homeScore !== null && awayScore !== null) {
-        if (homeScore > awayScore) winnerTeam = apiHome;
-        else if (awayScore > homeScore) winnerTeam = apiAway;
+      if (!winnerTeam && homeScore !== null && awayScore !== null && homeScore !== awayScore) {
+        winnerTeam = homeScore > awayScore ? apiHome : apiAway;
       }
-      // 3. Si la API trae un campo explícito de ganador (por si acaso)
       if (!winnerTeam && apiMatch.winner) {
         winnerTeam = translateToSpanish(apiMatch.winner);
       }
-      // Si sigue sin definirse (empate sin penaltis aún), se queda null
 
       let match = firestoreMatches.find(m => {
         return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
                (m.homeClean === apiAwayClean && m.awayClean === apiHomeClean);
       });
-
       if (!match) { console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`); continue; }
 
       if (match.homeClean !== apiHomeClean) {
@@ -187,27 +235,49 @@ async function getAccessToken() {
         }
       }
 
-      if (match.homeScore === homeScore && match.awayScore === awayScore && match.matchStatus === status) continue;
+      // Solo actualizamos campos que realmente cambiaron
+      const fields = {};
+      let hasChanged = false;
 
-      const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=homeScore&updateMask.fieldPaths=awayScore&updateMask.fieldPaths=matchStatus&updateMask.fieldPaths=liveMinute&updateMask.fieldPaths=extraTime&updateMask.fieldPaths=penalties&updateMask.fieldPaths=winnerTeam`;
-      const body = {
-        fields: {
-          homeScore: toFirestoreValue(homeScore),
-          awayScore: toFirestoreValue(awayScore),
-          matchStatus: { stringValue: status },
-          liveMinute: toFirestoreValue(liveMinute),
-          extraTime: { booleanValue: extraTime },
-          penalties: penalties ? {
-            mapValue: {
-              fields: {
-                home: { integerValue: penalties.home || 0 },
-                away: { integerValue: penalties.away || 0 }
-              }
+      if (match.homeScore !== homeScore || match.awayScore !== awayScore) {
+        fields.homeScore = toFirestoreValue(homeScore);
+        fields.awayScore = toFirestoreValue(awayScore);
+        hasChanged = true;
+      }
+      if (match.matchStatus !== status) {
+        fields.matchStatus = { stringValue: status };
+        hasChanged = true;
+      }
+      if (status === 'live' && liveMinute !== match.liveMinute) {
+        fields.liveMinute = toFirestoreValue(liveMinute);
+        hasChanged = true;
+      }
+      if (extraTime !== match.extraTime) {
+        fields.extraTime = { booleanValue: extraTime };
+        hasChanged = true;
+      }
+      if (penalties) {
+        fields.penalties = penalties ? {
+          mapValue: {
+            fields: {
+              home: { integerValue: penalties.home || 0 },
+              away: { integerValue: penalties.away || 0 }
             }
-          } : { nullValue: null },
-          winnerTeam: winnerTeam ? { stringValue: winnerTeam } : { nullValue: null }
-        }
-      };
+          }
+        } : { nullValue: null };
+        hasChanged = true;
+      }
+      // Solo enviar winnerTeam si la API nos dio un valor (no null)
+      if (winnerTeam) {
+        fields.winnerTeam = { stringValue: winnerTeam };
+        hasChanged = true;
+      }
+
+      if (!hasChanged) continue;
+
+      const updateMask = Object.keys(fields).join('&updateMask.fieldPaths=');
+      const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=${updateMask}`;
+      const body = { fields };
 
       try {
         const updResp = await fetch(updateUrl, {
@@ -221,55 +291,47 @@ async function getAccessToken() {
       } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
     }
 
-    // Placeholders para octavos, cuartos, semis y final
+    // ========== 4. PLACEHOLDERS PARA PARTIDOS KO SIN EQUIPO ==========
     const KO_PLACEHOLDERS = {
-        89: { home: 'Ganador M73', away: 'Ganador M75' },
-        90: { home: 'Ganador M74', away: 'Ganador M77' },
-        91: { home: 'Ganador M76', away: 'Ganador M78' },
-        92: { home: 'Ganador M79', away: 'Ganador M80' },
-        93: { home: 'Ganador M83', away: 'Ganador M84' },
-        94: { home: 'Ganador M81', away: 'Ganador M82' },
-        95: { home: 'Ganador M86', away: 'Ganador M88' },
-        96: { home: 'Ganador M85', away: 'Ganador M87' },
-        97: { home: 'Ganador M89', away: 'Ganador M90' },
-        98: { home: 'Ganador M93', away: 'Ganador M94' },
-        99: { home: 'Ganador M91', away: 'Ganador M92' },
-        100: { home: 'Ganador M95', away: 'Ganador M96' },
-        101: { home: 'Ganador M97', away: 'Ganador M98' },
-        102: { home: 'Ganador M99', away: 'Ganador M100' },
-        103: { home: 'Perdedor M101', away: 'Perdedor M102' },
-        104: { home: 'Ganador M101', away: 'Ganador M102' }
+      89: { home: 'Ganador M73', away: 'Ganador M75' },
+      90: { home: 'Ganador M74', away: 'Ganador M77' },
+      91: { home: 'Ganador M76', away: 'Ganador M78' },
+      92: { home: 'Ganador M79', away: 'Ganador M80' },
+      93: { home: 'Ganador M83', away: 'Ganador M84' },
+      94: { home: 'Ganador M81', away: 'Ganador M82' },
+      95: { home: 'Ganador M86', away: 'Ganador M88' },
+      96: { home: 'Ganador M85', away: 'Ganador M87' },
+      97: { home: 'Ganador M89', away: 'Ganador M90' },
+      98: { home: 'Ganador M93', away: 'Ganador M94' },
+      99: { home: 'Ganador M91', away: 'Ganador M92' },
+      100:{ home: 'Ganador M95', away: 'Ganador M96' },
+      101:{ home: 'Ganador M97', away: 'Ganador M98' },
+      102:{ home: 'Ganador M99', away: 'Ganador M100' },
+      103:{ home: 'Perdedor M101', away: 'Perdedor M102' },
+      104:{ home: 'Ganador M101', away: 'Ganador M102' }
     };
 
     const isPlaceholder = (value) => {
-        return !value || value === 'Por definir' || value.includes('°') || value.includes('Ganador') || value.includes('Perdedor');
+      return !value || value === 'Por definir' || value.includes('Ganador') || value.includes('Perdedor') || value.includes('°');
     };
 
     for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
-        const matchId = parseInt(idStr);
-        const match = firestoreMatches.find(m => m.id == matchId);
-        if (!match) continue;
-        if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) continue;
+      const matchId = parseInt(idStr);
+      const match = firestoreMatches.find(m => m.id == matchId);
+      if (!match) continue;
+      if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) continue;
 
-        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-        const body = { fields: { home: { stringValue: teams.home }, away: { stringValue: teams.away } } };
-        try {
-            const upd = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-            if (upd.ok) console.log(`✔ KO ${matchId}: ${teams.home} vs ${teams.away}`);
-        } catch (err) { console.warn(`No se pudo actualizar KO ${matchId}`); }
+      const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
+      const body = { fields: { home: { stringValue: teams.home }, away: { stringValue: teams.away } } };
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(body)
+      }).catch(err => console.warn(`No se pudo actualizar KO ${matchId}`));
     }
 
     console.log(`Actualizados ${updatedCount} partidos.`);
-
-    // Emparejamientos oficiales de dieciseisavos (COMENTADOS para no sobrescribir equipos existentes)
-    // const OFFICIAL_R32 = { ... };
-    // ... bucle de actualización comentado
-
-    console.log('✅ Dieciseisavos verificados/corregidos.');
+    console.log('✅ Reparación y actualización completadas.');
   } catch (error) {
     console.error('Error general:', error);
     process.exit(1);
