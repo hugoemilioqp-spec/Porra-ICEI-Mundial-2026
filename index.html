@@ -930,7 +930,6 @@ const groupStage = [
             console.log('Documentos obtenidos de matches:', matchesDocs.length);
             if (matchesDocs.length > 0) {
             matches = matchesDocs.map(doc => {
-                console.log('Procesando doc', doc.id, doc);
                 return {
                     id: parseInt(doc.id),
                     group: doc.group,
@@ -944,7 +943,8 @@ const groupStage = [
                     matchStatus: doc.matchStatus || null,
                     liveMinute: doc.liveMinute != null ? parseInt(doc.liveMinute) : null,
                     extraTime: doc.extraTime === true || doc.extraTime === 'true',
-                    penalties: doc.penalties || null
+                    penalties: doc.penalties || null,
+                    winnerTeam: doc.winnerTeam || null           // ← ¡AÑADE ESTA LÍNEA!
                 };
             });
                 matches.sort((a,b)=>a.id-b.id);
