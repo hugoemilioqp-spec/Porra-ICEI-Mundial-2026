@@ -1353,7 +1353,10 @@ window.changePlayerCode = changePlayerCode;
             return m;
         });
     }
-
+function cleanTeamName(str) {
+    if (!str) return '';
+    return str.replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '').trim();
+}
     function calculatePointsDetail(playerName) {
         const preds = predictions[playerName] || {};
         const details = [];
@@ -1385,7 +1388,7 @@ window.changePlayerCode = changePlayerCode;
                     const realWinner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : null);
                     // En empate real, el ganador es el que avanzó (debe venir de Firestore como 'winnerTeam')
                     // Si no tenemos ese campo, se puede calcular a partir de la siguiente ronda, pero asumimos que el admin lo establece.
-                    if (m.winnerTeam && p.winner === m.winnerTeam) {
+                    if (m.winnerTeam && cleanTeamName(p.winner) === cleanTeamName(m.winnerTeam)) {
                         details.push({ type: 'Ganador KO', match: `${homeTeam} vs ${awayTeam}`, points: pointsConfig.koWinnerBonus });
                         total += pointsConfig.koWinnerBonus;
                     }
@@ -1411,7 +1414,7 @@ if (m.group === 'KO' && m.round !== '3er Puesto') {
             userWinner = p.winner;   // el usuario seleccionó ganador en empate
         }
 
-        if (userWinner === actualWinner) {
+        if (cleanTeamName(userWinner) === cleanTeamName(actualWinner)) {
             let roundPoints = 0;
             switch (m.round) {
                 case 'Dieciseisavos': roundPoints = pointsConfig.koRound32; break;
