@@ -92,7 +92,7 @@
         .bracket-tree {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     overflow-x: auto;                     /* el scroll horizontal lo maneja este contenedor */
     -webkit-overflow-scrolling: touch;    /* suavizado en iOS */
     padding: 20px;
@@ -1655,8 +1655,8 @@ function renderBracket() {
     html += '<svg class="bracket-svg" id="bracket-svg"></svg>';
     html += '</div>';
 
-    container.innerHTML = html;
-    // Centramos el scroll horizontal para que el centro del bracket sea visible
+container.innerHTML = html;
+// Centramos el scroll horizontal
 const centerScroll = () => {
     const scrollWidth = container.scrollWidth;
     const clientWidth = container.clientWidth;
@@ -1664,18 +1664,14 @@ const centerScroll = () => {
         container.scrollLeft = (scrollWidth - clientWidth) / 2;
     }
 };
-// La primera llamada inmediata (ya que el DOM acaba de actualizarse)
 centerScroll();
-// Y la repetimos tras un doble requestAnimationFrame por si el ancho cambia al pintar
 requestAnimationFrame(() => {
-    requestAnimationFrame(centerScroll);
-    drawBracketConnectors();
-});
-
     requestAnimationFrame(() => {
-        requestAnimationFrame(drawBracketConnectors);
+        centerScroll();
+        drawBracketConnectors();
+    });
 });
-    window.addEventListener('resize', drawBracketConnectors);
+window.addEventListener('resize', drawBracketConnectors);
 }
 
 function drawBracketConnectors() {
