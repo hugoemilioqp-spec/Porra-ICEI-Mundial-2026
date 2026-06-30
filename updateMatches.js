@@ -254,26 +254,27 @@ async function getAccessToken() {
     console.log(`Actualizados ${updatedCount} partidos.`);
 
     // --- Emparejamientos oficiales de dieciseisavos (siempre se verifican y corrigen) ---
-    const OFFICIAL_R32 = {
-        73: { home: '🇿🇦 Sudáfrica',      away: '🇨🇦 Canadá' },
-        74: { home: '🇧🇷 Brasil',          away: '🇯🇵 Japón' },
-        75: { home: '🇩🇪 Alemania',        away: '🇵🇾 Paraguay' },
-        76: { home: '🇳🇱 Países Bajos',    away: '🇲🇦 Marruecos' },
-        77: { home: '🇨🇮 Costa de Marfil', away: '🇳🇴 Noruega' },
-        78: { home: '🇫🇷 Francia',         away: '🇸🇪 Suecia' },
-        79: { home: '🇲🇽 México',          away: '🇪🇨 Ecuador' },
-        80: { home: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra',    away: '🇨🇩 RD Congo' },
-        81: { home: '🇺🇸 Estados Unidos',  away: '🇧🇦 Bosnia' },
-        82: { home: '🇧🇪 Bélgica',         away: '🇸🇳 Senegal' },
-        83: { home: '🇵🇹 Portugal',        away: '🇭🇷 Croacia' },
-        84: { home: '🇪🇸 España',          away: '🇦🇹 Austria' },
-        85: { home: '🇨🇭 Suiza',           away: '🇩🇿 Argelia' },
-        86: { home: '🇦🇷 Argentina',       away: '🇨🇻 Cabo Verde' },
-        87: { home: '🇨🇴 Colombia',        away: '🇬🇭 Ghana' },
-        88: { home: '🇦🇺 Australia',       away: '🇪🇬 Egipto' }
-    };
+//    const OFFICIAL_R32 = {
+//        73: { home: '🇿🇦 Sudáfrica',      away: '🇨🇦 Canadá' },
+ //       74: { home: '🇧🇷 Brasil',          away: '🇯🇵 Japón' },
+ //       75: { home: '🇩🇪 Alemania',        away: '🇵🇾 Paraguay' },
+ //       76: { home: '🇳🇱 Países Bajos',    away: '🇲🇦 Marruecos' },
+ //       77: { home: '🇨🇮 Costa de Marfil', away: '🇳🇴 Noruega' },
+ //       78: { home: '🇫🇷 Francia',         away: '🇸🇪 Suecia' },
+ //       79: { home: '🇲🇽 México',          away: '🇪🇨 Ecuador' },
+ //       80: { home: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra',    away: '🇨🇩 RD Congo' },
+ //       81: { home: '🇺🇸 Estados Unidos',  away: '🇧🇦 Bosnia' },
+ //       82: { home: '🇧🇪 Bélgica',         away: '🇸🇳 Senegal' },
+ //       83: { home: '🇵🇹 Portugal',        away: '🇭🇷 Croacia' },
+ //       84: { home: '🇪🇸 España',          away: '🇦🇹 Austria' },
+ //       85: { home: '🇨🇭 Suiza',           away: '🇩🇿 Argelia' },
+ //       86: { home: '🇦🇷 Argentina',       away: '🇨🇻 Cabo Verde' },
+ //       87: { home: '🇨🇴 Colombia',        away: '🇬🇭 Ghana' },
+ //       88: { home: '🇦🇺 Australia',       away: '🇪🇬 Egipto' }
+ //   };
 
-    for (const [id, teams] of Object.entries(OFFICIAL_R32)) {
+/*  
+        for (const [id, teams] of Object.entries(OFFICIAL_R32)) {
         const matchId = parseInt(id);
         const match = firestoreMatches.find(m => m.id == matchId);
         if (!match) continue;
@@ -299,6 +300,7 @@ async function getAccessToken() {
             if (up.ok) console.log(`✔ R32 ${matchId}: ${teams.home} vs ${teams.away}`);
         } catch (err) { console.error(`Error ${matchId}:`, err); }
     }
+  */
     console.log('✅ Dieciseisavos verificados/corregidos.');
   } catch (error) {
     console.error('Error general:', error);
