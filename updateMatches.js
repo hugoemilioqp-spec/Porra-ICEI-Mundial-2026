@@ -157,10 +157,22 @@ async function getAccessToken() {
       const extraTime = apiMatch.extraTime || false;
       const penalties = apiMatch.penalties || null;
 
+      // Determinar ganador automáticamente
       let winnerTeam = null;
+      // 1. Por penaltis
       if (penalties && penalties.home !== undefined && penalties.away !== undefined) {
-          winnerTeam = (penalties.home > penalties.away) ? apiHome : apiAway;
+        winnerTeam = (penalties.home > penalties.away) ? apiHome : apiAway;
       }
+      // 2. Si hay marcador y no hay penaltis: ganador por goles
+      if (!winnerTeam && homeScore !== null && awayScore !== null) {
+        if (homeScore > awayScore) winnerTeam = apiHome;
+        else if (awayScore > homeScore) winnerTeam = apiAway;
+      }
+      // 3. Si la API trae un campo explícito de ganador (por si acaso)
+      if (!winnerTeam && apiMatch.winner) {
+        winnerTeam = translateToSpanish(apiMatch.winner);
+      }
+      // Si sigue sin definirse (empate sin penaltis aún), se queda null
 
       let match = firestoreMatches.find(m => {
         return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
@@ -204,7 +216,7 @@ async function getAccessToken() {
           body: JSON.stringify(body)
         });
         if (!updResp.ok) { console.error(`❌ Error ${match.id}: ${updResp.status}`); continue; }
-        console.log(`✔ ${apiHome} vs ${apiAway} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}]`);
+        console.log(`✔ ${apiHome} vs ${apiAway} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}] ${winnerTeam ? '(Ganador: ' + winnerTeam + ')' : ''}`);
         updatedCount++;
       } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
     }
@@ -253,54 +265,10 @@ async function getAccessToken() {
 
     console.log(`Actualizados ${updatedCount} partidos.`);
 
-    // --- Emparejamientos oficiales de dieciseisavos (siempre se verifican y corrigen) ---
-//    const OFFICIAL_R32 = {
-//        73: { home: '🇿🇦 Sudáfrica',      away: '🇨🇦 Canadá' },
- //       74: { home: '🇧🇷 Brasil',          away: '🇯🇵 Japón' },
- //       75: { home: '🇩🇪 Alemania',        away: '🇵🇾 Paraguay' },
- //       76: { home: '🇳🇱 Países Bajos',    away: '🇲🇦 Marruecos' },
- //       77: { home: '🇨🇮 Costa de Marfil', away: '🇳🇴 Noruega' },
- //       78: { home: '🇫🇷 Francia',         away: '🇸🇪 Suecia' },
- //       79: { home: '🇲🇽 México',          away: '🇪🇨 Ecuador' },
- //       80: { home: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra',    away: '🇨🇩 RD Congo' },
- //       81: { home: '🇺🇸 Estados Unidos',  away: '🇧🇦 Bosnia' },
- //       82: { home: '🇧🇪 Bélgica',         away: '🇸🇳 Senegal' },
- //       83: { home: '🇵🇹 Portugal',        away: '🇭🇷 Croacia' },
- //       84: { home: '🇪🇸 España',          away: '🇦🇹 Austria' },
- //       85: { home: '🇨🇭 Suiza',           away: '🇩🇿 Argelia' },
- //       86: { home: '🇦🇷 Argentina',       away: '🇨🇻 Cabo Verde' },
- //       87: { home: '🇨🇴 Colombia',        away: '🇬🇭 Ghana' },
- //       88: { home: '🇦🇺 Australia',       away: '🇪🇬 Egipto' }
- //   };
+    // Emparejamientos oficiales de dieciseisavos (COMENTADOS para no sobrescribir equipos existentes)
+    // const OFFICIAL_R32 = { ... };
+    // ... bucle de actualización comentado
 
-/*  
-        for (const [id, teams] of Object.entries(OFFICIAL_R32)) {
-        const matchId = parseInt(id);
-        const match = firestoreMatches.find(m => m.id == matchId);
-        if (!match) continue;
-
-        // Solo actuamos si el partido tiene algún placeholder o si es diferente al oficial
-        if (!isPlaceholder(match.homeRaw) && !isPlaceholder(match.awayRaw)) {
-            if (match.homeRaw === teams.home && match.awayRaw === teams.away) continue;   // ya está bien
-        }
-
-        const url = `${BASE_URL}/matches/${matchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`;
-        const body = {
-            fields: {
-                home: { stringValue: teams.home },
-                away: { stringValue: teams.away }
-            }
-        };
-        try {
-            const up = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-            if (up.ok) console.log(`✔ R32 ${matchId}: ${teams.home} vs ${teams.away}`);
-        } catch (err) { console.error(`Error ${matchId}:`, err); }
-    }
-  */
     console.log('✅ Dieciseisavos verificados/corregidos.');
   } catch (error) {
     console.error('Error general:', error);
