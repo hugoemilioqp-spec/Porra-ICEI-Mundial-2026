@@ -1030,39 +1030,41 @@ const groupStage = [
     }
 
 async function saveResults() {
-    // 1. Guardar todos los resultados (fase de grupos y eliminatorias)
+    // Actualizamos SOLO homeScore, awayScore y winnerTeam de cada partido
     for (const m of matches) {
-        await setDoc(`matches/${m.id}`, {
-            group: m.group,
-            home: m.home,
-            away: m.away,
-            date: m.date,
-            venue: m.venue,
-            round: m.round,
+        const updateFields = {
             homeScore: m.homeScore,
-            awayScore: m.awayScore,
-            winnerTeam: m.winnerTeam || null   // guardamos también el ganador en caso de empate
-        });
+            awayScore: m.awayScore
+        };
+        // Solo incluimos winnerTeam si el partido es KO y hay empate, o si ya tenía un valor que preservamos
+        if (m.group === 'KO' && m.homeScore === m.awayScore) {
+            updateFields.winnerTeam = m.winnerTeam || null;
+        }
+        // Construimos el campo fields para Firestore REST (solo los campos que queremos actualizar)
+        const fields = {};
+        for (const [key, value] of Object.entries(updateFields)) {
+            if (value === null || value === undefined) {
+                fields[key] = { nullValue: null };
+            } else if (typeof value === 'number') {
+                fields[key] = { integerValue: value };
+            } else {
+                fields[key] = { stringValue: value };
+            }
+        }
+        const path = `matches/${m.id}?updateMask.fieldPaths=${Object.keys(updateFields).join('&updateMask.fieldPaths=')}`;
+        await firestoreRequest('PATCH', path, { fields });
     }
 
-    // 2. Avanzar automáticamente los equipos en las eliminatorias
-    const updatedMatches = matches.filter(m => 
-        m.homeScore !== null && m.awayScore !== null && m.group === 'KO'
-    );
-
+    // Ahora avanzamos los equipos en las eliminatorias (igual que antes, pero usando PATCH para no sobreescribir)
+    const updatedMatches = matches.filter(m => m.homeScore !== null && m.awayScore !== null && m.group === 'KO');
     for (const m of updatedMatches) {
         const advance = KO_ADVANCE_MAP[m.id];
         if (!advance) continue;
 
-        const winner = m.homeScore > m.awayScore 
-            ? m.home 
-            : (m.homeScore < m.awayScore 
-                ? m.away 
-                : (m.winnerTeam || null));
-        if (!winner) continue;  // empate sin ganador definido → no avanzamos todavía
+        const winner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : (m.winnerTeam || null));
+        if (!winner) continue;
 
-        // --- Avanzar al ganador (siguiente partido) ---
-        let nextMatchWinId = advance.nextMatchWin || advance.nextMatch;  // semis o partidos normales
+        let nextMatchWinId = advance.nextMatchWin || advance.nextMatch;
         let positionWin = advance.positionWin || advance.position;
         if (nextMatchWinId) {
             const nextMatch = matches.find(n => n.id === nextMatchWinId);
@@ -1070,15 +1072,15 @@ async function saveResults() {
                 if (positionWin === 'home') nextMatch.home = winner;
                 else nextMatch.away = winner;
 
-                // Guardar solo los equipos del siguiente partido, sin tocar marcadores
-                await setDoc(`matches/${nextMatchWinId}`, {
-                    home: nextMatch.home,
-                    away: nextMatch.away
-                });
+                // Actualizar solo home/away del siguiente partido (sin tocar scores)
+                const fields = {
+                    home: { stringValue: nextMatch.home },
+                    away: { stringValue: nextMatch.away }
+                };
+                await firestoreRequest('PATCH', `matches/${nextMatchWinId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`, { fields });
             }
         }
 
-        // --- Avanzar al perdedor (solo semifinales) ---
         if (m.id === 101 || m.id === 102) {
             const loser = winner === m.home ? m.away : m.home;
             const thirdMatchId = advance.nextMatchLose;
@@ -1088,34 +1090,14 @@ async function saveResults() {
                 if (thirdMatch) {
                     if (positionLose === 'home') thirdMatch.home = loser;
                     else thirdMatch.away = loser;
-                    await setDoc(`matches/${thirdMatchId}`, {
-                        home: thirdMatch.home,
-                        away: thirdMatch.away
-                    });
+                    const fields = {
+                        home: { stringValue: thirdMatch.home },
+                        away: { stringValue: thirdMatch.away }
+                    };
+                    await firestoreRequest('PATCH', `matches/${thirdMatchId}?updateMask.fieldPaths=home&updateMask.fieldPaths=away`, { fields });
                 }
             }
         }
-
-        // Si el admin seleccionó un ganador manual en caso de empate, lo guardamos
-        const winnerSel = document.getElementById('rw-' + m.id);
-        if (winnerSel && m.homeScore === m.awayScore) {
-            m.winnerTeam = winnerSel.value || null;
-        } else {
-            m.winnerTeam = null;
-        }
-
-        // Actualizar el partido actual con su winnerTeam definitivo
-        await setDoc(`matches/${m.id}`, {
-            group: m.group,
-            home: m.home,
-            away: m.away,
-            date: m.date,
-            venue: m.venue,
-            round: m.round,
-            homeScore: m.homeScore,
-            awayScore: m.awayScore,
-            winnerTeam: m.winnerTeam || null
-        });
     }
 
     await refreshAllData();
@@ -2008,6 +1990,7 @@ function renderStandings() {
                         const a = awayInp.value.trim();
                         if (h !== '' && a !== '' && h === a) {
                             winnerSel.style.display = 'inline-block';
+                            if (m.winnerTeam) winnerSel.value = m.winnerTeam;
                             // Si ya hay ganador guardado, seleccionarlo
                             if (m.winnerTeam) winnerSel.value = m.winnerTeam;
                         } else {
@@ -2493,28 +2476,28 @@ document.getElementById('save-special-picks-btn').addEventListener('click', asyn
     }
 });
         
-        document.getElementById('save-results-btn').addEventListener('click', () => {
-            if (!adminLogged) return;
-            matches.forEach(m => {
-                const rh = document.getElementById('rh-' + m.id);
-                const ra = document.getElementById('ra-' + m.id);
-                if (rh && ra && rh.value !== '' && ra.value !== '') {
-                    m.homeScore = parseInt(rh.value);
-                    m.awayScore = parseInt(ra.value);
-                }
-                // 🆕 Capturar ganador en partidos KO
-                if (m.group === 'KO') {
-                    const winnerSel = document.getElementById('rw-' + m.id);
-                    if (winnerSel && m.homeScore === m.awayScore) {
-                        m.winnerTeam = winnerSel.value || null;
-                    } else {
-                        m.winnerTeam = null; // si no hay empate, no debe haber ganador forzado
-                    }
-                }
-            });
-            saveResults();
-            updateGenerateKOButton();
-        });
+document.getElementById('save-results-btn').addEventListener('click', () => {
+    if (!adminLogged) return;
+    matches.forEach(m => {
+        const rh = document.getElementById('rh-' + m.id);
+        const ra = document.getElementById('ra-' + m.id);
+        if (rh && ra && rh.value !== '' && ra.value !== '') {
+            m.homeScore = parseInt(rh.value);
+            m.awayScore = parseInt(ra.value);
+        }
+        if (m.group === 'KO') {
+            const winnerSel = document.getElementById('rw-' + m.id);
+            if (winnerSel && m.homeScore === m.awayScore) {
+                m.winnerTeam = winnerSel.value || null;
+            } else {
+                // Si no hay empate, aseguramos que winnerTeam sea null
+                if (m.homeScore !== m.awayScore) m.winnerTeam = null;
+            }
+        }
+    });
+    saveResults();
+    updateGenerateKOButton();
+});
 
         document.getElementById('save-config-btn').addEventListener('click', async () => {
             pointsConfig = {
