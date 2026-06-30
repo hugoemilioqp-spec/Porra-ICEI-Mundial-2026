@@ -1972,11 +1972,11 @@ function renderStandings() {
                 <span>-</span>
                 <input class="small-input" id="ra-${m.id}" value="${m.awayScore??''}" placeholder="-">`;
             if (isKO) {
-                html += `<select id="rw-${m.id}" style="width:130px;margin-left:6px;display:none;">
-                    <option value="">Ganador</option>
-                    <option value="${m.home}">${m.home}</option>
-                    <option value="${m.away}">${m.away}</option>
-                </select>`;
+            html += `<select id="rw-${m.id}" style="width:130px;margin-left:6px;display:none;">
+                <option value="">Ganador</option>
+                <option value="${cleanTeamName(m.home)}">${m.home}</option>
+                <option value="${cleanTeamName(m.away)}">${m.away}</option>
+            </select>`;
             }
             html += `</td></tr>`;
         });        
@@ -2491,10 +2491,13 @@ document.getElementById('save-results-btn').addEventListener('click', () => {
         if (m.group === 'KO') {
             const winnerSel = document.getElementById('rw-' + m.id);
             if (winnerSel && m.homeScore === m.awayScore) {
-                m.winnerTeam = winnerSel.value || null;
+                const selected = winnerSel.value;
+                if (selected !== '') {
+                    m.winnerTeam = selected;
+                } // si está vacío, mantenemos el valor que ya tenía m.winnerTeam
             } else {
-                // Si no hay empate, aseguramos que winnerTeam sea null
-                if (m.homeScore !== m.awayScore) m.winnerTeam = null;
+                // si no hay empate, el ganador se deduce del marcador, así que limpiamos winnerTeam
+                m.winnerTeam = null;
             }
         }
     });
