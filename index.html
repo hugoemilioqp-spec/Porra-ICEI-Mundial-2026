@@ -414,7 +414,7 @@
                 <li><i class="fa-solid fa-futbol"></i> Bota de Oro: <span id="rule-goldenboot">30</span> pts</li>
                 <li><i class="fa-solid fa-trophy"></i> Balón de Oro: <span id="rule-goldenball">30</span> pts</li>
                 <li><i class="fa-solid fa-crown"></i> Campeón del Mundo: <span id="rule-champion">50</span> pts</li>
-                <li><i class="fa-solid fa-arrow-right"></i> Ganador KO (empate): <span id="rule-kowinner">5</span> pts</li>
+                <li id="rule-kowinner-li"><i class="fa-solid fa-arrow-right"></i> Ganador KO (empate): <span id="rule-kowinner">5</span> pts</li>
                 <li><i class="fa-solid fa-arrow-right"></i> Avanza a octavos (R32): <span id="rule-round32">8</span> pts</li>
                 <li><i class="fa-solid fa-arrow-right"></i> Avanza a cuartos (R16): <span id="rule-round16">12</span> pts</li>
                 <li><i class="fa-solid fa-arrow-right"></i> Avanza a semifinales (QF): <span id="rule-qf">16</span> pts</li>
@@ -967,18 +967,18 @@ const groupStage = [
             }
             pointsConfig = (await getDoc('config/points')) || pointsConfig;
             // Asegurar que los valores de puntuación sean números
-            pointsConfig.sign = parseInt(pointsConfig.sign) || 10;
-            pointsConfig.exact = parseInt(pointsConfig.exact) || 25;
-            pointsConfig.qualify = parseInt(pointsConfig.qualify) || 5;
-            pointsConfig.goldenBoot = parseInt(pointsConfig.goldenBoot) || 30;
-            pointsConfig.goldenBall = parseInt(pointsConfig.goldenBall) || 30;
-            pointsConfig.champion = parseInt(pointsConfig.champion) || 50;
-            pointsConfig.koWinnerBonus = parseInt(pointsConfig.koWinnerBonus) || 5;
-            pointsConfig.koRound32 = parseInt(pointsConfig.koRound32) || 8;
-            pointsConfig.koRound16 = parseInt(pointsConfig.koRound16) || 12;
-            pointsConfig.koQF = parseInt(pointsConfig.koQF) || 16;
-            pointsConfig.koSF = parseInt(pointsConfig.koSF) || 20;
-            pointsConfig.koFinal = parseInt(pointsConfig.koFinal) || 30;
+            pointsConfig.sign = pointsConfig.sign != null ? parseInt(pointsConfig.sign) : 10;
+            pointsConfig.exact = pointsConfig.exact != null ? parseInt(pointsConfig.exact) : 25;
+            pointsConfig.qualify = pointsConfig.qualify != null ? parseInt(pointsConfig.qualify) : 5;
+            pointsConfig.goldenBoot = pointsConfig.goldenBoot != null ? parseInt(pointsConfig.goldenBoot) : 30;
+            pointsConfig.goldenBall = pointsConfig.goldenBall != null ? parseInt(pointsConfig.goldenBall) : 30;
+            pointsConfig.champion = pointsConfig.champion != null ? parseInt(pointsConfig.champion) : 50;
+            pointsConfig.koWinnerBonus = pointsConfig.koWinnerBonus != null ? parseInt(pointsConfig.koWinnerBonus) : 5;
+            pointsConfig.koRound32 = pointsConfig.koRound32 != null ? parseInt(pointsConfig.koRound32) : 8;
+            pointsConfig.koRound16 = pointsConfig.koRound16 != null ? parseInt(pointsConfig.koRound16) : 12;
+            pointsConfig.koQF = pointsConfig.koQF != null ? parseInt(pointsConfig.koQF) : 16;
+            pointsConfig.koSF = pointsConfig.koSF != null ? parseInt(pointsConfig.koSF) : 20;
+            pointsConfig.koFinal = pointsConfig.koFinal != null ? parseInt(pointsConfig.koFinal) : 30;
                             // Cargar distribución de premios
             // Cargar distribución de premios
             const prizeDoc = await getDoc('config/prizes');
@@ -1391,15 +1391,15 @@ function cleanTeamName(str) {
             if (points > 0) {
                 details.push({ type: 'Partido', match: `${homeTeam} vs ${awayTeam}`, realResult: `${rh}-${ra}`, userResult: `${ph}-${pa}`, points });
                 // Bonus por acertar ganador en empate real (KO)
+            if (pointsConfig.koWinnerBonus > 0) {
                 if (m.group === 'KO' && rh === ra && p.winner) {
                     const realWinner = m.homeScore > m.awayScore ? m.home : (m.homeScore < m.awayScore ? m.away : null);
-                    // En empate real, el ganador es el que avanzó (debe venir de Firestore como 'winnerTeam')
-                    // Si no tenemos ese campo, se puede calcular a partir de la siguiente ronda, pero asumimos que el admin lo establece.
                     if (m.winnerTeam && cleanTeamName(p.winner) === cleanTeamName(m.winnerTeam)) {
                         details.push({ type: 'Ganador KO', match: `${homeTeam} vs ${awayTeam}`, points: pointsConfig.koWinnerBonus });
                         total += pointsConfig.koWinnerBonus;
                     }
                 }
+            }
                 total += points;
             }
             // --- NUEVA PUNTUACIÓN: Acertar el equipo que avanza ---
@@ -1985,6 +1985,11 @@ function renderStandings() {
         document.getElementById('rule-qf').textContent = pointsConfig.koQF || 16;
         document.getElementById('rule-sf').textContent = pointsConfig.koSF || 20;
         document.getElementById('rule-final').textContent = pointsConfig.koFinal || 30;
+        document.getElementById('rule-kowinner').textContent = pointsConfig.koWinnerBonus || 0;
+const kowinnerLi = document.getElementById('rule-kowinner-li');
+if (kowinnerLi) {
+    kowinnerLi.style.display = pointsConfig.koWinnerBonus > 0 ? '' : 'none';
+}
     }
     function renderAdmin() {
         if (!adminLogged) return;
