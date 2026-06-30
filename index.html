@@ -2492,12 +2492,25 @@ document.getElementById('save-special-picks-btn').addEventListener('click', asyn
         alert('Error: ' + err.message);
     }
 });
-
+        
         document.getElementById('save-results-btn').addEventListener('click', () => {
             if (!adminLogged) return;
             matches.forEach(m => {
-                const rh = document.getElementById('rh-'+m.id), ra = document.getElementById('ra-'+m.id);
-                if (rh && ra && rh.value !== '' && ra.value !== '') { m.homeScore = parseInt(rh.value); m.awayScore = parseInt(ra.value); }
+                const rh = document.getElementById('rh-' + m.id);
+                const ra = document.getElementById('ra-' + m.id);
+                if (rh && ra && rh.value !== '' && ra.value !== '') {
+                    m.homeScore = parseInt(rh.value);
+                    m.awayScore = parseInt(ra.value);
+                }
+                // 🆕 Capturar ganador en partidos KO
+                if (m.group === 'KO') {
+                    const winnerSel = document.getElementById('rw-' + m.id);
+                    if (winnerSel && m.homeScore === m.awayScore) {
+                        m.winnerTeam = winnerSel.value || null;
+                    } else {
+                        m.winnerTeam = null; // si no hay empate, no debe haber ganador forzado
+                    }
+                }
             });
             saveResults();
             updateGenerateKOButton();
