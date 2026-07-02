@@ -147,25 +147,25 @@ const KO_ADVANCE_MAP = {
 
     // ========== 1. REPARAR GRUPO, RONDA Y FECHA ==========
     const KO_DEFAULTS = {
-      73: { round: 'Dieciseisavos', date: '2026-06-28T19:00:00Z' },
-      74: { round: 'Dieciseisavos', date: '2026-06-29T17:00:00Z' },
-      75: { round: 'Dieciseisavos', date: '2026-06-29T20:30:00Z' },
+      73: { round: 'Dieciseisavos', date: '2026-06-29T19:00:00Z' },
+      74: { round: 'Dieciseisavos', date: '2026-06-29T16:00:00Z' },
+      75: { round: 'Dieciseisavos', date: '2026-06-30T19:30:00Z' },
       76: { round: 'Dieciseisavos', date: '2026-06-30T01:00:00Z' },
       77: { round: 'Dieciseisavos', date: '2026-06-30T17:00:00Z' },
       78: { round: 'Dieciseisavos', date: '2026-06-30T21:00:00Z' },
       79: { round: 'Dieciseisavos', date: '2026-07-01T01:00:00Z' },
       80: { round: 'Dieciseisavos', date: '2026-07-01T16:00:00Z' },
-      81: { round: 'Dieciseisavos', date: '2026-07-01T20:00:00Z' },
-      82: { round: 'Dieciseisavos', date: '2026-07-02T00:00:00Z' },
-      83: { round: 'Dieciseisavos', date: '2026-07-02T19:00:00Z' },
-      84: { round: 'Dieciseisavos', date: '2026-07-02T23:00:00Z' },
+      81: { round: 'Dieciseisavos', date: '2026-07-02T00:00:00Z' },
+      82: { round: 'Dieciseisavos', date: '2026-07-01T20:00:00Z' },
+      83: { round: 'Dieciseisavos', date: '2026-07-02T23:00:00Z' },
+      84: { round: 'Dieciseisavos', date: '2026-07-02T19:00:00Z' },
       85: { round: 'Dieciseisavos', date: '2026-07-03T03:00:00Z' },
-      86: { round: 'Dieciseisavos', date: '2026-07-03T18:00:00Z' },
-      87: { round: 'Dieciseisavos', date: '2026-07-03T22:00:00Z' },
-      88: { round: 'Dieciseisavos', date: '2026-07-04T01:30:00Z' },
-      89: { round: 'Octavos',      date: '2026-07-04T17:00:00Z' },
-      90: { round: 'Octavos',      date: '2026-07-04T21:00:00Z' },
-      91: { round: 'Octavos',      date: '2026-07-05T19:00:00Z' },
+      86: { round: 'Dieciseisavos', date: '2026-07-03T22:00:00Z' },
+      87: { round: 'Dieciseisavos', date: '2026-07-04T01:30:00Z' },
+      88: { round: 'Dieciseisavos', date: '2026-07-03T18:00:00Z' },
+      89: { round: 'Octavos',      date: '2026-07-04T21:00:00Z' },
+      90: { round: 'Octavos',      date: '2026-07-04T17:00:00Z' },
+      91: { round: 'Octavos',      date: '2026-07-05T20:00:00Z' },
       92: { round: 'Octavos',      date: '2026-07-06T00:00:00Z' },
       93: { round: 'Octavos',      date: '2026-07-06T19:00:00Z' },
       94: { round: 'Octavos',      date: '2026-07-07T00:00:00Z' },
@@ -178,7 +178,7 @@ const KO_ADVANCE_MAP = {
       101:{ round: 'Semifinales',  date: '2026-07-14T19:00:00Z' },
       102:{ round: 'Semifinales',  date: '2026-07-15T19:00:00Z' },
       103:{ round: '3er Puesto',   date: '2026-07-18T21:00:00Z' },
-      104:{ round: 'Final',        date: '2026-07-19T18:00:00Z' }
+      104:{ round: 'Final',        date: '2026-07-19T19:00:00Z' }
     };
 
     for (const [id, info] of Object.entries(KO_DEFAULTS)) {
