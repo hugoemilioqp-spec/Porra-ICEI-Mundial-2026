@@ -256,6 +256,14 @@ const KO_ADVANCE_MAP = {
       if (!winnerTeam && apiMatch.winner) {
         winnerTeam = translateToSpanish(apiMatch.winner);
       }
+            // ---- CORREGIR MARCADOR SI HAY PRÓRROGA (usar solo goles hasta el minuto 90) ----
+      if (apiMatch.extraTime && Array.isArray(apiMatch.goals)) {
+        const regHomeGoals = apiMatch.goals.filter(g => g.team === 'home' && parseInt(g.minute) <= 90).length;
+        const regAwayGoals = apiMatch.goals.filter(g => g.team === 'away' && parseInt(g.minute) <= 90).length;
+        homeScore = regHomeGoals;
+        awayScore = regAwayGoals;
+      }
+      // ------------------------------------------------------------
 
       let match = firestoreMatches.find(m => {
         return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
