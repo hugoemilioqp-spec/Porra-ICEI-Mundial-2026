@@ -277,6 +277,34 @@
     .bracket-col.qf  .bracket-match { margin: 28px 0; }
     .bracket-col.sf  .bracket-match { margin: 60px 0; }
 }
+        .pool-round-header {
+    background: var(--bg-secondary);
+    color: var(--gold-light);
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    margin-top: 6px;
+    user-select: none;
+}
+.pool-round-header:hover {
+    background: rgba(240,185,11,0.1);
+}
+.pool-round-body {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 8px;
+}
+.pool-round-body.open {
+    display: block;
+}
     </style>
 
 </head>
@@ -1790,7 +1818,7 @@ if (firstOpen) {
     const icon = firstOpen.previousElementSibling?.querySelector('i');
     if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
 }
-    // --- ELIMINATORIAS (pendientes primero, luego bloqueadas) ---
+    // --- ELIMINATORIAS (acordeón por ronda) ---
     html += '<h3 class="mt-3">Eliminatorias</h3>';
     const koMatches = matches
         .filter(m => m.group === 'KO')
@@ -1804,7 +1832,13 @@ if (firstOpen) {
     ['Dieciseisavos', 'Octavos', 'Cuartos', 'Semifinales', '3er Puesto', 'Final'].forEach(round => {
         const roundMatches = koMatches.filter(m => m.round === round);
         if (roundMatches.length === 0) return;
-        html += `<div class="group-header">🏟️ ${round}</div>`;
+        html += `<div class="pool-round-header" onclick="togglePoolRound(this)">
+                    <span>🏟️ ${round}</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                 </div>`;
+        html += `<div class="pool-round-body">
+                    <table style="width:100%;">
+                        <tr><th>Partido</th><th>Tu pronóstico</th></tr>`;
         roundMatches.forEach(m => {
             const p = preds[m.id] || {};
             const homeTeam = m.home;
@@ -1812,25 +1846,38 @@ if (firstOpen) {
             const score = (m.homeScore !== null) ? `${m.homeScore} - ${m.awayScore}` : 'vs';
             const tie = (p.homeScore === p.awayScore && p.homeScore !== '' && p.awayScore !== '');
             const dis = (m.homeScore !== null || now >= new Date(m.date)) ? 'disabled' : '';
-            html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.8rem;flex-wrap:wrap;">
-                <span style="min-width:40px;">${new Date(m.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
-                <span style="flex:1;">${homeTeam} ${score} ${awayTeam}</span>`;
+            html += `<tr>
+                        <td style="white-space:nowrap;">${teamFlag(homeTeam)} ${score} ${teamFlag(awayTeam)}</td>
+                        <td style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">`;
             if (homeTeam !== 'Por definir' && awayTeam !== 'Por definir') {
-                html += `<span style="display:flex;align-items:center;gap:4px;">
-                    <input class="small-input" id="ph-${m.id}" value="${p.homeScore || ''}" ${dis} style="width:35px;">
-                    <span>-</span>
-                    <input class="small-input" id="pa-${m.id}" value="${p.awayScore || ''}" ${dis} style="width:35px;">
-                </span>`;
+                html += `<input class="small-input" id="ph-${m.id}" value="${p.homeScore || ''}" ${dis} style="width:35px;">
+                         <span>-</span>
+                         <input class="small-input" id="pa-${m.id}" value="${p.awayScore || ''}" ${dis} style="width:35px;">`;
                 if (!dis) {
                     html += `<select id="winner-${m.id}" style="width:120px;margin-left:8px;${tie ? '' : 'display:none;'}">
-                        <option value="">Ganador</option>
-                        <option value="${homeTeam}" ${p.winner === homeTeam ? 'selected' : ''}>${homeTeam}</option>
-                        <option value="${awayTeam}" ${p.winner === awayTeam ? 'selected' : ''}>${awayTeam}</option>
-                    </select>`;
+                                <option value="">Ganador</option>
+                                <option value="${homeTeam}" ${p.winner === homeTeam ? 'selected' : ''}>${homeTeam}</option>
+                                <option value="${awayTeam}" ${p.winner === awayTeam ? 'selected' : ''}>${awayTeam}</option>
+                             </select>`;
                 }
             }
-            html += '</div>';
+            html += `</td></tr>`;
         });
+        html += '</table></div>';
+    });
+
+    // Abrir automáticamente la primera ronda que tenga partidos no bloqueados
+    const koHeaders = document.querySelectorAll('.pool-round-header');
+    koHeaders.forEach(header => {
+        const body = header.nextElementSibling;
+        if (body && body.classList.contains('pool-round-body')) {
+            const inputs = body.querySelectorAll('input:not([disabled])');
+            if (inputs.length > 0 && !body.classList.contains('open')) {
+                body.classList.add('open');
+                const icon = header.querySelector('i');
+                if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+            }
+        }
     });
 
     document.getElementById('prediction-form').innerHTML = html;
