@@ -230,6 +230,9 @@ const KO_ADVANCE_MAP = {
     if (!apiData.data) throw new Error('Formato inesperado');
 
     let updatedCount = 0;
+        console.log(`Total partidos en API: ${apiData.data.length}`);
+    const finishedMatches = apiData.data.filter(m => m.status === 'finished' || m.status === 'live');
+    console.log(`Partidos finalizados/en vivo: ${finishedMatches.length}`);
     for (const apiMatch of apiData.data) {
       if (apiMatch.status !== 'finished' && apiMatch.status !== 'live') continue;
       if (!apiMatch.homeTeam || !apiMatch.awayTeam) continue;
@@ -265,16 +268,20 @@ const KO_ADVANCE_MAP = {
       }
       // ------------------------------------------------------------
 
-      let match = firestoreMatches.find(m => {
-        return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
-               (m.homeClean === apiAwayClean && m.awayClean === apiHomeClean);
-      });
+      // Buscar por número de partido (más fiable) o por nombres
+      let match = null;
+      if (apiMatch.matchNo) {
+        const apiId = parseInt(apiMatch.matchNo);
+        match = firestoreMatches.find(m => m.id === apiId);
+      }
+      if (!match) {
+        // Fallback: buscar por nombres limpios
+        match = firestoreMatches.find(m => {
+          return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
+                 (m.homeClean === apiAwayClean && m.awayClean === apiHomeClean);
+        });
+      }
       if (!match) { console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`); continue; }
-
-      if (match.homeClean !== apiHomeClean) {
-        if (homeScore !== null && awayScore !== null) {
-          [homeScore, awayScore] = [awayScore, homeScore];
-        }
       }
 
       const fields = {};
