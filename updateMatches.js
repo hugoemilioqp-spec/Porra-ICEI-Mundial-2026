@@ -347,7 +347,6 @@ const KO_ADVANCE_MAP = {
         const match = firestoreMatches.find(m => m.id === apiId);
         if (!match) { console.warn(`⚠️ No emparejó por matchNo: ${apiMatch.matchNo}`); continue; }
 
-        // Solo actualizamos scores, status, liveMinute, extraTime, penalties
         const fields = {};
         let hasChanged = false;
 
@@ -398,7 +397,8 @@ const KO_ADVANCE_MAP = {
           match.homeScore = homeScore;
           match.awayScore = awayScore;
         } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
-      }
+      } // cierre del else if
+    } // cierre del for
 
     console.log(`Actualizados ${updatedCount} partidos.`);
     
