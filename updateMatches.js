@@ -231,117 +231,174 @@ const KO_ADVANCE_MAP = {
 
     let updatedCount = 0;
     for (const apiMatch of apiData.data) {
+      // Saltamos solo si no hay estado válido
       if (apiMatch.status !== 'finished' && apiMatch.status !== 'live') continue;
-      if (!apiMatch.homeTeam || !apiMatch.awayTeam) continue;
 
-      const apiHome = translateToSpanish(apiMatch.homeTeam);
-      const apiAway = translateToSpanish(apiMatch.awayTeam);
-      const apiHomeClean = cleanName(apiHome);
-      const apiAwayClean = cleanName(apiAway);
-
-      let homeScore = apiMatch.homeScore ?? null;
-      let awayScore = apiMatch.awayScore ?? null;
       const status = apiMatch.status;
       const liveMinute = apiMatch.liveMinute ?? null;
       const extraTime = apiMatch.extraTime || false;
       const penalties = apiMatch.penalties || null;
+      let homeScore = apiMatch.homeScore ?? null;
+      let awayScore = apiMatch.awayScore ?? null;
 
-      let winnerTeam = null;
-      if (penalties && penalties.home !== undefined && penalties.away !== undefined) {
-        winnerTeam = (penalties.home > penalties.away) ? apiHome : apiAway;
-      }
-      if (!winnerTeam && homeScore !== null && awayScore !== null && homeScore !== awayScore) {
-        winnerTeam = homeScore > awayScore ? apiHome : apiAway;
-      }
-      if (!winnerTeam && apiMatch.winner) {
-        winnerTeam = translateToSpanish(apiMatch.winner);
-      }
-      // ---- CORREGIR MARCADOR SI HAY PRÓRROGA (usar solo goles hasta el minuto 90) ----
-      if (apiMatch.extraTime && Array.isArray(apiMatch.goals)) {
-        const regHomeGoals = apiMatch.goals.filter(g => g.team === 'home' && parseInt(g.minute) <= 90).length;
-        const regAwayGoals = apiMatch.goals.filter(g => g.team === 'away' && parseInt(g.minute) <= 90).length;
-        homeScore = regHomeGoals;
-        awayScore = regAwayGoals;
-      }
-      // ------------------------------------------------------------
+      // CASO 1: API proporciona nombres de equipo
+      if (apiMatch.homeTeam && apiMatch.awayTeam) {
+        const apiHome = translateToSpanish(apiMatch.homeTeam);
+        const apiAway = translateToSpanish(apiMatch.awayTeam);
+        const apiHomeClean = cleanName(apiHome);
+        const apiAwayClean = cleanName(apiAway);
 
-      // Buscar por número de partido (más fiable) o por nombres
-      let match = null;
-      if (apiMatch.matchNo) {
-        const apiId = parseInt(apiMatch.matchNo);
-        match = firestoreMatches.find(m => m.id === apiId);
-      }
-      if (!match) {
-        // Fallback: buscar por nombres limpios
-        match = firestoreMatches.find(m => {
-          return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
-                 (m.homeClean === apiAwayClean && m.awayClean === apiHomeClean);
-        });
-      }
-      if (!match) { console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`); continue; }
-
-      if (match.homeClean !== apiHomeClean) {
-        if (homeScore !== null && awayScore !== null) {
-          [homeScore, awayScore] = [awayScore, homeScore];
+        let winnerTeam = null;
+        if (penalties && penalties.home !== undefined && penalties.away !== undefined) {
+          winnerTeam = (penalties.home > penalties.away) ? apiHome : apiAway;
         }
-      }
+        if (!winnerTeam && homeScore !== null && awayScore !== null && homeScore !== awayScore) {
+          winnerTeam = homeScore > awayScore ? apiHome : apiAway;
+        }
+        if (!winnerTeam && apiMatch.winner) {
+          winnerTeam = translateToSpanish(apiMatch.winner);
+        }
+        if (apiMatch.extraTime && Array.isArray(apiMatch.goals)) {
+          const regHomeGoals = apiMatch.goals.filter(g => g.team === 'home' && parseInt(g.minute) <= 90).length;
+          const regAwayGoals = apiMatch.goals.filter(g => g.team === 'away' && parseInt(g.minute) <= 90).length;
+          homeScore = regHomeGoals;
+          awayScore = regAwayGoals;
+        }
 
-      const fields = {};
-      let hasChanged = false;
+        // Buscar por matchNo o nombres
+        let match = null;
+        if (apiMatch.matchNo) {
+          const apiId = parseInt(apiMatch.matchNo);
+          match = firestoreMatches.find(m => m.id === apiId);
+        }
+        if (!match) {
+          match = firestoreMatches.find(m => {
+            return (m.homeClean === apiHomeClean && m.awayClean === apiAwayClean) ||
+                   (m.homeClean === apiAwayClean && m.awayClean === apiHomeClean);
+          });
+        }
+        if (!match) { console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`); continue; }
 
-      if (match.homeScore !== homeScore || match.awayScore !== awayScore) {
-        fields.homeScore = toFirestoreValue(homeScore);
-        fields.awayScore = toFirestoreValue(awayScore);
-        hasChanged = true;
-      }
-      if (match.matchStatus !== status) {
-        fields.matchStatus = { stringValue: status };
-        hasChanged = true;
-      }
-      if (status === 'live' && liveMinute !== match.liveMinute) {
-        fields.liveMinute = toFirestoreValue(liveMinute);
-        hasChanged = true;
-      }
-      if (extraTime !== match.extraTime) {
-        fields.extraTime = { booleanValue: extraTime };
-        hasChanged = true;
-      }
-      if (penalties) {
-        fields.penalties = penalties ? {
-          mapValue: {
-            fields: {
-              home: { integerValue: penalties.home || 0 },
-              away: { integerValue: penalties.away || 0 }
-            }
+        if (match.homeClean !== apiHomeClean) {
+          if (homeScore !== null && awayScore !== null) {
+            [homeScore, awayScore] = [awayScore, homeScore];
           }
-        } : { nullValue: null };
-        hasChanged = true;
+        }
+
+        const fields = {};
+        let hasChanged = false;
+
+        if (match.homeScore !== homeScore || match.awayScore !== awayScore) {
+          fields.homeScore = toFirestoreValue(homeScore);
+          fields.awayScore = toFirestoreValue(awayScore);
+          hasChanged = true;
+        }
+        if (match.matchStatus !== status) {
+          fields.matchStatus = { stringValue: status };
+          hasChanged = true;
+        }
+        if (status === 'live' && liveMinute !== match.liveMinute) {
+          fields.liveMinute = toFirestoreValue(liveMinute);
+          hasChanged = true;
+        }
+        if (extraTime !== match.extraTime) {
+          fields.extraTime = { booleanValue: extraTime };
+          hasChanged = true;
+        }
+        if (penalties) {
+          fields.penalties = penalties ? {
+            mapValue: {
+              fields: {
+                home: { integerValue: penalties.home || 0 },
+                away: { integerValue: penalties.away || 0 }
+              }
+            }
+          } : { nullValue: null };
+          hasChanged = true;
+        }
+        if (winnerTeam) {
+          fields.winnerTeam = { stringValue: winnerTeam };
+          hasChanged = true;
+        }
+
+        if (!hasChanged) continue;
+
+        const updateMask = Object.keys(fields).join('&updateMask.fieldPaths=');
+        const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=${updateMask}`;
+        const body = { fields };
+
+        try {
+          const updResp = await fetch(updateUrl, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body)
+          });
+          if (!updResp.ok) { console.error(`❌ Error ${match.id}: ${updResp.status}`); continue; }
+          console.log(`✔ ${apiHome} vs ${apiAway} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}] ${winnerTeam ? '(Ganador: ' + winnerTeam + ')' : ''}`);
+          updatedCount++;
+          match.homeScore = homeScore;
+          match.awayScore = awayScore;
+          match.winnerTeam = winnerTeam || match.winnerTeam;
+        } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
+
+      // CASO 2: API no proporciona nombres de equipo (solo matchNo y scores)
+      } else if (apiMatch.matchNo) {
+        const apiId = parseInt(apiMatch.matchNo);
+        const match = firestoreMatches.find(m => m.id === apiId);
+        if (!match) { console.warn(`⚠️ No emparejó por matchNo: ${apiMatch.matchNo}`); continue; }
+
+        // Solo actualizamos scores, status, liveMinute, extraTime, penalties
+        const fields = {};
+        let hasChanged = false;
+
+        if (match.homeScore !== homeScore || match.awayScore !== awayScore) {
+          fields.homeScore = toFirestoreValue(homeScore);
+          fields.awayScore = toFirestoreValue(awayScore);
+          hasChanged = true;
+        }
+        if (match.matchStatus !== status) {
+          fields.matchStatus = { stringValue: status };
+          hasChanged = true;
+        }
+        if (status === 'live' && liveMinute !== match.liveMinute) {
+          fields.liveMinute = toFirestoreValue(liveMinute);
+          hasChanged = true;
+        }
+        if (extraTime !== match.extraTime) {
+          fields.extraTime = { booleanValue: extraTime };
+          hasChanged = true;
+        }
+        if (penalties) {
+          fields.penalties = penalties ? {
+            mapValue: {
+              fields: {
+                home: { integerValue: penalties.home || 0 },
+                away: { integerValue: penalties.away || 0 }
+              }
+            }
+          } : { nullValue: null };
+          hasChanged = true;
+        }
+
+        if (!hasChanged) continue;
+
+        const updateMask = Object.keys(fields).join('&updateMask.fieldPaths=');
+        const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=${updateMask}`;
+        const body = { fields };
+
+        try {
+          const updResp = await fetch(updateUrl, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body)
+          });
+          if (!updResp.ok) { console.error(`❌ Error ${match.id}: ${updResp.status}`); continue; }
+          console.log(`✔ M${apiId} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}]`);
+          updatedCount++;
+          match.homeScore = homeScore;
+          match.awayScore = awayScore;
+        } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
       }
-      if (winnerTeam) {
-        fields.winnerTeam = { stringValue: winnerTeam };
-        hasChanged = true;
-      }
-
-      if (!hasChanged) continue;
-
-      const updateMask = Object.keys(fields).join('&updateMask.fieldPaths=');
-      const updateUrl = `${BASE_URL}/matches/${match.id}?updateMask.fieldPaths=${updateMask}`;
-      const body = { fields };
-
-      try {
-        const updResp = await fetch(updateUrl, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify(body)
-        });
-        if (!updResp.ok) { console.error(`❌ Error ${match.id}: ${updResp.status}`); continue; }
-        console.log(`✔ ${apiHome} vs ${apiAway} → ${homeScore ?? '?'}-${awayScore ?? '?'} [${status}] ${winnerTeam ? '(Ganador: ' + winnerTeam + ')' : ''}`);
-        updatedCount++;
-        match.homeScore = homeScore;
-        match.awayScore = awayScore;
-        match.winnerTeam = winnerTeam || match.winnerTeam;
-      } catch (err) { console.error(`❌ Excepción ${match.id}: ${err.message}`); }
-    }
 
     console.log(`Actualizados ${updatedCount} partidos.`);
     
