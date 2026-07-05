@@ -230,9 +230,6 @@ const KO_ADVANCE_MAP = {
     if (!apiData.data) throw new Error('Formato inesperado');
 
     let updatedCount = 0;
-        console.log(`Total partidos en API: ${apiData.data.length}`);
-    const finishedMatches = apiData.data.filter(m => m.status === 'finished' || m.status === 'live');
-    console.log(`Partidos finalizados/en vivo: ${finishedMatches.length}`);
     for (const apiMatch of apiData.data) {
       if (apiMatch.status !== 'finished' && apiMatch.status !== 'live') continue;
       if (!apiMatch.homeTeam || !apiMatch.awayTeam) continue;
@@ -259,7 +256,7 @@ const KO_ADVANCE_MAP = {
       if (!winnerTeam && apiMatch.winner) {
         winnerTeam = translateToSpanish(apiMatch.winner);
       }
-            // ---- CORREGIR MARCADOR SI HAY PRÓRROGA (usar solo goles hasta el minuto 90) ----
+      // ---- CORREGIR MARCADOR SI HAY PRÓRROGA (usar solo goles hasta el minuto 90) ----
       if (apiMatch.extraTime && Array.isArray(apiMatch.goals)) {
         const regHomeGoals = apiMatch.goals.filter(g => g.team === 'home' && parseInt(g.minute) <= 90).length;
         const regAwayGoals = apiMatch.goals.filter(g => g.team === 'away' && parseInt(g.minute) <= 90).length;
@@ -282,6 +279,11 @@ const KO_ADVANCE_MAP = {
         });
       }
       if (!match) { console.warn(`⚠️ No emparejó: ${apiHome} vs ${apiAway}`); continue; }
+
+      if (match.homeClean !== apiHomeClean) {
+        if (homeScore !== null && awayScore !== null) {
+          [homeScore, awayScore] = [awayScore, homeScore];
+        }
       }
 
       const fields = {};
@@ -342,7 +344,7 @@ const KO_ADVANCE_MAP = {
     }
 
     console.log(`Actualizados ${updatedCount} partidos.`);
-
+    
         // Refrescamos los datos antes de evaluar placeholders
     const prePlaceholderResp = await fetch(`${BASE_URL}/matches?pageSize=200`, {
       headers: { 'Authorization': `Bearer ${token}` }
