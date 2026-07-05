@@ -336,6 +336,20 @@ const KO_ADVANCE_MAP = {
 
     console.log(`Actualizados ${updatedCount} partidos.`);
 
+        // Refrescamos los datos antes de evaluar placeholders
+    const prePlaceholderResp = await fetch(`${BASE_URL}/matches?pageSize=200`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const prePlaceholderData = await prePlaceholderResp.json();
+    const currentMatches = (prePlaceholderData.documents || []).map(doc => {
+      const f = doc.fields || {};
+      return {
+        id: parseInt(doc.name.split('/').pop()),
+        homeRaw: f.home?.stringValue || '',
+        awayRaw: f.away?.stringValue || ''
+      };
+    });
+
     // ========== 4. PLACEHOLDERS (SOLO SI AMBOS SON PLACEHOLDER) ==========
     const KO_PLACEHOLDERS = {
       89: { home: 'Ganador M73', away: 'Ganador M75' },
@@ -362,7 +376,7 @@ const KO_ADVANCE_MAP = {
 
     for (const [idStr, teams] of Object.entries(KO_PLACEHOLDERS)) {
       const matchId = parseInt(idStr);
-      const match = firestoreMatches.find(m => m.id == matchId);
+      const match = currentMatches.find(m => m.id == matchId);
       if (!match) continue;
       if (!isPlaceholder(match.homeRaw) || !isPlaceholder(match.awayRaw)) continue;
 
