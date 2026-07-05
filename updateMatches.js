@@ -344,7 +344,41 @@ const KO_ADVANCE_MAP = {
       // CASO 2: API no proporciona nombres de equipo (solo matchNo y scores)
       } else if (apiMatch.matchNo) {
         const apiId = parseInt(apiMatch.matchNo);
-        const match = firestoreMatches.find(m => m.id === apiId);
+        let match = firestoreMatches.find(m => m.id === apiId);
+        // Si no lo encontramos en la caché, lo leemos directamente
+        if (!match) {
+          try {
+            const docUrl = `${BASE_URL}/matches/${apiId}`;
+            const docResp = await fetch(docUrl, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (docResp.ok) {
+              const docData = await docResp.json();
+              const f = docData.fields || {};
+              match = {
+                id: apiId,
+                homeRaw: f.home?.stringValue || '',
+                awayRaw: f.away?.stringValue || '',
+                homeClean: cleanName(f.home?.stringValue || ''),
+                awayClean: cleanName(f.away?.stringValue || ''),
+                round: f.round?.stringValue || '',
+                group: f.group?.stringValue || '',
+                homeScore: f.homeScore?.integerValue != null ? parseInt(f.homeScore.integerValue) : null,
+                awayScore: f.awayScore?.integerValue != null ? parseInt(f.awayScore.integerValue) : null,
+                matchStatus: f.matchStatus?.stringValue || null,
+                liveMinute: f.liveMinute?.integerValue != null ? parseInt(f.liveMinute.integerValue) : null,
+                extraTime: f.extraTime?.booleanValue || false,
+                winnerTeam: f.winnerTeam?.stringValue || null
+              };
+              // También lo añadimos a firestoreMatches para futuros ciclos
+              firestoreMatches.push(match);
+            } else {
+              console.warn(`⚠️ No se pudo leer directamente M${apiId}: ${docResp.status}`);
+            }
+          } catch (err) {
+            console.warn(`⚠️ Error leyendo directamente M${apiId}: ${err.message}`);
+          }
+        }
         if (!match) { console.warn(`⚠️ No emparejó por matchNo: ${apiMatch.matchNo}`); continue; }
 
         const fields = {};
