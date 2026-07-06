@@ -305,6 +305,50 @@
 .pool-round-body.open {
     display: block;
 }
+        /* ===== MODAL DE AVISO PREMIOS ===== */
+.premios-modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.premios-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 500px;
+    text-align: center;
+    color: var(--text);
+    box-shadow: 0 0 30px rgba(240,185,11,0.3);
+}
+.premios-modal h2 {
+    color: var(--gold-light);
+    margin-bottom: 12px;
+}
+.premios-modal p {
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+.premios-modal .btn-aceptar {
+    background: var(--gold);
+    color: #000;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+.premios-modal .btn-aceptar:hover {
+    filter: brightness(1.15);
+}
     </style>
 
 </head>
@@ -959,6 +1003,36 @@ const groupStage = [
 }
     const DEFAULT_MATCHES = buildMatchDates();
 
+    function showPremiosWarning() {
+    // Comprobar si los cuartos ya terminaron
+    const qfFinished = matches
+        .filter(m => m.group === 'KO' && m.round === 'Cuartos')
+        .every(m => m.homeScore !== null && m.awayScore !== null);
+
+    if (qfFinished) return; // No mostrar si ya terminaron
+
+    // Crear overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'premios-modal-overlay';
+    overlay.innerHTML = `
+        <div class="premios-modal">
+            <h2>⚠️ Bloqueo de premios especiales</h2>
+            <p>
+                Los <strong>premios especiales</strong> (Bota de Oro, Balón de Oro y Campeón) 
+                se <strong>bloquearán automáticamente</strong> cuando terminen los cuartos de final.<br>
+                Asegúrate de guardar tus elecciones en <strong>"Mi Porra"</strong> antes de esa fecha.
+            </p>
+            <button class="btn-aceptar" id="btn-cerrar-premios-modal">Entendido</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Cerrar al hacer clic
+    document.getElementById('btn-cerrar-premios-modal').addEventListener('click', () => {
+        overlay.remove();
+    });
+}
+    
     async function refreshAllData() {
         try {
             const matchesDocs = await getDocs('matches', 200);
@@ -2409,11 +2483,13 @@ if (savedAdminToken) {
     const adminPanel = document.getElementById('admin-panel');
     if (adminPanel) adminPanel.style.display = 'block';
 }
-        refreshAllData().then(() => {
-            if (document.getElementById('tab-dashboard').classList.contains('active')) {
-                startCountdown();
-            }
-        });
+refreshAllData().then(() => {
+    if (document.getElementById('tab-dashboard').classList.contains('active')) {
+        startCountdown();
+    }
+    // Mostrar aviso emergente si procede
+    showPremiosWarning();
+});
 
         currentPlayer = '';
         sessionValid = false;
