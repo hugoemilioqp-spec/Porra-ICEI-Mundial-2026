@@ -1021,6 +1021,7 @@ const groupStage = [
                 Los <strong>premios especiales</strong> (Bota de Oro, Balón de Oro y Campeón) 
                 se <strong>bloquearán automáticamente</strong> cuando inicien los cuartos de final.<br>
                 Asegúrate de guardar tus elecciones en <strong>"Mi Porra"</strong> antes de esa fecha.
+                Se pueden modificar hasta dicha fecha.
             </p>
             <button class="btn-aceptar" id="btn-cerrar-premios-modal">Entendido</button>
         </div>
@@ -1094,6 +1095,21 @@ const groupStage = [
             actualWinners = (await getDoc('config/winners')) || actualWinners;
             const codesDocs = await getDocs('accessCodes', 200);
             accessCodes = codesDocs.map(doc => ({ code: doc.id, usedBy: doc.usedBy }));
+            // Bloquear automáticamente los premios especiales si los cuartos ya terminaron
+            const qfFinished = matches
+                .filter(m => m.group === 'KO' && m.round === 'Cuartos')
+                .every(m => m.homeScore !== null && m.awayScore !== null);
+            if (qfFinished) {
+                for (const [player, preds] of Object.entries(predictions)) {
+                    if (!preds._picksLocked) {
+                        await firestoreRequest('PATCH',
+                            `predictions/${player}?updateMask.fieldPaths=_picksLocked`,
+                            { fields: { _picksLocked: { booleanValue: true } } }
+                        );
+                        preds._picksLocked = true;
+                    }
+                }
+            }
             dataLoaded = true;
             renderAllPanels();
             updateGenerateKOButton();
@@ -1565,30 +1581,51 @@ if (m.group === 'KO' && m.round !== '3er Puesto') {
         return { total, details };
     }
 
-    function renderSpecialPicks() {
-        const panel = document.getElementById('special-picks-panel');
-        if (!currentPlayer || !sessionValid) { if (panel) panel.style.display = 'none'; return; }
-        panel.style.display = 'block';
-        const preds = predictions[currentPlayer] || {};
-        const locked = preds._picksLocked === true;
-        document.getElementById('golden-boot-pick').disabled = locked;
-        document.getElementById('golden-ball-pick').disabled = locked;
-        document.getElementById('champion-pick').disabled = locked;
-        document.getElementById('save-special-picks-btn').disabled = locked;
-        document.getElementById('picks-locked-msg').style.display = locked ? 'block' : 'none';
-        document.getElementById('golden-boot-pick').value = preds.goldenBoot || '';
-        document.getElementById('golden-ball-pick').value = preds.goldenBall || '';
-        document.getElementById('champion-pick').value = preds.champion || '';
-        const updateBtn = () => {
-            if (locked) { document.getElementById('save-special-picks-btn').disabled = true; return; }
-            const hasValue = document.getElementById('golden-boot-pick').value.trim() !== '' || document.getElementById('golden-ball-pick').value.trim() !== '' || document.getElementById('champion-pick').value !== '';
-            document.getElementById('save-special-picks-btn').disabled = !hasValue;
-        };
-        updateBtn();
-        document.getElementById('golden-boot-pick').oninput = updateBtn;
-        document.getElementById('golden-ball-pick').oninput = updateBtn;
-        document.getElementById('champion-pick').onchange = updateBtn;
+function renderSpecialPicks() {
+    const panel = document.getElementById('special-picks-panel');
+    if (!currentPlayer || !sessionValid) {
+        if (panel) panel.style.display = 'none';
+        return;
     }
+    panel.style.display = 'block';
+    const preds = predictions[currentPlayer] || {};
+
+    // Determinar si los cuartos ya terminaron
+    const qfFinished = matches
+        .filter(m => m.group === 'KO' && m.round === 'Cuartos')
+        .every(m => m.homeScore !== null && m.awayScore !== null);
+
+    const locked = qfFinished;  // solo se bloquea tras los cuartos
+
+    document.getElementById('golden-boot-pick').disabled = locked;
+    document.getElementById('golden-ball-pick').disabled = locked;
+    document.getElementById('champion-pick').disabled = locked;
+    document.getElementById('save-special-picks-btn').disabled = locked;
+
+    document.getElementById('picks-locked-msg').style.display = locked ? 'block' : 'none';
+    if (locked) {
+        document.getElementById('picks-locked-msg').textContent = 'Los premios ya están bloqueados (finalizaron los cuartos de final).';
+    }
+
+    document.getElementById('golden-boot-pick').value = preds.goldenBoot || '';
+    document.getElementById('golden-ball-pick').value = preds.goldenBall || '';
+    document.getElementById('champion-pick').value = preds.champion || '';
+
+    const updateBtn = () => {
+        if (locked) {
+            document.getElementById('save-special-picks-btn').disabled = true;
+            return;
+        }
+        const hasValue = document.getElementById('golden-boot-pick').value.trim() !== '' ||
+                         document.getElementById('golden-ball-pick').value.trim() !== '' ||
+                         document.getElementById('champion-pick').value !== '';
+        document.getElementById('save-special-picks-btn').disabled = !hasValue;
+    };
+    updateBtn();
+    document.getElementById('golden-boot-pick').oninput = updateBtn;
+    document.getElementById('golden-ball-pick').oninput = updateBtn;
+    document.getElementById('champion-pick').onchange = updateBtn;
+}
 
 function renderDashboard() {
     const total = matches.length, played = matches.filter(m => m.homeScore !== null).length, players = Object.keys(predictions).length;
@@ -2615,17 +2652,23 @@ document.getElementById('save-prizes-btn').addEventListener('click', async () =>
         
 document.getElementById('save-special-picks-btn').addEventListener('click', async function() {
     if (!currentPlayer || !sessionValid) return alert('Debes iniciar sesión.');
-    if (!confirm('¿Estás seguro? Una vez bloqueados no podrás modificarlos.')) return;
     if (!predictions[currentPlayer]) predictions[currentPlayer] = {};
+    const qfFinished = matches
+        .filter(m => m.group === 'KO' && m.round === 'Cuartos')
+        .every(m => m.homeScore !== null && m.awayScore !== null);
+    if (qfFinished) {
+        alert('Los premios ya están bloqueados porque los cuartos de final han terminado.');
+        return;
+    }
     this.disabled = true;
     predictions[currentPlayer].goldenBoot = document.getElementById('golden-boot-pick').value;
     predictions[currentPlayer].goldenBall = document.getElementById('golden-ball-pick').value;
     predictions[currentPlayer].champion = document.getElementById('champion-pick').value;
-    predictions[currentPlayer]._picksLocked = true;
+    // Ya no se pone _picksLocked a true
     try {
         await guardarPrediccion(currentPlayer, predictions[currentPlayer]);
         renderSpecialPicks();
-        showToast('Premios bloqueados correctamente.');
+        showToast('Premios guardados correctamente. Se bloquearán automáticamente al terminar los cuartos.');
     } catch (err) {
         this.disabled = false;
         alert('Error: ' + err.message);
