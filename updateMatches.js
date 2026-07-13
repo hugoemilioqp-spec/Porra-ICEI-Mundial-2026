@@ -58,6 +58,12 @@ const TEAM_MAP = {
   "panama": "Panamá",
   "ghana": "Ghana"
 };
+const getWinnerRawName = (match, cleanWinner) => {
+  if (!cleanWinner) return null;
+  if (cleanName(match.homeRaw) === cleanWinner) return match.homeRaw;
+  if (cleanName(match.awayRaw) === cleanWinner) return match.awayRaw;
+  return cleanWinner; // fallback
+};
 
 const cleanName = (str) => {
   if (!str) return '';
@@ -257,6 +263,9 @@ const KO_ADVANCE_MAP = {
         }
         if (!winnerTeam && apiMatch.winner) {
           winnerTeam = translateToSpanish(apiMatch.winner);
+        }
+        if (winnerTeam) {
+          winnerTeam = getWinnerRawName(match, winnerTeam);
         }
         if (apiMatch.extraTime && Array.isArray(apiMatch.goals)) {
           const regHomeGoals = apiMatch.goals.filter(g => g.team === 'home' && parseInt(g.minute) <= 90).length;
