@@ -491,7 +491,8 @@
                 <li><i class="fa-solid fa-arrow-right"></i> Avanza a cuartos (R16): <span id="rule-round16">12</span> pts</li>
                 <li><i class="fa-solid fa-arrow-right"></i> Avanza a semifinales (QF): <span id="rule-qf">16</span> pts</li>
                 <li><i class="fa-solid fa-arrow-right"></i> Avanza a final (SF): <span id="rule-sf">20</span> pts</li>
-                <li><i class="fa-solid fa-arrow-right"></i> Campeón del partido (Final): <span id="rule-final">30</span> pts</li>
+                <li><i class="fa-solid fa-arrow-right"></i> Tercer puesto: <span id="rule-final">30</span> pts</li>
+                <li><i class="fa-solid fa-arrow-right"></i> Campeón del partido (Final): <span id="rule-final">35</span> pts</li>
             </ul>
             <p class="text-muted mt-2">No se otorgan puntos por diferencia de goles.</p>
         </div>
@@ -587,7 +588,9 @@
                         <div><label>R16 (12)</label><input type="number" id="pts-round16" value="12" style="width:50px;"></div>
                         <div><label>QF (16)</label><input type="number" id="pts-qf" value="16" style="width:50px;"></div>
                         <div><label>SF (20)</label><input type="number" id="pts-sf" value="20" style="width:50px;"></div>
-                        <div><label>Final (30)</label><input type="number" id="pts-final" value="30" style="width:50px;"></div>
+                        <div><label>3er Puesto</label><input type="number" id="pts-thirdplace" value="30" style="width:50px;"></div>
+                        <div><label>Final (30)</label><input type="number" id="pts-final" value="35" style="width:50px;"></div>
+                        
                     </div>
                 </div>
                                 <hr>
@@ -814,7 +817,8 @@ const KO_ADVANCE_MAP = {
     koRound16: 12,  // Octavos
     koQF: 16,       // Cuartos
     koSF: 20,       // Semifinales
-    koFinal: 30     // Final (campeón del partido)
+    koThirdPlace: 30,   // Ganador del 3er puesto
+    koFinal: 35     // Final (campeón del partido)
 };
     let actualWinners = { goldenBoot:'', goldenBall:'', champion:'' };
     let currentPlayer = '';
@@ -1081,7 +1085,8 @@ const groupStage = [
             pointsConfig.koRound16 = pointsConfig.koRound16 != null ? parseInt(pointsConfig.koRound16) : 12;
             pointsConfig.koQF = pointsConfig.koQF != null ? parseInt(pointsConfig.koQF) : 16;
             pointsConfig.koSF = pointsConfig.koSF != null ? parseInt(pointsConfig.koSF) : 20;
-            pointsConfig.koFinal = pointsConfig.koFinal != null ? parseInt(pointsConfig.koFinal) : 30;
+            pointsConfig.koThirdPlace = pointsConfig.koThirdPlace != null ? parseInt(pointsConfig.koThirdPlace) : 30;
+            pointsConfig.koFinal = pointsConfig.koFinal != null ? parseInt(pointsConfig.koFinal) : 35;
                             // Cargar distribución de premios
             // Cargar distribución de premios
             const prizeDoc = await getDoc('config/prizes');
@@ -1520,37 +1525,41 @@ function cleanTeamName(str) {
             }
                 total += points;
             }
-            // --- NUEVA PUNTUACIÓN: Acertar el equipo que avanza ---
-if (m.group === 'KO' && m.round !== '3er Puesto') {
-    // Determinar quién avanzó en la realidad
+// --- PUNTUACIÓN POR ACERTAR EL GANADOR DEL PARTIDO (incluye 3er puesto y final) ---
+if (m.group === 'KO') {
     let actualWinner = null;
     if (rh !== ra) {
         actualWinner = rh > ra ? homeTeam : awayTeam;
     } else if (m.winnerTeam) {
-        actualWinner = m.winnerTeam;   // ganador en penaltis
+        actualWinner = m.winnerTeam;
     }
 
     if (actualWinner) {
-        // Determinar a quién predijo el usuario
         let userWinner = null;
         if (ph !== pa) {
             userWinner = ph > pa ? homeTeam : awayTeam;
         } else if (p.winner) {
-            userWinner = p.winner;   // el usuario seleccionó ganador en empate
+            userWinner = p.winner;
         }
 
         if (cleanTeamName(userWinner) === cleanTeamName(actualWinner)) {
             let roundPoints = 0;
-            switch (m.round) {
-                case 'Dieciseisavos': roundPoints = pointsConfig.koRound32; break;
-                case 'Octavos': roundPoints = pointsConfig.koRound16; break;
-                case 'Cuartos': roundPoints = pointsConfig.koQF; break;
-                case 'Semifinales': roundPoints = pointsConfig.koSF; break;
-                case 'Final': roundPoints = pointsConfig.koFinal; break;
+            let typeLabel = 'Avanza ronda';
+            if (m.round === '3er Puesto') {
+                roundPoints = pointsConfig.koThirdPlace;
+                typeLabel = 'Ganador 3er puesto';
+            } else {
+                switch (m.round) {
+                    case 'Dieciseisavos': roundPoints = pointsConfig.koRound32; break;
+                    case 'Octavos': roundPoints = pointsConfig.koRound16; break;
+                    case 'Cuartos': roundPoints = pointsConfig.koQF; break;
+                    case 'Semifinales': roundPoints = pointsConfig.koSF; break;
+                    case 'Final': roundPoints = pointsConfig.koFinal; break;
+                }
             }
             if (roundPoints > 0) {
                 details.push({
-                    type: 'Avanza ronda',
+                    type: typeLabel,
                     match: `${homeTeam} vs ${awayTeam}`,
                     points: roundPoints
                 });
@@ -2142,7 +2151,8 @@ function renderStandings() {
         document.getElementById('rule-round16').textContent = pointsConfig.koRound16 || 12;
         document.getElementById('rule-qf').textContent = pointsConfig.koQF || 16;
         document.getElementById('rule-sf').textContent = pointsConfig.koSF || 20;
-        document.getElementById('rule-final').textContent = pointsConfig.koFinal || 30;
+        document.getElementById('rule-thirdplace').textContent = pointsConfig.koThirdPlace || 30;
+        document.getElementById('rule-final').textContent = pointsConfig.koFinal || 35;
         document.getElementById('rule-kowinner').textContent = pointsConfig.koWinnerBonus || 0;
 const kowinnerLi = document.getElementById('rule-kowinner-li');
 if (kowinnerLi) {
@@ -2204,6 +2214,7 @@ if (kowinnerLi) {
         document.getElementById('real-golden-ball').value = actualWinners.goldenBall || '';
         document.getElementById('real-champion').value = actualWinners.champion || '';
         document.getElementById('pts-kowinner').value = pointsConfig.koWinnerBonus || 5;
+        document.getElementById('pts-thirdplace').value = pointsConfig.koThirdPlace || 30;
         // En renderAdmin, después de los inputs de puntuación
         const prizeFirst = document.getElementById('prize-first');
         const prizeSecond = document.getElementById('prize-second');
@@ -2714,7 +2725,8 @@ document.getElementById('save-results-btn').addEventListener('click', () => {
                 koRound16: parseInt(document.getElementById('pts-round16').value) || 12,
                 koQF: parseInt(document.getElementById('pts-qf').value) || 16,
                 koSF: parseInt(document.getElementById('pts-sf').value) || 20,
-                koFinal: parseInt(document.getElementById('pts-final').value) || 30
+                koThirdPlace: parseInt(document.getElementById('pts-thirdplace').value) || 30,
+                koFinal: parseInt(document.getElementById('pts-final').value) || 35
             };
             await setDoc('config/points', pointsConfig);
             renderRules();
