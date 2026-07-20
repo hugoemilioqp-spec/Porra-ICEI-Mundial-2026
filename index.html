@@ -2740,20 +2740,26 @@ document.getElementById('save-results-btn').addEventListener('click', () => {
         });
 document.getElementById('save-winners-btn').addEventListener('click', async () => {
     if (!adminLogged) return;
+    const btn = document.getElementById('save-winners-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
     try {
         actualWinners = {
-            goldenBoot: document.getElementById('real-golden-boot').value,
-            goldenBall: document.getElementById('real-golden-ball').value,
+            goldenBoot: document.getElementById('real-golden-boot').value.trim(),
+            goldenBall: document.getElementById('real-golden-ball').value.trim(),
             champion: document.getElementById('real-champion').value
         };
         await setDoc('config/winners', actualWinners);
-        showToast('Ganadores actualizados');
-        // Refrescamos todos los datos y luego repintamos
+        showToast('Premios actualizados correctamente');
+        // Forzar recarga completa y repintado de todo
         await refreshAllData();
         renderAllPanels();
     } catch (err) {
         alert('Error al guardar los premios: ' + err.message);
         console.error(err);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Ganadores';
     }
 });
 
