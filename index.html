@@ -2738,17 +2738,24 @@ document.getElementById('save-results-btn').addEventListener('click', () => {
                 selectPointsPlayer(name);
             }
         });
-        document.getElementById('save-winners-btn').addEventListener('click', async () => {
-            if (!adminLogged) return;
-            actualWinners = {
-                goldenBoot: document.getElementById('real-golden-boot').value,
-                goldenBall: document.getElementById('real-golden-ball').value,
-                champion: document.getElementById('real-champion').value
-            };
-            await setDoc('config/winners', actualWinners);
-            showToast('Ganadores actualizados');
-            renderAllPanels();
-        });
+document.getElementById('save-winners-btn').addEventListener('click', async () => {
+    if (!adminLogged) return;
+    try {
+        actualWinners = {
+            goldenBoot: document.getElementById('real-golden-boot').value,
+            goldenBall: document.getElementById('real-golden-ball').value,
+            champion: document.getElementById('real-champion').value
+        };
+        await setDoc('config/winners', actualWinners);
+        showToast('Ganadores actualizados');
+        // Refrescamos todos los datos y luego repintamos
+        await refreshAllData();
+        renderAllPanels();
+    } catch (err) {
+        alert('Error al guardar los premios: ' + err.message);
+        console.error(err);
+    }
+});
 
         document.getElementById('generate-code-btn').addEventListener('click', () => {
             const custom = document.getElementById('code-to-generate').value.trim();
