@@ -737,14 +737,15 @@ const KO_ADVANCE_MAP = {
         }
         return docs;
     }
-    function normalizeName(str) {
-        return str
-            .trim()                           // quita espacios al principio y final
-            .toLowerCase()                    // convierte a minúsculas
-            .normalize('NFD')                 // separa letras de acentos
-            .replace(/[\u0300-\u036f]/g, '') // elimina acentos
-            .replace(/\s+/g, ' ');           // colapsa múltiples espacios en uno solo
-    }
+function normalizeName(str) {
+    if (!str) return '';
+    return str
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ');
+}
     async function getDoc(path) {
         try {
             const data = await firestoreRequest('GET', path);
